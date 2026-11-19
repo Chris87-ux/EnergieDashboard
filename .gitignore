@@ -1,0 +1,13 @@
+.env
+.env.*
+.venv/
+__pycache__/
+node_modules/
+dist/
+/work/
+/outputs/*
+!/outputs/Energieboard-LXC.tar.gz
+!/outputs/SHA256SUMS
+!/outputs/Installationsanleitung.md
+!/outputs/Pruefbericht.md
+/build.log
