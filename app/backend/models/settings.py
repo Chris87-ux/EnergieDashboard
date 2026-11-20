@@ -59,6 +59,8 @@ class RecorderSettings(BaseModel):
 
 
 class Appearance(BaseModel):
+    zero_threshold_w: float = Field(default=1, ge=0, le=100, allow_inf_nan=False)
+    zero_delay_s: int = Field(default=60, ge=1, le=3600)
     layout: Literal["square", "rounded", "flow"] = "rounded"
     background: str = Field(default="#0B132B", pattern=r"^#[0-9A-Fa-f]{6}$")
     surface: str = Field(default="#111D42", pattern=r"^#[0-9A-Fa-f]{6}$")

@@ -2,6 +2,8 @@
 Run with MONGOD_BIN pointing to mongod; optional BROWSER_TEST invokes browser checks.
 Fixtures exist only in this test process, never in the shipped application.
 """
+import csv
+import io
 import gzip
 import json
 import os
@@ -43,7 +45,7 @@ def exact(sock, n):
 
 
 values = {"legacy": 125, "grid": 500, "a": 1000, "b": 600, "motor": 300, "pv": 200,
-          "bat1": 1000, "soc1": 80, "bat2": 500, "soc2": 20, "mppt": 1500, "hybrid": 750, "run": 1}
+          "bat1": 1000, "soc1": 80, "bat2": 500, "soc2": 20, "mppt": 1500, "hybrid": 750, "run": 1,"idle":0,"engine_temperature":86,"efficiency":80,"fuel_consumption":2.3,"operating_hours":1234,"reserve":30}
 
 
 class IoBroker(BaseHTTPRequestHandler):
@@ -142,6 +144,9 @@ def main():
                     return put("/measurements/"+id,{"name":id,"connection_id":connection["id"],"address":address,"unit":unit,**fields})
                 for key in values: point(key,key,"%" if key.startswith("soc") else "W")
                 grid = create(name="Netzanschluss",category="grid",grid_mode="signed",datapoints={"power_total":"point:grid"})
+                assert grid["kind"]=="grid"
+                create(name="BHKW",category="generator",direction="in",icon="generator",datapoints={"power_total":"point:pv","engine_temperature":"point:engine_temperature","efficiency":"point:efficiency","fuel_consumption":"point:fuel_consumption","operating_hours":"point:operating_hours"})
+                idle=create(name="Nullgerät",datapoints={"power_total":"point:idle"})
                 a = create(name="Haus",kind="node",datapoints={"power_total":"point:a"})
                 b = create(name="Werkstatt",kind="node",parent_id=a["id"],datapoints={"power_total":"point:b"})
                 create(name="Motor",parent_id=b["id"],datapoints={"power_total":"point:motor"})
@@ -182,6 +187,31 @@ def main():
                     values[f"load{i}"]=10
                     point(f"load{i}",f"load{i}")
                     create(name=f"Verbraucher {i}",parent_id=b["id"],datapoints={"power_total":f"point:load{i}"})
+                # Persisted minute-long zero interval hides only live representation.
+                stamp=time.time()
+                db.visibility.replace_one({"id":idle["id"]},{"id":idle["id"],"zero_since":stamp-61,"last_seen":stamp},upsert=True)
+                assert next(f for f in get("/live")["flows"] if f["flow_id"]==idle["id"])["hidden"]
+                values["idle"]=5
+                time.sleep(1.05)
+                assert not next(f for f in get("/live")["flows"] if f["flow_id"]==idle["id"])["hidden"]
+                values["idle"]=0
+                # Real CSV preview/apply and stale-preview protection.
+                exported=http.get("/config/csv").raise_for_status().text
+                assert "fixture-secret" not in exported
+                compact=http.get("/config/csv?scope=measurements").raise_for_status().text
+                assert "appearance.layout" not in compact and "connection_id" in compact
+                assert len(list(csv.DictReader(io.StringIO(http.get("/config/csv?template=true&scope=measurements").raise_for_status().text.lstrip("\ufeff")),delimiter=";")))==0
+                csv_request={"csv_text":exported,"mode":"merge"}
+                planned=http.post("/config/csv/preview",json=csv_request).raise_for_status().json()
+                before=get("/settings");put("/settings",{**before,"site_name":"revision-change"})
+                assert http.post("/config/csv/apply",json={**csv_request,"expected_revision":planned["revision"]}).status_code==409
+                put("/settings",before)
+                planned=http.post("/config/csv/preview",json=csv_request).raise_for_status().json()
+                applied=http.post("/config/csv/apply",json={**csv_request,"expected_revision":planned["revision"]}).raise_for_status().json()
+                assert db.config_backups.find_one({"id":applied["backup_id"]})
+                assert db.connections.find_one({"id":"mqtt"})["password"]=="fixture-secret"
+                assert any(f["id"]==grid["id"] for f in get("/flows"))
+                print("CSV export/preview/apply, stable IDs, secret preservation and stale preview rejection OK",flush=True)
                 settings=get("/settings")
                 settings["appearance"]={"layout":"flow","background":"#101216","surface":"#20242B","accent":"#34D399"}
                 settings["recorder"]={"enabled":True,"interval_s":5}
@@ -193,6 +223,8 @@ def main():
                 assert db.samples.count_documents({"dp":f"energieboard:{a['id']}:rest_consumption"})>0
                 print("Real HTTP API, MongoDB, MQTT, Modbus TCP, 50 devices, registry, nodes, storage and recorder OK",flush=True)
                 if os.environ.get("BROWSER_TEST"):
+                    stamp=time.time()
+                    db.visibility.update_one({"id":idle["id"]},{"$set":{"last_seen":stamp,"zero_since":stamp-61}},upsert=True)
                     subprocess.run(["node",os.environ["BROWSER_TEST"]],env={**env,"TEST_URL":base},cwd=ROOT,check=True)
                 latest=get("/measurements/live")
                 stamp=latest["states"]["mqtt"]["received_at"]

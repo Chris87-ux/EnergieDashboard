@@ -1,30 +1,14 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Gauge, Leaf, PlugZap, Sun, UtilityPole, Waves } from "lucide-react";
-import FlowDiagram from "@/components/FlowDiagram";
+import {useState} from "react";
+import TopologyDiagram from "@/components/TopologyDiagram";
 import StorageOverview from "@/components/StorageOverview";
 import NodeOverview from "@/components/NodeOverview";
 import MethodBadge from "@/components/MethodBadge";
 import { buttonVariants } from "@/components/ui/button";
 import { fmtHz, fmtKwh, fmtPct, fmtTime, fmtW } from "@/lib/format";
 import { useEnergyToday, useLive } from "@/lib/queries";
-import type { LiveFlow, LiveReport } from "@/lib/types";
 import type { LucideIcon } from "lucide-react";
-
-function graphFlows(data:LiveReport|undefined):LiveFlow[] {
-  if (!data) return [];
-  if (data.flows.length <= 12) return data.flows;
-  const groups = new Map<string,LiveFlow>();
-  for (const f of data.flows) {
-    let root = data.nodes.find(n=>n.id===f.parent_id);
-    const seen = new Set<string>();
-    while(root?.parent_id && !seen.has(root.id)) {seen.add(root.id); const parent=data.nodes.find(n=>n.id===root?.parent_id); if(!parent)break;root=parent;}
-    const key = `${root?.id??f.category}:${f.direction}`;
-    const previous = groups.get(key);
-    const power = previous ? previous.power_w==null || f.power_w==null ? null : previous.power_w+f.power_w : f.power_w;
-    groups.set(key,{...f,flow_id:key,name:`${root?.name??f.category} · ${f.direction==="in"?"Zufluss":"Abfluss"}`,power_w:power,available:power!=null});
-  }
-  return [...groups.values()];
-}
 
 function Kpi({ label, value, icon: Icon, color, testid }: { label: string; value: string; icon: LucideIcon; color: string; testid: string }) {
   return (
@@ -45,7 +29,7 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
   const today = useEnergyToday();
   const data = live.isError ? undefined : live.data;
   const s = data?.ok ? data.summary : null;
-  const diagramFlows=graphFlows(data);
+  const [showInactive,setShowInactive]=useState(false);
   const todayReport = today.isError ? undefined : today.data;
 
   return (
@@ -84,9 +68,10 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
         <Kpi label="Eigenverbrauch" value={fmtPct(s?.self_consumption_pct)} icon={Sun} color="#FBBF24" testid="kpi-self-consumption" />
       </section>
 
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showInactive} onChange={e=>setShowInactive(e.target.checked)}/>Inaktive anzeigen{data ? ` (${data.flows.filter(f=>f.hidden).length} ausgeblendet)` : ""}</label>
       <section className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-        <div className={`flow-visual ${diagramFlows.length > 12 ? "hidden" : "lg:col-span-8"}`}>
-          {diagramFlows.length <= 12 && <FlowDiagram flows={diagramFlows} summary={s} />}
+        <div className="flow-visual lg:col-span-8">
+          {data && <TopologyDiagram data={data} showInactive={showInactive} />}
         </div>
         <aside className="today-aside space-y-4 lg:col-span-4">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 panel-shadow" data-testid="today-panel">
@@ -135,8 +120,8 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
       </section>
 
       {data && !data.grid_configured && <p role="alert" className="rounded-lg border border-amber-500 p-4">Ein Netzanschluss ist erforderlich. Unter Konfiguration einen Netzanschluss anlegen und Messpunkte zuordnen.</p>}
-      {(data?.flows.length??0)>12 && <p className="text-xs text-muted-foreground">Das Flussdiagramm fasst größere Anlagen nach Abschnitten zusammen. Die Abschnittsansicht zeigt alle Geräte und Knoten.</p>}
-      {data && <NodeOverview data={data} energy={todayReport?.flows.filter(f=>!f.storage_id) ?? []} />}
+
+      {data && <NodeOverview showInactive={showInactive} data={data} energy={todayReport?.flows.filter(f=>!f.storage_id) ?? []} />}
       {data && <StorageOverview data={data} />}
     </>
   );

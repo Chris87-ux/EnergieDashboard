@@ -1,12 +1,27 @@
-# Prüfbericht · Energieboard 2.0.0
+# Prüfbericht · Energieboard 2.1.0
 
 Stand: 20. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokolladapter, Konfigurationsübernahme, Sicherung und Updateablauf. Das ausgelieferte Programm enthält keinen Demo-Modus; Messwerte der Tests stammen ausschließlich aus isolierten Testprozessen.
+
+## Neue Prüfungen für 2.1
+
+- CSV-Rundlauf für vollständige Konfiguration und kompakte Messpunktdateien mit stabilen IDs und erhaltenen Kennwörtern.
+- Echte API-Importvorschau und Übernahme mit MongoDB-Konfigurationssicherung; zwischenzeitlich geänderte Konfiguration weist die veraltete Vorschau zurück.
+- Fehlerhafte Spalten, Datentypen, doppelte IDs, fehlende Referenzen und Knotenkreise werden abgewiesen. Ein simulierter CSV-Schreibfehler im isolierten Unit-Test stellt die vorherige Konfiguration wieder her.
+- Nullleistungsfilter mit kontrollierten Zeitwerten bis einschließlich 60 Sekunden, Rücksetzen bei unbekannten Werten/Beobachtungslücken und sofortiges Wiedereinblenden bei Leistung. Persistenter Zustand zusätzlich gegen MongoDB geprüft; die Minute wurde dabei über gespeicherte Zeitstempel simuliert.
+- Browser: verstecktes Nullgerät und „Inaktive anzeigen“, rechteckige Knotenauswahl und Pfadleiste sowie Diagrammseiten vor/zurück.
+- Browser: CSV-Dateiupload, Vorschau und Übernahme; Bearbeitungsformular als direktes Geschwisterelement unter der Messpunktzeile.
+- Browser: Netz als eigener Typ, Netz/Speicher nicht als auswählbare Gerätekategorien, Generator-Messfelder und Symbolauswahl.
+- Generator-Messwerte für Motortemperatur, Effizienz, Kraftstoffverbrauch und Betriebsstunden beeinflussen die Leistungsbilanz nicht.
+- Speicher: AC mit drei Phasen und SOC-Reserve-Datenpunkt einschließlich fehlendem Reservewert; DC ohne Phasenfelder, Energie-/Frequenzfelder und RUN-Einstellung.
+- TypeScript/Vite-Produktionsbuild und Browserprüfung aller bisherigen Ansichten einschließlich Mobilformat bleiben erfolgreich.
+
+Beim Prüfen der Knotennavigation wurde die anklickbare SVG-Fläche auf den Knoten selbst begrenzt. Verbindungskurven lösen dadurch keinen unbeabsichtigten Knotenwechsel aus. Diagrammseiten enthalten höchstens vier Elemente je Richtung, um überlagerte Beschriftungen zu vermeiden.
 
 ## Automatisierte Prüfungen
 
 ### Backend
 
-32 Unit-/Regressionstests mit Python 3.11 erfolgreich:
+43 Unit-/Regressionstests mit Python 3.11 erfolgreich:
 
 - Energiegrenzen, Zählerresets und Zählerrauschen, Datenlücken und übernommene Historie.
 - Fehlende Netzwerte erzeugen keine scheinbar vollständige Autarkie; fehlende DC-Speicherwerte verfälschen den Vollständigkeitsstatus der AC-Summen nicht.

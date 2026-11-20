@@ -7,14 +7,15 @@ def sample_id(flow: Flow, channel: str) -> str:
 
 def derived_samples(flows: list[Flow], values: dict[str, float | None], now: float, interval_s: int = 15) -> list[dict]:
     samples = []
+    from lib.live import evaluate
+    live, _, storages = evaluate(flows, values, now)
+    storage_by_id = {s.id:s for s in storages}
     for flow in flows:
         if flow.kind == "storage":
-            value = values.get(flow.datapoints.get("power_total"))
-            if value is None:
+            storage = storage_by_id[flow.id]
+            if storage.charge_w is None:
                 continue
-            signed = value * (1000 if flow.power_unit == "kW" else 1)
-            signed *= 1 if flow.charge_sign == "positive" else -1
-            channels = {"charge": max(signed, 0), "discharge": max(-signed, 0)}
+            channels = {"charge": storage.charge_w, "discharge": storage.discharge_w}
         elif flow.kind == "device" and flow.run_power_w is not None:
             value = values.get(flow.datapoints.get("run"))
             if value is None:
@@ -23,8 +24,6 @@ def derived_samples(flows: list[Flow], values: dict[str, float | None], now: flo
         else:
             continue
         samples.extend({"dp": sample_id(flow, key), "ts": now, "v": value, "valid_until": now + interval_s * 2.5} for key, value in channels.items())
-    from lib.live import evaluate
-    live, _, _ = evaluate(flows, values, now)
     for item in live:
         if ":rest_" in item.flow_id or item.flow_id.endswith((":import", ":export", ":ac_production", ":ac_consumption")):
             if item.power_w is not None:
@@ -37,7 +36,7 @@ def derived_samples(flows: list[Flow], values: dict[str, float | None], now: flo
 def history_flows(flows: list[Flow]) -> list[Flow]:
     out = []
     for flow in flows:
-        if flow.kind == "node" or (flow.category == "grid" and flow.grid_mode == "signed") or (flow.category == "pv" and flow.pv_type == "hybrid"):
+        if flow.kind == "node" or (flow.kind == "grid" and flow.grid_mode == "signed") or (flow.category == "pv" and flow.pv_type == "hybrid"):
             if not any(flow.datapoints.get(key) for key in ("power_total", "power_l1", "power_l2", "power_l3")):
                 continue
             channels = (("rest_consumption", "out", "Restverbrauch"), ("rest_production", "in", "Resterzeugung")) if flow.kind == "node" else (("import", "in", "Bezug"), ("export", "out", "Einspeisung"))
@@ -46,12 +45,12 @@ def history_flows(flows: list[Flow]) -> list[Flow]:
             for channel, direction, suffix in channels:
                 out.append(flow.model_copy(update={
                     "id": flow.id + ":" + channel, "name": flow.name + " · " + suffix,
-                    "kind": "device", "category": "custom" if flow.kind == "node" else flow.category,
+                    "kind": "device", "category": "custom" if flow.kind == "node" else "grid" if flow.kind == "grid" else flow.category,
                     "direction": direction, "parent_id": flow.id if flow.kind == "node" else flow.parent_id,
                     "power_unit": "W", "invert": False, "power_phase_mode": "single", "energy_phase_mode": "single",
                     "datapoints": flow.datapoints.model_copy(update={
                         **{key: "" for key in flow.datapoints.model_dump()}, "power_total": sample_id(flow, channel),
-                        "energy_total": flow.datapoints.get("energy_" + channel) if flow.category == "grid" else ""}),
+                        "energy_total": flow.datapoints.get("energy_" + channel) if flow.kind == "grid" else ""}),
                 }))
             continue
         if flow.kind != "storage" and (flow.electrical_side == "dc" or flow.pv_type == "mppt"):
@@ -78,5 +77,5 @@ def history_flows(flows: list[Flow]) -> list[Flow]:
                 }),
             }))
         else:
-            out.append(flow)
+            out.append(flow.model_copy(update={"category":"grid"}) if flow.kind == "grid" else flow)
     return out

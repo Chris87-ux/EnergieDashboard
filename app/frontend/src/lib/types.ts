@@ -3,7 +3,7 @@
 export type Phase = "L1" | "L2" | "L3";
 export type PhaseMode = "single" | "three";
 export type Direction = "in" | "out";
-export type Category = "pv" | "grid" | "battery" | "heatpump" | "ev" | "consumer" | "custom";
+export type Category = "pv" | "generator" | "grid" | "battery" | "heatpump" | "ev" | "consumer" | "custom";
 
 export const PHASES: Phase[] = ["L1", "L2", "L3"];
 
@@ -23,11 +23,12 @@ export interface Datapoints {
 
 // models/flow.py — FlowCreate
 export interface FlowInput {
-  kind: "device" | "node" | "storage";
+  kind: "device" | "node" | "storage" | "grid";
   parent_id: string | null;
   run_power_w: number | null;
   charge_sign: "negative" | "positive";
   capacity_kwh: number | null;
+  fuel_unit: "L/h" | "L" | "m³/h" | "m³" | "kg/h" | "kg";
   reserve_soc_pct: number;
   max_power_w: number;
   electrical_side: "ac" | "dc";
@@ -183,6 +184,10 @@ export interface RangePreset {
 }
 
 export interface LiveFlow {
+  node_id?: string;
+  hidden: boolean;
+  zero_since: number | null;
+  telemetry: Record<string,number|string|null>;
   storage_id: string | null;
   parent_id: string | null;
   estimated: boolean;
@@ -232,6 +237,9 @@ export interface LiveReport {
 }
 
 export interface LiveNode {
+  icon: string;
+  color: string;
+  sort_order: number;
   parent_id: string | null;
   id: string;
   name: string;
@@ -244,6 +252,9 @@ export interface LiveNode {
 }
 
 export interface LiveStorage {
+  electrical_side: "ac" | "dc" | "mixed";
+  phases: Record<string,number|null>;
+  reserve_soc_pct: number|null;
   hybrid_name: string | null;
   id: string;
   name: string;
@@ -259,6 +270,6 @@ export interface LiveStorage {
   discharge_w: number | null;
 }
 
-export interface Appearance { layout: "square" | "rounded" | "flow"; background: string; surface: string; accent: string; }
+export interface Appearance { zero_threshold_w?: number; zero_delay_s?: number; layout: "square" | "rounded" | "flow"; background: string; surface: string; accent: string; }
 export interface Connection { id: string; name: string; protocol: "iobroker" | "mqtt" | "modbus"; host: string; port: number; enabled: boolean; username: string; password: string; password_set?: boolean; tls: boolean; timeout_s: number; }
 export interface Measurement { id: string; name: string; connection_id: string; enabled: boolean; record: boolean; unit: string; address: string; json_path: string; scale: number; offset: number; stale_s: number; unit_id: number; register: number; function: 3 | 4; datatype: string; byte_order: "big" | "little"; word_order: "big" | "little"; history_key: string; }

@@ -4,16 +4,20 @@ from lib.store import load_settings
 from lib.acquisition import read_measurements
 from models.acquisition import Connection, Measurement
 
+from lib.config_lock import locked
+
 router = APIRouter(tags=["Datenerfassung"])
 
 
 @router.get("/connections")
+@locked
 async def connections():
     docs = await db.connections.find({}, {"_id": 0}).to_list()
     return [{**d, "password": "", "password_set": bool(d.get("password"))} for d in docs]
 
 
 @router.put("/connections/{id}")
+@locked
 async def save_connection(id: str, body: Connection):
     old = await db.connections.find_one({"id": id})
     body.id = id
@@ -24,6 +28,7 @@ async def save_connection(id: str, body: Connection):
 
 
 @router.delete("/connections/{id}", status_code=204)
+@locked
 async def delete_connection(id: str):
     if await db.measurements.find_one({"connection_id": id}):
         raise HTTPException(409, "Zuerst die zugeordneten Messpunkte verschieben oder löschen.")
@@ -31,11 +36,13 @@ async def delete_connection(id: str):
 
 
 @router.get("/measurements")
+@locked
 async def measurements():
     return await db.measurements.find({}, {"_id": 0}).to_list()
 
 
 @router.put("/measurements/{id}")
+@locked
 async def save_measurement(id: str, body: Measurement):
     if not await db.connections.find_one({"id": body.connection_id}):
         raise HTTPException(422, "Verbindung existiert nicht.")
@@ -51,6 +58,7 @@ async def save_measurement(id: str, body: Measurement):
 
 
 @router.delete("/measurements/{id}", status_code=204)
+@locked
 async def delete_measurement(id: str):
     for flow in await db.flows.find({}, {"_id": 0}).to_list():
         if "point:" + id in flow.get("datapoints", {}).values():
@@ -59,6 +67,7 @@ async def delete_measurement(id: str):
 
 
 @router.get("/measurements/live")
+@locked
 async def preview_measurements():
     _, errors, states = await read_measurements(await load_settings(), force=True)
     return {"states": states, "errors": errors}

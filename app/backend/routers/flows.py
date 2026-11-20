@@ -1,5 +1,3 @@
-from asyncio import Lock
-
 from fastapi import APIRouter, HTTPException
 
 from lib.db import db
@@ -8,7 +6,8 @@ from lib.store import load_flows
 from models.flow import Flow, FlowCreate
 
 router = APIRouter(tags=["flows"])
-topology_lock = Lock()
+from lib.config_lock import config_lock, locked
+topology_lock = config_lock
 
 
 async def validate_parent(flow: Flow) -> None:
@@ -18,11 +17,11 @@ async def validate_parent(flow: Flow) -> None:
         raise HTTPException(422, "Ein Hybrid-WR benötigt mindestens einen zugeordneten DC-Speicher.")
     if flow.kind == "node" and flow.electrical_side != "ac":
         raise HTTPException(422, "Abschnittszähler bilden das AC-Netz ab. DC-Messungen als Gerät/MPPT anlegen.")
-    if flow.category == "grid":
+    if flow.kind == "grid":
         if not any(flow.datapoints.get(k) for k in ("power_total", "power_l1", "power_l2", "power_l3")):
             raise HTTPException(422, "Der Netzanschluss benötigt einen Leistungsdatenpunkt.")
         if flow.enabled:
-            other = await db.flows.find({"category": "grid", "enabled": True, "id": {"$ne": flow.id}}).to_list()
+            other = await db.flows.find({"kind": "grid", "enabled": True, "id": {"$ne": flow.id}}).to_list()
             if any(flow.grid_mode == "signed" or d.get("grid_mode") == "signed" or d.get("direction") == flow.direction for d in other):
                 raise HTTPException(422, "Netzanschluss entweder als einen vorzeichenbehafteten Wert oder als je einen Wert für Bezug und Einspeisung anlegen.")
     if flow.parent_id == flow.id:
@@ -56,6 +55,7 @@ async def flow_schema():
 
 
 @router.get("/flows", response_model=list[Flow])
+@locked
 async def list_flows():
     return await load_flows()
 
@@ -71,6 +71,7 @@ async def create_flow(body: FlowCreate):
 
 
 @router.get("/flows/{id}", response_model=Flow)
+@locked
 async def get_flow(id: str):
     doc = await db.flows.find_one({"id": id}, {"_id": 0})
     if not doc:
@@ -88,8 +89,8 @@ async def update_flow(id: str, body: FlowCreate):
             raise HTTPException(409, "Zuerst die Speicherzuordnung im Hybrid-WR entfernen.")
         if (body.kind != "device" or body.category != "pv" or body.pv_type != "mppt") and await db.flows.find_one({"mppt_ids": id}):
             raise HTTPException(409, "Zuerst die MPPT-Zuordnung im Hybrid-WR entfernen.")
-        if doc.get("category") == "grid" and doc.get("enabled", True) and (not body.enabled or body.category != "grid"):
-            if not await db.flows.find_one({"category": "grid", "enabled": True, "id": {"$ne": id}}):
+        if doc.get("kind") == "grid" and doc.get("enabled", True) and (not body.enabled or body.kind != "grid"):
+            if not await db.flows.find_one({"kind": "grid", "enabled": True, "id": {"$ne": id}}):
                 raise HTTPException(409, "Mindestens ein aktiver Netzanschluss muss bestehen bleiben.")
         if body.kind != doc.get("kind", "device") and await db.flows.find_one({"parent_id": id}):
             raise HTTPException(status_code=409, detail="Zuerst die zugeordneten Geräte und Speicher verschieben.")
@@ -106,8 +107,8 @@ async def update_flow(id: str, body: FlowCreate):
 async def delete_flow(id: str):
     async with topology_lock:
         doc = await db.flows.find_one({"id": id})
-        if doc and doc.get("category") == "grid" and doc.get("enabled", True):
-            if not await db.flows.find_one({"category": "grid", "enabled": True, "id": {"$ne": id}}):
+        if doc and doc.get("kind") == "grid" and doc.get("enabled", True):
+            if not await db.flows.find_one({"kind": "grid", "enabled": True, "id": {"$ne": id}}):
                 raise HTTPException(409, "Zuerst einen neuen Netzanschluss anlegen.")
         if await db.flows.find_one({"$or": [{"storage_ids": id}, {"mppt_ids": id}]}):
             raise HTTPException(409, "Zuerst die Hybrid-WR-Zuordnung entfernen.")

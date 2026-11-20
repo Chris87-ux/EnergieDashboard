@@ -57,8 +57,8 @@ def all_datapoints(flows: list[Flow]) -> list[str]:
     for flow in flows:
         keys = flow.datapoints.model_dump()
         if flow.kind == "storage":
-            keys = {"power_total": "", "soc": ""}
+            keys = {key: "" for key in ("power_total", "power_l1", "power_l2", "power_l3", "soc", "soc_reserve")}
         elif flow.run_power_w is not None:
-            keys = {"run": ""}
+            keys = {key: "" for key in ("run", "engine_temperature", "efficiency", "fuel_consumption", "operating_hours")}
         ids.update(flow.datapoints.get(key) for key in keys if flow.datapoints.get(key))
     return sorted(ids)

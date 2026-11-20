@@ -9,10 +9,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 Phase = Literal["L1", "L2", "L3"]
 PhaseMode = Literal["single", "three"]
 Direction = Literal["in", "out"]
-Category = Literal["pv", "grid", "battery", "heatpump", "ev", "consumer", "custom"]
+Category = Literal["pv", "generator", "grid", "battery", "heatpump", "ev", "consumer", "custom"]
 
 PHASES: tuple[Phase, ...] = ("L1", "L2", "L3")
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 
 class Datapoints(BaseModel):
@@ -33,6 +33,11 @@ class Datapoints(BaseModel):
     frequency: str = ""
     run: str = ""
     soc: str = ""
+    soc_reserve: str = ""
+    engine_temperature: str = ""
+    efficiency: str = ""
+    fuel_consumption: str = ""
+    operating_hours: str = ""
 
     def get(self, key: str) -> str:
         value = self.model_dump().get(key) or ""
@@ -43,11 +48,12 @@ class FlowBase(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     name: str = Field(min_length=1, max_length=60)
-    kind: Literal["device", "node", "storage"] = "device"
+    kind: Literal["device", "node", "storage", "grid"] = "device"
     parent_id: str | None = None
     run_power_w: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     charge_sign: Literal["negative", "positive"] = "negative"
     capacity_kwh: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+    fuel_unit: Literal["L/h", "L", "m³/h", "m³", "kg/h", "kg"] = "L/h"
     reserve_soc_pct: float = Field(default=0, ge=0, le=100, allow_inf_nan=False)
     max_power_w: float = Field(default=5000, gt=0, allow_inf_nan=False)
     electrical_side: Literal["ac", "dc"] = "ac"
@@ -84,15 +90,29 @@ class FlowBase(BaseModel):
             raise ValueError("Zusatzfelder dürfen höchstens 16 KiB belegen.")
         return value
 
+    @model_validator(mode="before")
+    @classmethod
+    def legacy_types(cls, value):
+        if isinstance(value, dict):
+            value = dict(value)
+            if value.get("kind", "device") == "device" and value.get("category") == "grid":
+                value["kind"] = "grid"
+            if value.get("kind") == "grid":
+                value["category"] = "custom"
+            if value.get("kind") == "storage":
+                value["category"] = "custom"
+        return value
+
     @model_validator(mode="after")
     def validate_kind(self):
-        if self.kind == "storage":
-            self.electrical_side = "dc"
+        if self.kind == "storage" and self.electrical_side == "dc":
+            self.power_phase_mode = "single"
+            self.energy_phase_mode = "single"
         if self.kind != "device" and (self.run_power_w is not None or self.datapoints.get("run")):
             raise ValueError("RUN-Schätzungen werden für Geräte konfiguriert.")
-        if self.category == "grid" and (self.parent_id or self.kind != "device"):
-            raise ValueError("Der Netzanschluss muss ein Gerät auf der Hauptebene sein.")
-        if self.kind == "storage" and not (self.datapoints.get("power_total") and self.datapoints.get("soc")):
+        if self.kind == "grid" and (self.parent_id or self.kind != "grid" or self.electrical_side != "ac"):
+            raise ValueError("Der Netzanschluss benötigt Typ Netzanschluss, AC und die Hauptebene.")
+        if self.kind == "storage" and not ((self.datapoints.get("power_total") or self.electrical_side == "ac" and self.power_phase_mode == "three" and all(self.datapoints.get("power_" + p.lower()) for p in PHASES)) and self.datapoints.get("soc")):
             raise ValueError("Ein Speicher benötigt einen Leistungs- und einen SOC-Datenpunkt.")
         if self.kind == "device" and bool(self.datapoints.get("run")) != (self.run_power_w is not None):
             raise ValueError("Für RUN sind ein Datenpunkt und eine feste Leistung in Watt erforderlich.")

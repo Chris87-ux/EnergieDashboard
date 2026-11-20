@@ -138,7 +138,7 @@ Protokolldetails, vollständige Beispiele und JSON-Pfade stehen in [DATENMODELL.
 
 ### Netzanschluss zuerst einrichten
 
-Unter **Konfiguration**, Neuer Fluss, Typ Gerät, Kategorie Netzanschluss wählen. Hauptebene verwenden. Entweder einen vorzeichenbehafteten Wert auswählen oder getrennte Geräte für Bezug und Einspeisung anlegen. Vorzeichen anhand eines bekannten Betriebszustands prüfen. Optional getrennte kWh-Zähler zuordnen. Ohne Netzanschluss bleibt ein Einrichtungshinweis bestehen.
+Unter **Konfiguration**, Neuer Fluss, Typ Netzanschluss wählen. Hauptebene verwenden. Entweder einen vorzeichenbehafteten Wert auswählen oder getrennte Geräte für Bezug und Einspeisung anlegen. Vorzeichen anhand eines bekannten Betriebszustands prüfen. Optional getrennte kWh-Zähler zuordnen. Ohne Netzanschluss bleibt ein Einrichtungshinweis bestehen.
 
 ### Knoten und Geräte
 
@@ -167,7 +167,9 @@ Energieberichte kennzeichnen Methode, Datenabdeckung, Lücken und Zählerresets.
 
 ### Darstellung und Einbettung
 
-Unter **Darstellung** eckige Karten, moderne Karten oder Flussdiagramm wählen. Hintergrund, Flächen und Akzentfarbe lassen sich global speichern. Bei großen Anlagen fasst das Diagramm nach Abschnitten zusammen, die Abschnittslisten enthalten weiterhin alle Einzelgeräte. Knoten sind einklappbar und Geräte suchbar.
+CSV-Konfiguration und Importvorschau sind in [CSV-IMPORT.md](CSV-IMPORT.md) beschrieben. Netz/Speicher sind eigene Typen. Generator/BHKW steht als Gerätekategorie mit zusätzlichen Messpunkten zur Verfügung. SOC-Reserve kann als Datenpunkt zugeordnet werden; DC-Speicher zeigen keine Phasenfelder. „Anzeigereihenfolge“ sortiert kleine Werte zuerst und verändert keine Bilanz.
+
+Unter **Darstellung** eckige Karten, moderne Karten oder Flussdiagramm wählen. Hintergrund, Flächen und Akzentfarbe lassen sich global speichern. Das Diagramm zeigt echte Knoten, die per Klick ihre Kinder öffnen. Eine Pfadleiste führt zurück; umfangreiche Ebenen besitzen mehrere Diagrammseiten. Geräte unter 1 W werden nach 60 Sekunden ausgeblendet und lassen sich über „Inaktive anzeigen“ wieder anzeigen. Schwelle und Dauer sind unter Darstellung einstellbar. Knoten sind einklappbar und Geräte suchbar.
 
 Direkte Ansicht ohne Navigation:
 

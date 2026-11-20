@@ -30,7 +30,7 @@ class Measurement(BaseModel):
     connection_id: str
     enabled: bool = True
     record: bool = True
-    unit: Literal["W", "kW", "Wh", "kWh", "%", "Hz", "V", "A", "bool", "°C", ""] = "W"
+    unit: Literal["W", "kW", "Wh", "kWh", "%", "Hz", "V", "A", "bool", "°C", "h", "L/h", "L", "m³/h", "m³", "kg/h", "kg", ""] = "W"
     address: str = Field(default="", max_length=512)
     json_path: str = Field(default="", max_length=256)
     scale: float = Field(default=1, allow_inf_nan=False)

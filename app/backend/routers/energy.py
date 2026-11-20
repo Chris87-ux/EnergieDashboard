@@ -10,6 +10,8 @@ from lib.topology import history_flows
 from models.energy import EnergyReport, LiveFlow, LiveNode, LiveStorage, LiveReport, LiveSummary, RangePreset
 from models.flow import PHASES, Flow
 
+from lib.config_lock import locked
+
 router = APIRouter(tags=["energy"])
 
 FMT = "%Y-%m-%dT%H:%M"
@@ -44,6 +46,7 @@ async def energy_presets():
 
 
 @router.get("/energy", response_model=EnergyReport)
+@locked
 async def energy(start: str | None = None, end: str | None = None, preset: str | None = None):
     s = await load_settings()
     tz = s.timezone
@@ -139,6 +142,7 @@ def _summary(flows: list[LiveFlow]) -> LiveSummary:
 
 
 @router.get("/live", response_model=LiveReport)
+@locked
 async def live():
     from lib.acquisition import read_values
     from lib.live import evaluate, aggregate_storage
@@ -147,11 +151,13 @@ async def live():
     values, errors = await read_values(s, all_datapoints(flows))
     now = datetime.now(timezone.utc)
     out, nodes, storages = evaluate(flows, values, now.timestamp())
-    grid = any(f.category == "grid" and f.kind == "device" for f in flows)
+    grid = any(f.kind == "grid" for f in flows)
     if not grid:
         errors.append("Bitte einen Netzanschluss unter Konfiguration anlegen.")
     if not any(f.available for f in out):
         errors.append("Keine aktuellen Leistungswerte verfügbar. Datenerfassung prüfen.")
+    from lib.visibility import update_visibility
+    await update_visibility(out, now.timestamp(), s)
     summary = _summary(out)
     if any(f.pv_type == "hybrid" for f in flows):
         # AC inverter output includes battery discharge; PV self-consumption cannot be inferred.

@@ -22,7 +22,7 @@ function useIsNarrow() {
 
 function angles(n: number, maxDeg: number): number[] {
   if (n <= 1) return [0];
-  const m = Math.min(maxDeg, 15 * (n - 1));
+  const m = maxDeg;
   return Array.from({ length: n }, (_, i) => ((-m + (2 * m * i) / (n - 1)) * Math.PI) / 180);
 }
 
@@ -41,9 +41,10 @@ interface NodeProps {
   hub: Pt;
   vertical: boolean;
   r: number;
+  onSelectNode?: (id:string)=>void;
 }
 
-function FlowNode({ flow, pos, hub, vertical, r }: NodeProps) {
+function FlowNode({ flow, pos, hub, vertical, r, onSelectNode }: NodeProps) {
   const Icon = iconFor(flow.icon);
   const w = flow.power_w ?? 0;
   const active = flow.available && w > 5;
@@ -75,8 +76,9 @@ function FlowNode({ flow, pos, hub, vertical, r }: NodeProps) {
             <animateMotion dur={`${dur}s`} repeatCount="indefinite" begin={`${(-i * dur) / 3}s`} path={d} />
           </circle>
         ))}
+      <g role={flow.node_id?"button":undefined} aria-label={flow.node_id?`Knoten ${flow.name} öffnen`:undefined} tabIndex={flow.node_id?0:undefined} style={{cursor:flow.node_id?"pointer":undefined}} onClick={()=>flow.node_id&&onSelectNode?.(flow.node_id)} onKeyDown={e=>{if(flow.node_id&&(e.key==="Enter"||e.key===" ")){e.preventDefault();onSelectNode?.(flow.node_id);}}}>
       <circle cx={pos.x} cy={pos.y} r={r + 7} fill={flow.color} opacity={active ? 0.14 : 0.05} />
-      <circle cx={pos.x} cy={pos.y} r={r} fill="var(--card)" stroke={flow.color} strokeWidth={2.5} strokeOpacity={active ? 1 : 0.45} />
+      {flow.node_id?<rect x={pos.x-r*1.2} y={pos.y-r} width={r*2.4} height={r*2} rx={5} fill="var(--card)" stroke={flow.color} strokeWidth={2.5}/>:<circle cx={pos.x} cy={pos.y} r={r} fill="var(--card)" stroke={flow.color} strokeWidth={2.5} strokeOpacity={active ? 1 : 0.45} />}
       <Icon x={pos.x - r * 0.45} y={pos.y - r * 0.45} width={r * 0.9} height={r * 0.9} color={flow.color} strokeWidth={1.8} />
       <text x={pos.x} y={ly} textAnchor="middle" fill="#8EA8C3" fontSize={vertical ? 17 : 15} fontWeight={600} fontFamily="DM Sans Variable">
         {short(flow.name, vertical ? 11 : 18)}
@@ -93,6 +95,7 @@ function FlowNode({ flow, pos, hub, vertical, r }: NodeProps) {
       >
         {fmtW(flow.power_w)}
       </text>
+      </g>
     </g>
   );
 }
@@ -100,9 +103,13 @@ function FlowNode({ flow, pos, hub, vertical, r }: NodeProps) {
 interface Props {
   flows: LiveFlow[];
   summary: LiveSummary | null;
+  onSelectNode?: (id:string)=>void;
+  hubName?: string;
+  hubLabel?: string;
+  hubPower?: number|null;
 }
 
-export default function FlowDiagram({ flows, summary }: Props) {
+export default function FlowDiagram({ flows, summary, onSelectNode, hubName, hubLabel, hubPower }: Props) {
   const vertical = useIsNarrow();
   const W = vertical ? 600 : 1000;
   const H = vertical ? 900 : 640;
@@ -147,17 +154,17 @@ export default function FlowDiagram({ flows, summary }: Props) {
           </radialGradient>
         </defs>
         {ins.map((f, i) => (
-          <FlowNode key={f.flow_id} flow={f} pos={inPos[i]} hub={hub} vertical={vertical} r={r} />
+          <FlowNode key={f.flow_id} flow={f} pos={inPos[i]} hub={hub} vertical={vertical} r={r} onSelectNode={onSelectNode} />
         ))}
         {outs.map((f, i) => (
-          <FlowNode key={f.flow_id} flow={f} pos={outPos[i]} hub={hub} vertical={vertical} r={r} />
+          <FlowNode key={f.flow_id} flow={f} pos={outPos[i]} hub={hub} vertical={vertical} r={r} onSelectNode={onSelectNode} />
         ))}
         <g data-testid="flow-hub">
           <circle cx={hub.x} cy={hub.y} r={96} fill="var(--primary)" opacity={0.25} className="animate-hub-glow" />
           <circle cx={hub.x} cy={hub.y} r={82} fill="url(#hub-grad)" stroke="var(--primary)" strokeWidth={3} />
           <House x={hub.x - 15} y={hub.y - 58} width={30} height={30} color="#93C5FD" strokeWidth={1.8} />
           <text x={hub.x} y={hub.y - 6} textAnchor="middle" fill="#93C5FD" fontSize={14} fontWeight={600} fontFamily="DM Sans Variable">
-            Verbrauch
+            {hubLabel??"Verbrauch"}
           </text>
           <text
             x={hub.x}
@@ -169,10 +176,10 @@ export default function FlowDiagram({ flows, summary }: Props) {
             fontFamily="JetBrains Mono Variable"
             data-testid="flow-hub-consumption"
           >
-            {fmtW(summary?.consumption_w ?? null)}
+            {fmtW(hubPower === undefined ? summary?.consumption_w : hubPower)}
           </text>
           <text x={hub.x} y={hub.y + 46} textAnchor="middle" fill="#93C5FD" fontSize={13} fontFamily="DM Sans Variable">
-            Autarkie {fmtPct(summary?.autarky_pct ?? null)}
+            {hubName??`Autarkie ${fmtPct(summary?.autarky_pct ?? null)}`}
           </text>
         </g>
         {flows.length === 0 && (

@@ -1,3 +1,4 @@
+import CsvConfiguration from "@/components/CsvConfiguration";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ArrowDownLeft, ArrowUpRight, Pencil, Plus, Trash2 } from "lucide-react";
@@ -39,7 +40,7 @@ function FlowRow({ flow, parentName, onEdit, onDelete, onToggle }: { flow: Flow;
             <span>Last: {phaseLabel(flow.power_phase_mode, flow.power_phase)}</span>
             <span>Zählung: {phaseLabel(flow.energy_phase_mode, flow.energy_phase)}</span>
             <span>{mapped} Datenpunkt(e)</span>
-            {flow.kind !== "node" && <span>{parentName ?? "Hauptebene"}</span>}
+            <span>{parentName ?? "Hauptebene"}</span>
           </div>
         </div>
       </div>
@@ -99,6 +100,11 @@ export default function Config() {
   };
 
   const list = flows.isError ? [] : flows.data ?? [];
+  function path(id:string|null,seen=new Set<string>()):string {
+    if(!id)return "Haus";if(seen.has(id))return "⚠ Kreis";
+    const parent=list.find(n=>n.id===id);if(!parent)return "⚠ Zuordnung fehlt";
+    seen.add(id);return `${path(parent.parent_id,seen)} → ${parent.name}`;
+  }
   const [search, setSearch] = useState("");
   const visible = list.filter((flow) => flow.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
   const groups = [
@@ -121,6 +127,7 @@ export default function Config() {
 
       {flows.isError && <div className="text-sm text-[#F87171]">Konfiguration konnte nicht geladen werden.</div>}
 
+      <CsvConfiguration />
       <Input aria-label="Geräte und Knoten suchen" placeholder="Geräte, Knoten oder Speicher suchen" value={search} onChange={(e) => setSearch(e.target.value)} />
       {groups.map((g) => {
         const items = visible.filter((f) => f.kind === "device" && f.direction === g.dir);
@@ -142,7 +149,7 @@ export default function Config() {
                 <FlowRow
                   key={f.id}
                   flow={f}
-                  parentName={list.find((node) => node.id === f.parent_id)?.name}
+                  parentName={path(f.parent_id)}
                   onEdit={() => openEditor(f)}
                   onDelete={() => setToDelete(f)}
                   onToggle={(enabled) => toggle.mutate({ flow: f, enabled })}
@@ -156,17 +163,17 @@ export default function Config() {
         );
       })}
 
-      {(["node", "storage"] as const).map((kind) => (
+      {(["grid", "node", "storage"] as const).map((kind) => (
         <section key={kind} className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="font-heading text-lg font-semibold">{kind === "node" ? "Knoten" : "Speicher"}</h2>
+            <h2 className="font-heading text-lg font-semibold">{kind === "grid" ? "Netzanschlüsse" : kind === "node" ? "Knoten" : "Speicher"}</h2>
             <Button variant="outline" data-testid={`config-add-${kind}-button`} onClick={() => {
               openEditor(null);
-              setInitial({ ...emptyFlow(), kind, category: kind === "storage" ? "battery" : "custom", icon: kind === "storage" ? "battery-full" : "plug" });
-            }}><Plus className="size-4" /> {kind === "node" ? "Knoten hinzufügen" : "Speicher hinzufügen"}</Button>
+              setInitial({ ...emptyFlow(), kind, grid_mode: kind === "grid" ? "signed" : "directional", electrical_side: kind === "storage" ? "dc" : "ac", category: "custom", icon: kind === "grid" ? "utility-pole" : kind === "storage" ? "battery-full" : "network" });
+            }}><Plus className="size-4" /> {kind === "grid" ? "Netzanschluss hinzufügen" : kind === "node" ? "Knoten hinzufügen" : "Speicher hinzufügen"}</Button>
           </div>
           {visible.filter((flow) => flow.kind === kind).map((flow) => (
-            <FlowRow key={flow.id} flow={flow} parentName={list.find((node) => node.id === flow.parent_id)?.name} onEdit={() => openEditor(flow)} onDelete={() => setToDelete(flow)} onToggle={(enabled) => toggle.mutate({ flow, enabled })} />
+            <FlowRow key={flow.id} flow={flow} parentName={path(flow.parent_id)} onEdit={() => openEditor(flow)} onDelete={() => setToDelete(flow)} onToggle={(enabled) => toggle.mutate({ flow, enabled })} />
           ))}
         </section>
       ))}

@@ -53,6 +53,9 @@ export default function FlowCard({ flow, energy }: Props) {
           </div>
         )}
       </div>
+      {flow.category === "generator" && <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
+        {Object.entries({engine_temperature:["Motortemperatur","°C"],efficiency:["Effizienz","%"],fuel_consumption:["Kraftstoffverbrauch",String(flow.telemetry?.fuel_unit??"L/h")],operating_hours:["Betriebsstunden","h"]}).map(([key,[label,unit]])=><div key={key}><dt className="text-muted-foreground">{label}</dt><dd>{flow.telemetry?.[key]==null?"n. v.":`${flow.telemetry[key]} ${unit}`}</dd></div>)}
+      </dl>}
       <div className="mt-3 space-y-1.5">
         {PHASES.map((p) => {
           const v = flow.phases[p];

@@ -1,8 +1,11 @@
-# Energieboard 2.0
+# Energieboard 2.1
 
 Selbst gehostetes Energiedashboard für Proxmox-LXC. FastAPI und React, MongoDB für Konfiguration und Aufzeichnung. Messwerterfassung über ioBroker simple-api, MQTT oder Modbus TCP. Kein Demo-Modus und keine vorgefüllten Geräte.
 
-- Verschachtelte AC-Knoten, automatische Restverbraucher/-erzeuger und verpflichtender Netzanschluss.
+- Verschachtelte AC-Knoten mit anklickbarer Diagrammnavigation und automatischer Restverrechnung.
+- Netzanschluss und Speicher als eigene Typen; Generator/BHKW mit optionalen Betriebswerten.
+- Persistenter Nullleistungsfilter: unter 1 W nach 60 Sekunden ausblenden, jederzeit wieder einblenden.
+- CSV-Import/-Export mit Vorschau und Sicherung; Bearbeitungsformulare direkt unter dem Eintrag.
 - Sensorgeräte und RUN-Signale mit fester Leistung und aufgezeichneter kWh-Schätzung.
 - WR, Hybrid-WR und separate DC-MPPTs.
 - Mehrere Speicher mit Kapazität, gewichtetem Gesamt-SOC, Leistungsbalken, Restenergie und geglätteter Restlaufzeit.
@@ -12,6 +15,7 @@ Selbst gehostetes Energiedashboard für Proxmox-LXC. FastAPI und React, MongoDB 
 ## Dokumentation
 
 - [Installation, Ersteinrichtung und Updates](INSTALLATION.md)
+- [CSV-Import, Export und Vorlagen](CSV-IMPORT.md)
 - [Messpunkte, Bilanzregeln und JSON-Beispiele](DATENMODELL.md)
 - [Prüfbericht und Grenzen der Prüfung](PRUEFBERICHT.md)
 - [Änderungen](CHANGELOG.md)

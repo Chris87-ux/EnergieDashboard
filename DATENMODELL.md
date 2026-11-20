@@ -1,4 +1,18 @@
-# Datenmodell und Erweiterungen · Version 2.0.0
+# Datenmodell und Erweiterungen · Version 2.1.0
+
+## Neuerungen in 2.1
+
+CSV-Export/-Import mit Vorschau und stabilen IDs ist in [CSV-IMPORT.md](CSV-IMPORT.md) beschrieben. Beim Bearbeiten eines Messpunkts oder einer Verbindung erscheint das Formular unter der betreffenden Zeile. Kleine `sort_order`-Werte stehen zuerst; diese Anzeigereihenfolge beeinflusst keine Bilanz.
+
+`kind: "grid"` bezeichnet den Netzanschluss. Alte Grid-Geräte werden ohne neue IDs übernommen. Netzanschluss und Speicher sind eigene Typen und keine auswählbaren Gerätekategorien. Diese Typen verwenden in ihrer gespeicherten Konfiguration die neutrale Kategorie `custom`; intern erzeugte Bezug-/Einspeise- und Speicherkanäle besitzen weiterhin entsprechende Kennzeichnungen für die Bilanz. Generatoren sind Geräte mit `category: "generator"`.
+
+Generator-Messpunkte: `engine_temperature` in °C, `efficiency` in %, `fuel_consumption` in der unter `fuel_unit` gewählten Einheit (L/h, L, m³/h, m³, kg/h, kg), `operating_hours` in Stunden. Es handelt sich um optionale Messwerte. Energieboard berechnet daraus keine eigene Effizienz oder Kraftstoffmenge. Sekundenwerte können im Messpunkt mit Faktor 1/3600 in Stunden umgerechnet werden.
+
+Speicher unterstützen `electrical_side: "dc"` oder `"ac"`. Bei DC gibt es keine Phasenzuordnung; notwendig sind die gesamte vorzeichenbehaftete Leistung und SOC. Bei AC sind Gesamtleistung oder vollständige dreiphasige Leistungswerte möglich. Die Speicheranzeige bleibt separat. In `datapoints.soc_reserve` kann ein Reservewert in Prozent zugeordnet werden. Ein konfigurierter Reserve-Datenpunkt ersetzt den festen Wert; bei fehlendem/ungültigem Datenpunkt bleibt die Laufzeit unbekannt. Ohne Datenpunkt gilt weiterhin `reserve_soc_pct`.
+
+Die Diagrammansicht zeigt pro Ebene direkt angeschlossene Geräte und rechteckige Unterknoten. Knoten öffnen ihre Kinder, die Pfadleiste führt zurück. Pro Diagrammseite werden bis zu vier Elemente je Richtung angezeigt; weitere Elemente einer Ebene folgen auf weiteren Seiten. Die Bilanz bezieht sich immer auf die vollständige Anlage.
+
+`appearance.zero_threshold_w` (Standard 1 W) und `appearance.zero_delay_s` (Standard 60 s) steuern den Livefilter. Unterhalb der Schwelle verschwindet ein Gerät nach der Frist aus Diagramm und Livekarten. Schwelle 0 zählt ausschließlich exakt 0 W. Neue Leistung macht es sofort wieder sichtbar. Unbekannte Messwerte setzen die Nullfrist zurück. Bei Beobachtungslücken über höchstens 30 Sekunden beginnt die Frist neu. Der Server speichert den Zustand in `visibility`, sodass ein Browser-Neuladen die Frist nicht zurücksetzt. Knotenstruktur, Speicher/SOC, Netz-Kennzahlen, Konfiguration, Historie und Bilanz bleiben sichtbar bzw. unverändert. „Inaktive anzeigen“ hebt den Darstellungsfilter auf.
 
 ## Aufbau
 
@@ -110,7 +124,7 @@ Vollständiges Schema unter `GET /api/schemas/flow`. Geräteverwaltung über `/a
 
 Ein Netzanschluss auf der Hauptebene ist für ein eingerichtetes Board erforderlich. Ohne ihn zeigt die Oberfläche einen Einrichtungshinweis. Ein eingerichteter letzter Netzanschluss lässt sich erst nach Anlegen eines Ersatzes deaktivieren/löschen.
 
-Für **einen vorzeichenbehafteten Netzleistungswert** `category: "grid"` und `grid_mode: "signed"` wählen. Positiv ist Bezug, negativ Einspeisung; `invert` kehrt die Quelle um. Optionale kumulative Energiezähler werden unter `datapoints.energy_import` und `datapoints.energy_export` zugeordnet. Für **getrennte Leistungswerte** zwei Grid-Geräte mit `grid_mode: "directional"`, einmal `direction: "in"` und einmal `"out"`, anlegen. Jeder Richtungswert muss nach Vorzeichenumkehr positiv sein. Beide Modelle dürfen nicht gleichzeitig für denselben Netzanschluss aktiv sein.
+Für **einen vorzeichenbehafteten Netzleistungswert** `kind: "grid"` und `grid_mode: "signed"` wählen. Positiv ist Bezug, negativ Einspeisung; `invert` kehrt die Quelle um. Optionale kumulative Energiezähler werden unter `datapoints.energy_import` und `datapoints.energy_export` zugeordnet. Für **getrennte Leistungswerte** zwei Einträge vom Typ Netzanschluss mit `grid_mode: "directional"`, einmal `direction: "in"` und einmal `"out"`, anlegen. Jeder Richtungswert muss nach Vorzeichenumkehr positiv sein. Beide Modelle dürfen nicht gleichzeitig für denselben Netzanschluss aktiv sein.
 
 Knoten können andere Knoten enthalten. Kreiszuordnungen werden abgewiesen. AC-Abschnittszähler messen positiv Verbrauch und negativ Erzeugung. DC-Geräte dürfen zur Orientierung einem Knoten zugeordnet werden, bleiben in der AC-Verrechnung separat.
 
@@ -176,4 +190,4 @@ Die Metadaten werden gespeichert und von der API zurückgegeben. Sie führen kei
 
 ## Versionierung
 
-Anwendungsversion in `VERSION`; Datenbankschema aktuell Version 3. Additive Migrationen laufen beim Start und dürfen mehrfach ausgeführt werden. Ein neueres Datenbankschema wird von dieser Version abgewiesen. Ein Downgrade erfolgt zusammen mit der dazugehörigen Datenbanksicherung. Messpunkt- und Geräte-IDs bleiben bei Updates erhalten.
+Anwendungsversion in `VERSION`; Datenbankschema aktuell Version 4. Additive Migrationen laufen beim Start und dürfen mehrfach ausgeführt werden. Ein neueres Datenbankschema wird von dieser Version abgewiesen. Ein Downgrade erfolgt zusammen mit der dazugehörigen Datenbanksicherung. Messpunkt- und Geräte-IDs bleiben bei Updates erhalten.

@@ -64,6 +64,7 @@ export function fmtDuration(seconds: number): string {
 
 export const CATEGORY_LABELS: Record<Category, string> = {
   pv: "Photovoltaik",
+  generator: "Generator / BHKW",
   grid: "Netz",
   battery: "Speicher",
   heatpump: "Wärmepumpe",

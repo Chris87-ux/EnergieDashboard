@@ -8,15 +8,19 @@ from lib.sources import _esc, _v1_query, _v2_query, iob_base, iob_get_bulk, infl
 from lib.store import all_datapoints, keep_secrets, load_flows, load_settings, save_settings, to_out
 from models.settings import AppSettings, RecorderStatus, SettingsOut, TestResult
 
+from lib.config_lock import locked
+
 router = APIRouter(tags=["settings"])
 
 
 @router.get("/settings", response_model=SettingsOut)
+@locked
 async def get_settings():
     return to_out(await load_settings())
 
 
 @router.put("/settings", response_model=SettingsOut)
+@locked
 async def put_settings(body: AppSettings):
     merged = keep_secrets(body, await load_settings())
     await save_settings(merged)

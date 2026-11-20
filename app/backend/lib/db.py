@@ -18,6 +18,8 @@ async def ensure_indexes() -> None:
         IndexModel([("id", ASCENDING)], name="id", unique=True),
         IndexModel([("enabled", ASCENDING), ("sort_order", ASCENDING), ("created_at", ASCENDING)], name="enabled_sort"),
     ])
+    await db.visibility.create_index("id", unique=True)
+    await db.config_backups.create_index("id", unique=True)
     await db.connections.create_index("id", unique=True)
     await db.measurements.create_index("id", unique=True)
     await db.metadata.create_index("id", unique=True)

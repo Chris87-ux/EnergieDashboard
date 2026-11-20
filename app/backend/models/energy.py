@@ -65,6 +65,9 @@ class RangePreset(BaseModel):
 
 
 class LiveFlow(BaseModel):
+    hidden: bool = False
+    zero_since: float | None = None
+    telemetry: dict[str, float | str | None] = Field(default_factory=dict)
     flow_id: str
     name: str
     category: str
@@ -83,6 +86,9 @@ class LiveFlow(BaseModel):
 
 
 class LiveStorage(BaseModel):
+    electrical_side: str = "dc"
+    phases: dict[str, float | None] = Field(default_factory=dict)
+    reserve_soc_pct: float | None = None
     hybrid_name: str | None = None
     id: str
     name: str
@@ -99,6 +105,9 @@ class LiveStorage(BaseModel):
 
 
 class LiveNode(BaseModel):
+    icon: str = "network"
+    color: str = "#38BDF8"
+    sort_order: int = 0
     parent_id: str | None = None
     id: str
     name: str

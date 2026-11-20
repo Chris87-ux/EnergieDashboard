@@ -11,6 +11,8 @@ from lib.topology import derived_samples
 from lib.store import all_datapoints, load_flows, load_settings
 from models.settings import RecorderStatus
 
+from lib.config_lock import locked
+
 logger = logging.getLogger(__name__)
 
 STATUS = RecorderStatus()
@@ -26,6 +28,7 @@ def _set(state: str, message: str) -> None:
     STATUS.message = message
 
 
+@locked
 async def _tick() -> int:
     s = await load_settings()
     if not s.recorder.enabled:
@@ -49,6 +52,10 @@ async def _tick() -> int:
         points = await db.measurements.find({}, {"_id": 0}).to_list()
         unrecorded = {"point:" + p["id"] for p in points if not p.get("record", True)}
         now = time.time()
+        from lib.live import evaluate
+        from lib.visibility import update_visibility
+        live, _, _ = evaluate(flows, values, now)
+        await update_visibility(live, now, s)
         docs = [{"dp": dp, "ts": now, "v": v, "valid_until": now + s.recorder.interval_s * 2.5} for dp, v in values.items() if v is not None and dp not in unrecorded]
         docs.extend(derived_samples(flows, values, now, s.recorder.interval_s))
         if docs:

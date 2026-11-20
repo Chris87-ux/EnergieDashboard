@@ -1,5 +1,6 @@
 import {
   AirVent, AlarmClock, Bike, CircuitBoard, Coffee, Computer, Drill, EthernetPort, Fence, Fish, Gamepad2, HardDrive, Lamp, Laptop, Monitor, Network, Printer, Radio, Router, SatelliteDish, Shield, ShowerHead, Speaker, Sprout, Tractor, TrainFront, Warehouse, Wifi, Wrench,
+  Cog,
   BatteryCharging,
   BatteryFull,
   Car,
@@ -32,6 +33,7 @@ import {
 
 export const ICONS: Record<string, { icon: LucideIcon; label: string }> = {
   "air-vent":{icon:AirVent,label:"Lüftungsanlage"},"alarm-clock":{icon:AlarmClock,label:"Zeitschaltung"},bike:{icon:Bike,label:"E-Bike"},"circuit-board":{icon:CircuitBoard,label:"Elektronik"},coffee:{icon:Coffee,label:"Kaffeemaschine"},computer:{icon:Computer,label:"Computer"},drill:{icon:Drill,label:"Bohrmaschine"},ethernet:{icon:EthernetPort,label:"Netzwerk"},fence:{icon:Fence,label:"Außenanlage"},fish:{icon:Fish,label:"Aquarium"},gamepad:{icon:Gamepad2,label:"Spielkonsole"},disk:{icon:HardDrive,label:"NAS"},lamp:{icon:Lamp,label:"Lampe"},laptop:{icon:Laptop,label:"Laptop"},monitor:{icon:Monitor,label:"Monitor"},network:{icon:Network,label:"Verteilung / Knoten"},printer:{icon:Printer,label:"Drucker"},radio:{icon:Radio,label:"Radio"},router:{icon:Router,label:"Router"},satellite:{icon:SatelliteDish,label:"Satellit"},shield:{icon:Shield,label:"Sicherheit"},shower:{icon:ShowerHead,label:"Durchlauferhitzer"},speaker:{icon:Speaker,label:"Audio"},sprout:{icon:Sprout,label:"Garten"},tractor:{icon:Tractor,label:"Landwirtschaft"},train:{icon:TrainFront,label:"Modellbahn"},warehouse:{icon:Warehouse,label:"Garage / Halle"},wifi:{icon:Wifi,label:"WLAN"},wrench:{icon:Wrench,label:"Werkzeug"},
+  generator: { icon: Cog, label: "Generator / BHKW" },
   sun: { icon: Sun, label: "Sonne / PV" },
   "utility-pole": { icon: UtilityPole, label: "Netz" },
   zap: { icon: Zap, label: "Strom" },
