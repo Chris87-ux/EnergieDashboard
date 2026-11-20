@@ -58,7 +58,7 @@ function FlowNode({ flow, pos, hub, vertical, r }: NodeProps) {
   const ly = labelAbove ? pos.y - r - 30 : pos.y + r + 24;
   return (
     <g data-testid={`flow-node-${flow.flow_id}`}>
-      <path d={d} fill="none" stroke="#1E2F65" strokeWidth={width + 4} strokeLinecap="round" />
+      <path d={d} fill="none" stroke="var(--border)" strokeWidth={width + 4} strokeLinecap="round" />
       <path
         d={d}
         fill="none"
@@ -76,7 +76,7 @@ function FlowNode({ flow, pos, hub, vertical, r }: NodeProps) {
           </circle>
         ))}
       <circle cx={pos.x} cy={pos.y} r={r + 7} fill={flow.color} opacity={active ? 0.14 : 0.05} />
-      <circle cx={pos.x} cy={pos.y} r={r} fill="#111D42" stroke={flow.color} strokeWidth={2.5} strokeOpacity={active ? 1 : 0.45} />
+      <circle cx={pos.x} cy={pos.y} r={r} fill="var(--card)" stroke={flow.color} strokeWidth={2.5} strokeOpacity={active ? 1 : 0.45} />
       <Icon x={pos.x - r * 0.45} y={pos.y - r * 0.45} width={r * 0.9} height={r * 0.9} color={flow.color} strokeWidth={1.8} />
       <text x={pos.x} y={ly} textAnchor="middle" fill="#8EA8C3" fontSize={vertical ? 17 : 15} fontWeight={600} fontFamily="DM Sans Variable">
         {short(flow.name, vertical ? 11 : 18)}
@@ -125,7 +125,7 @@ export default function FlowDiagram({ flows, summary }: Props) {
   const outPos = place(outs, "out");
 
   return (
-    <div className="diagram-bg relative overflow-hidden rounded-xl border border-[#1E2F65] bg-[#0E1838] panel-shadow" data-testid="flow-diagram">
+    <div className="diagram-bg relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] panel-shadow" data-testid="flow-diagram">
       <div className="pointer-events-none absolute left-4 top-3 flex gap-4 text-[11px] font-medium uppercase tracking-wider text-[#8EA8C3]">
         <span>{vertical ? "↓ Zuflüsse" : "← Zuflüsse"}</span>
       </div>
@@ -142,8 +142,8 @@ export default function FlowDiagram({ flows, summary }: Props) {
             </feMerge>
           </filter>
           <radialGradient id="hub-grad" cx="50%" cy="40%" r="60%">
-            <stop offset="0%" stopColor="#2A44A0" />
-            <stop offset="100%" stopColor="#1C2E6A" />
+            <stop offset="0%" stopColor="var(--accent)" />
+            <stop offset="100%" stopColor="var(--card)" />
           </radialGradient>
         </defs>
         {ins.map((f, i) => (
@@ -153,8 +153,8 @@ export default function FlowDiagram({ flows, summary }: Props) {
           <FlowNode key={f.flow_id} flow={f} pos={outPos[i]} hub={hub} vertical={vertical} r={r} />
         ))}
         <g data-testid="flow-hub">
-          <circle cx={hub.x} cy={hub.y} r={96} fill="#2563EB" opacity={0.25} className="animate-hub-glow" />
-          <circle cx={hub.x} cy={hub.y} r={82} fill="url(#hub-grad)" stroke="#2563EB" strokeWidth={3} />
+          <circle cx={hub.x} cy={hub.y} r={96} fill="var(--primary)" opacity={0.25} className="animate-hub-glow" />
+          <circle cx={hub.x} cy={hub.y} r={82} fill="url(#hub-grad)" stroke="var(--primary)" strokeWidth={3} />
           <House x={hub.x - 15} y={hub.y - 58} width={30} height={30} color="#93C5FD" strokeWidth={1.8} />
           <text x={hub.x} y={hub.y - 6} textAnchor="middle" fill="#93C5FD" fontSize={14} fontWeight={600} fontFamily="DM Sans Variable">
             Verbrauch

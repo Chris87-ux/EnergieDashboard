@@ -58,7 +58,15 @@ class RecorderSettings(BaseModel):
     interval_s: int = Field(default=15, ge=5, le=3600)
 
 
+class Appearance(BaseModel):
+    layout: Literal["square", "rounded", "flow"] = "rounded"
+    background: str = Field(default="#0B132B", pattern=r"^#[0-9A-Fa-f]{6}$")
+    surface: str = Field(default="#111D42", pattern=r"^#[0-9A-Fa-f]{6}$")
+    accent: str = Field(default="#38BDF8", pattern=r"^#[0-9A-Fa-f]{6}$")
+
+
 class AppSettings(BaseModel):
+    appearance: Appearance = Field(default_factory=Appearance)
     site_name: str = Field(default="Mein Zuhause", min_length=1, max_length=80)
     timezone: str = "Europe/Berlin"
     live_poll_s: int = Field(default=5, ge=1, le=300)

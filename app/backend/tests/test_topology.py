@@ -39,15 +39,15 @@ class TopologyTests(unittest.IsolatedAsyncioTestCase):
                   "run": 1, "bat": -200, "soc": 72}
         with patch.object(energy, "load_settings", AsyncMock(return_value=AppSettings(iobroker={"host": "test"}))), \
              patch.object(energy, "load_flows", AsyncMock(return_value=flows)), \
-             patch.object(energy, "iob_get_bulk", AsyncMock(return_value=values)):
+             patch("lib.acquisition.read_values", AsyncMock(return_value=(values, []))):
             report = await energy.live()
         self.assertEqual(report.nodes[0].meter_w, 1000)
-        self.assertEqual(report.nodes[0].children_w, 600)
-        self.assertEqual(report.nodes[0].difference_w, 400)
+        self.assertEqual(report.nodes[0].children_w, 400)
+        self.assertEqual(report.nodes[0].difference_w, 600)
         self.assertEqual(report.nodes[0].phases, {"L1": 600, "L2": 300, "L3": 100})
-        self.assertEqual(report.summary.out_w, 700)
+        self.assertEqual(report.summary.out_w, 1100)
         self.assertEqual(report.summary.in_w, 100)
-        self.assertEqual(report.summary.consumption_w, 500)
+        self.assertEqual(report.summary.consumption_w, 1100)
         self.assertEqual(report.storages[0].soc_pct, 72)
         self.assertEqual(report.storages[0].charge_w, 200)
         self.assertTrue(next(f for f in report.flows if f.flow_id == run.id).estimated)
@@ -87,8 +87,10 @@ class TopologyTests(unittest.IsolatedAsyncioTestCase):
                 sample_id(flow, "discharge"): [(0, 0), (15, 0), (30, 600), (45, 600)],
             })
             rows, totals = await compute_all(history_flows([flow]), source, 0, 60, 60, 900)
-            self.assertEqual(totals.out_kwh, 0.01)
-            self.assertEqual(totals.in_kwh, 0.005)
+            self.assertIsNone(totals.out_kwh)
+            self.assertEqual(rows[0].total.kwh, 0.01)
+            self.assertIsNone(totals.in_kwh)
+            self.assertEqual(rows[1].total.kwh, 0.005)
             self.assertTrue(all(row.storage_id == "bat" for row in rows))
 
     async def test_fifty_devices_do_not_include_node_meter(self):
@@ -96,7 +98,8 @@ class TopologyTests(unittest.IsolatedAsyncioTestCase):
         devices = [Flow(id=f"d{i}", name=f"Gerät {i}", parent_id="node", run_power_w=100, datapoints={"run": f"r{i}"}) for i in range(50)]
         source = History({sample_id(flow, "run"): [(0, 100), (15, 100), (30, 100), (45, 100)] for flow in devices})
         rows, totals = await compute_all(history_flows([node, *devices]), source, 0, 60, 60, 900)
-        self.assertEqual(len(rows), 50)
+        self.assertEqual(len(rows), 52)
+        self.assertTrue(all(row.total.kwh is None for row in rows[:2]))
         self.assertAlmostEqual(totals.out_kwh, 0.083, places=3)
         self.assertTrue(all(row.parent_id == "node" for row in rows))
 

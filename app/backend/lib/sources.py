@@ -272,7 +272,7 @@ class LiveSource:
         return Calc(
             totals["watt_seconds"] / 3.6e6, "run_estimate" if estimated else "power_integral",
             min(totals["seconds"] / (end - start), 1), not gaps, gaps,
-            note="Geschätzt aus aufgezeichnetem RUN-Signal und fester Leistung" if estimated else "Aus getrennt aufgezeichneter Lade-/Entladeleistung",
+            note="Geschätzt aus aufgezeichnetem RUN-Signal und fester Leistung" if estimated else "Aus aufgezeichneter abgeleiteter Leistung",
         )
 
     async def series(self, flow: Flow, key: str, start: float, end: float, step: int, agg: str):
@@ -280,18 +280,27 @@ class LiveSource:
         if not dp:
             return None
         pts: list[tuple[float, float]] = []
+        history_key = ""
+        history_end = end
+        if dp.startswith("point:"):
+            point = await db.measurements.find_one({"id": dp[6:]})
+            history_key = (point or {}).get("history_key", "")
+            history_end = min(end, (point or {}).get("legacy_until") or end)
+        influx_dp = history_key or dp
         derived = dp.startswith("energieboard:")
-        if self.s.influx.enabled and not derived:
+        if self.s.influx.enabled and not derived and (not dp.startswith("point:") or history_key) and history_end >= start:
             try:
-                pts += await influx_series(self.s, dp, start, end, step, agg)
+                pts += await influx_series(self.s, influx_dp, start, history_end, step, agg)
                 if agg == "last":
-                    prev = await influx_last_before(self.s, dp, start)
+                    prev = await influx_last_before(self.s, influx_dp, start)
                     if prev:
                         pts.append(prev)
             except Exception as exc:
                 self.errors.append(f"InfluxDB {dp}: {exc}")
         try:
             local = await mongo_series(dp, start, end, step, "raw" if derived else agg)
+            if history_key and history_end >= start:
+                local += await mongo_series(history_key, start, history_end, step, agg)
             # Keep recorder samples in windows without an InfluxDB point.
             if pts:
                 windows = {int((t - start) // step) for t, _ in pts if t >= start}
@@ -299,6 +308,10 @@ class LiveSource:
             pts += local
             if agg == "last" or derived:
                 prev = await mongo_last_before(dp, start)
+                if history_key:
+                    old_prev = await mongo_last_before(history_key, start)
+                    if old_prev and (not prev or old_prev[0] > prev[0]):
+                        prev = old_prev
                 if prev:
                     pts.append(prev)
         except Exception as exc:

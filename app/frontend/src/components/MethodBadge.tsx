@@ -9,7 +9,7 @@ const STYLES: Record<Method, string> = {
   phase_sum: "bg-[#1E3A8A] text-[#BFDBFE] border-[#1E40AF]",
   power_integral: "bg-[#78350F] text-[#FDE68A] border-[#92400E]",
   unavailable: "bg-[#450A0A] text-[#FECACA] border-[#7F1D1D]",
-  not_applicable: "bg-transparent text-[#8EA8C3] border-[#1E2F65]",
+  not_applicable: "bg-transparent text-[#8EA8C3] border-[var(--border)]",
 };
 
 export default function MethodBadge({ method, testid, className }: { method: Method; testid?: string; className?: string }) {

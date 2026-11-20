@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -9,10 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { ApiError, apiPost, apiPut } from "@/lib/api";
+import { ApiError, apiGet, apiPost, apiPut } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
 import { ICONS } from "@/lib/icons";
-import { PHASES, type Category, type Datapoints, type Flow, type FlowInput, type Phase, type PhaseMode } from "@/lib/types";
+import { PHASES, type Category, type Datapoints, type Flow, type FlowInput, type Measurement, type Phase, type PhaseMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const COLORS = ["#EAB308", "#EF4444", "#10B981", "#0EA5E9", "#38BDF8", "#F97316", "#8B5CF6", "#06B6D4", "#6366F1", "#EC4899", "#84CC16", "#F0F4F8"];
@@ -25,6 +26,8 @@ const EMPTY_DP: Datapoints = {
 export function emptyFlow(): FlowInput {
   return {
     name: "", category: "consumer", direction: "out", icon: "plug", color: "#38BDF8", enabled: true, sort_order: 100,
+    capacity_kwh: null, reserve_soc_pct: 0, max_power_w: 5000, electrical_side: "ac",
+    pv_type: "wr", hybrid_id: null, storage_ids: [], mppt_ids: [], grid_mode: "directional",
     kind: "device", parent_id: null, run_power_w: null, charge_sign: "negative",
     power_phase_mode: "single", power_phase: "L1", energy_phase_mode: "single", energy_phase: "L1",
     power_unit: "W", energy_unit: "kWh", invert: false, datapoints: { ...EMPTY_DP }, extra: {},
@@ -49,7 +52,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 function Segmented<T extends string>({ value, options, onChange, testid }: { value: T; options: { value: T; label: string }[]; onChange: (v: T) => void; testid: string }) {
   return (
-    <div className="inline-flex rounded-lg border border-[#1E2F65] bg-[#0B132B] p-0.5" data-testid={testid}>
+    <div className="inline-flex rounded-lg border border-[var(--border)] bg-[var(--background)] p-0.5" data-testid={testid}>
       {options.map((o) => (
         <button
           key={o.value}
@@ -58,7 +61,7 @@ function Segmented<T extends string>({ value, options, onChange, testid }: { val
           onClick={() => onChange(o.value)}
           className={cn(
             "rounded-md px-3 py-1.5 text-xs font-semibold transition-colors duration-150",
-            value === o.value ? "bg-[#2563EB] text-white" : "text-[#8EA8C3] hover:text-white",
+            value === o.value ? "bg-[var(--primary)] text-white" : "text-[#8EA8C3] hover:text-white",
           )}
         >
           {o.label}
@@ -84,10 +87,18 @@ interface Props {
 
 export default function FlowEditor({ open, onOpenChange, editing, initial, flows }: Props) {
   const qc = useQueryClient();
+  const points = useQuery({queryKey: ["measurements"], queryFn: () => apiGet<Measurement[]>("/measurements")});
+  const [iconSearch, setIconSearch] = useState("");
   const [form, setForm] = useState<FlowInput>(initial);
   const [extraText, setExtraText] = useState(() => JSON.stringify(initial.extra ?? {}, null, 2));
   const set = <K extends keyof FlowInput>(k: K, v: FlowInput[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const setDp = (k: string, v: string) => setForm((f) => ({ ...f, datapoints: { ...f.datapoints, [k]: v } }));
+  const setDp = (k: string, v: string) => setForm((f) => {
+    const p = (points.data ?? []).find(p => "point:" + p.id === v);
+    return { ...f, name: f.name || p?.name.slice(0,60) || "",
+      power_unit: k.startsWith("power") && (p?.unit === "W" || p?.unit === "kW") ? p.unit : f.power_unit,
+      energy_unit: k.startsWith("energy") && (p?.unit === "Wh" || p?.unit === "kWh") ? p.unit : f.energy_unit,
+      datapoints: { ...f.datapoints, [k]: v } };
+  });
 
   const save = useMutation({
     mutationFn: (body: FlowInput) => (editing ? apiPut<Flow>(`/flows/${editing.id}`, body) : apiPost<Flow>("/flows", body)),
@@ -118,6 +129,8 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
       toast.error("Zusätzliche Felder: ungültiges JSON-Objekt");
       return;
     }
+    if (form.kind === "storage" && (!form.capacity_kwh || form.capacity_kwh <= 0)) { toast.error("Bitte die Gesamtkapazität in kWh angeben"); return; }
+    if (form.pv_type === "hybrid" && form.category === "pv" && !form.storage_ids.length) { toast.error("Bitte mindestens einen DC-Speicher auswählen"); return; }
     save.mutate({ ...form, name: form.name.trim(), extra });
   };
 
@@ -127,7 +140,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto border-[#1E2F65] bg-[#111D42] sm:max-w-2xl" data-testid="flow-editor-dialog">
+      <DialogContent className="max-h-[92vh] overflow-y-auto border-[var(--border)] bg-[var(--card)] sm:max-w-2xl" data-testid="flow-editor-dialog">
         <DialogHeader>
           <DialogTitle className="font-heading">{editing ? "Fluss bearbeiten" : "Neuer Fluss"}</DialogTitle>
           <DialogDescription>Anzeige, Phasen-Zuordnung und ioBroker-Datenpunkte festlegen.</DialogDescription>
@@ -144,9 +157,10 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Typ">
                 <Select value={form.kind} onValueChange={(kind: FlowInput["kind"]) => setForm((f) => ({
-                  ...f, kind, parent_id: kind === "node" ? null : f.parent_id,
+                  ...f, kind, parent_id: f.parent_id, pv_type: "wr", storage_ids: [], mppt_ids: [],
                   run_power_w: null, datapoints: { ...f.datapoints, run: "" },
-                  category: kind === "storage" ? "battery" : f.category,
+                  category: kind === "storage" ? "battery" : kind === "node" ? "custom" : f.category === "battery" ? "consumer" : f.category,
+                  electrical_side: kind === "storage" ? "dc" : "ac",
                   icon: kind === "storage" ? "battery-full" : f.icon,
                   power_phase_mode: kind === "storage" ? "single" : f.power_phase_mode,
                 }))}>
@@ -158,7 +172,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
                   </SelectContent>
                 </Select>
               </Field>
-              {form.kind !== "node" && (
+              {(
                 <Field label="Anschluss">
                   <Select value={form.parent_id ?? "root"} onValueChange={(id) => set("parent_id", id === "root" ? null : id)}>
                     <SelectTrigger data-testid="flow-editor-parent"><SelectValue /></SelectTrigger>
@@ -170,7 +184,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
                 </Field>
               )}
             </div>
-            {form.kind === "node" && <p className="text-xs text-muted-foreground">Verbraucher, Erzeuger und Speicher können an diesem Knoten hängen. Positiver Zählerwert bedeutet Verbrauch, negativer Wert Erzeugung. Die Übersicht bilanziert die zugeordneten Geräte.</p>}
+            {form.kind === "node" && <p className="text-xs text-muted-foreground">Verbraucher, Erzeuger und Speicher können an diesem Knoten hängen. Positiver Zählerwert bedeutet Verbrauch, negativer Wert Erzeugung. Ein automatischer Rest gleicht Zähler und Kinder ab. Unterknoten sind möglich.</p>}
             {form.kind === "storage" && (
               <Field label="Laden bei">
                 <Segmented value={form.charge_sign} onChange={(v) => set("charge_sign", v)} testid="flow-editor-charge-sign"
@@ -191,7 +205,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
               </Field>
               }
               {form.kind === "device" && <Field label="Kategorie">
-                <Select value={form.category} onValueChange={(v: string) => set("category", v as Category)}>
+                <Select value={form.category} onValueChange={(v: string) => setForm(f=>({...f,category:v as Category,pv_type:v === "pv" ? f.pv_type : "wr",storage_ids:v === "pv" ? f.storage_ids : [],mppt_ids:v === "pv" ? f.mppt_ids : []}))}>
                   <SelectTrigger className="w-full" data-testid="flow-editor-category-select">
                     <SelectValue />
                   </SelectTrigger>
@@ -207,9 +221,31 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
                 <Input type="number" value={form.sort_order} onChange={(e) => set("sort_order", Number(e.target.value) || 0)} data-testid="flow-editor-sort-input" />
               </Field>
             </div>
+            {form.kind === "storage" && <div className="grid gap-3 sm:grid-cols-3">
+              <Field label="Gesamtkapazität (kWh)"><Input type="number" min="0.01" step="0.1" value={form.capacity_kwh ?? ""} onChange={e => set("capacity_kwh", e.target.value ? Number(e.target.value) : null)} /></Field>
+              <Field label="SOC-Reserve (%)"><Input type="number" min="0" max="100" value={form.reserve_soc_pct} onChange={e => set("reserve_soc_pct", Number(e.target.value))} /></Field>
+              <Field label="Balkenmaximum (W)"><Input type="number" min="1" value={form.max_power_w} onChange={e => set("max_power_w", Number(e.target.value))} /></Field>
+            </div>}
+            {form.kind === "device" && form.category === "grid" && <Field label="Netzmessung">
+              <Segmented value={form.grid_mode} onChange={v => set("grid_mode", v)} testid="grid-mode" options={[{value:"signed", label:"Ein Wert: Bezug + / Einspeisung −"},{value:"directional",label:"Getrennter Richtungswert"}]} />
+            </Field>}
+            {form.kind === "device" && form.category === "pv" && <>
+              <Field label="Photovoltaik-Typ"><Segmented value={form.pv_type} onChange={v => setForm(f => ({...f, pv_type:v, electrical_side:v === "mppt" ? "dc" : "ac", storage_ids:v === "hybrid" ? f.storage_ids : [], mppt_ids:v === "hybrid" ? f.mppt_ids : []}))} testid="pv-type" options={[{value:"wr",label:"WR"},{value:"hybrid",label:"Hybrid-WR"},{value:"mppt",label:"DC-MPPT"}]} /></Field>
+              {form.pv_type === "hybrid" && <div className="space-y-3 rounded-lg border border-border p-3">
+                <p className="text-xs text-muted-foreground">AC-Leistung des Hybrid-WR oben zuordnen. Speicher und MPPT zuerst anlegen und hier auswählen. DC-Werte bleiben separat.</p>
+                {(["storage", "mppt"] as const).map(kind => <Field key={kind} label={kind === "storage" ? "DC-Speicher" : "DC-MPPTs"}>
+                  {flows.filter(f => kind === "storage" ? f.kind === "storage" : f.kind === "device" && f.category === "pv" && f.pv_type === "mppt").map(f => {
+                    const key = kind === "storage" ? "storage_ids" : "mppt_ids";
+                    return <label key={f.id} className="flex gap-2 text-sm"><Checkbox checked={form[key].includes(f.id)} onCheckedChange={on => set(key, on ? [...form[key],f.id] : form[key].filter(id => id !== f.id))} />{f.name}</label>;
+                  })}
+                </Field>)}
+              </div>}
+            </>}
+            {form.kind !== "storage" && <Field label="Messebene"><Segmented value={form.electrical_side} onChange={v => set("electrical_side", v)} testid="electrical-side" options={[{value:"ac",label:"AC"},{value:"dc",label:"DC (separate Anzeige)"}]} /></Field>}
             <Field label="Symbol">
+              <Input placeholder="Symbole suchen" value={iconSearch} onChange={e => setIconSearch(e.target.value)} />
               <div className="grid grid-cols-7 gap-1.5 sm:grid-cols-9" data-testid="flow-editor-icon-grid">
-                {Object.entries(ICONS).map(([key, { icon: Icon, label }]) => (
+                {Object.entries(ICONS).filter(([key, item]) => (key + item.label).toLowerCase().includes(iconSearch.toLowerCase())).map(([key, { icon: Icon, label }]) => (
                   <button
                     key={key}
                     type="button"
@@ -218,7 +254,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
                     onClick={() => set("icon", key)}
                     className={cn(
                       "grid aspect-square place-items-center rounded-lg border transition-colors duration-150",
-                      form.icon === key ? "border-[#2563EB] bg-[#1C2E6A]" : "border-[#1E2F65] bg-[#0B132B] hover:border-[#2563EB]/60",
+                      form.icon === key ? "border-[var(--primary)] bg-accent" : "border-[var(--border)] bg-[var(--background)] hover:border-[var(--primary)]/60",
                     )}
                   >
                     <Icon className="size-4" style={{ color: form.icon === key ? form.color : "#8EA8C3" }} />
@@ -255,7 +291,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
           </TabsContent>
 
           <TabsContent value="phases" className="mt-4 space-y-5">
-            <div className="space-y-3 rounded-lg border border-[#1E2F65] bg-[#0E1838] p-4">
+            <div className="space-y-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
               <div className="font-heading text-sm font-semibold">Last / Wirkleistung</div>
               <div className="flex flex-wrap items-center gap-3">
                 <Segmented value={form.power_phase_mode} onChange={(v) => set("power_phase_mode", v)} testid="flow-editor-power-mode" options={form.kind === "storage" || form.run_power_w !== null ? PHASE_MODE_OPTS.slice(0, 1) : PHASE_MODE_OPTS} />
@@ -273,7 +309,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
                 </label>}
               </div>
             </div>
-            {form.kind === "device" && form.run_power_w === null && <div className="space-y-3 rounded-lg border border-[#1E2F65] bg-[#0E1838] p-4">
+            {form.kind === "device" && form.run_power_w === null && <div className="space-y-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
               <div className="font-heading text-sm font-semibold">Zählung / Energie</div>
               <div className="flex flex-wrap items-center gap-3">
                 <Segmented value={form.energy_phase_mode} onChange={(v) => set("energy_phase_mode", v)} testid="flow-editor-energy-mode" options={PHASE_MODE_OPTS} />
@@ -306,7 +342,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
             {form.kind === "device" && form.run_power_w !== null && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <Field label="RUN-Datenpunkt" hint="true oder ein Wert ungleich 0 bedeutet Betrieb. false oder 0 bedeutet aus.">
-                  <Input value={form.datapoints.run ?? ""} onChange={(e) => setDp("run", e.target.value)} data-testid="flow-editor-dp-run" />
+                  <Input list="measurement-options" value={form.datapoints.run ?? ""} onChange={(e) => setDp("run", e.target.value)} data-testid="flow-editor-dp-run" />
                 </Field>
                 <Field label="Leistung im Betrieb (W)" hint="Die aufgezeichnete Laufzeit geht als geschätzte kWh in die Bilanz ein.">
                   <Input type="number" min={0.1} value={form.run_power_w} onChange={(e) => set("run_power_w", Number(e.target.value))} data-testid="flow-editor-run-watts" />
@@ -315,38 +351,40 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
             )}
             {form.kind === "storage" && (
               <Field label="SOC-Datenpunkt (%)">
-                <Input value={form.datapoints.soc ?? ""} onChange={(e) => setDp("soc", e.target.value)} data-testid="flow-editor-dp-soc" />
+                <Input list="measurement-options" value={form.datapoints.soc ?? ""} onChange={(e) => setDp("soc", e.target.value)} data-testid="flow-editor-dp-soc" />
               </Field>
             )}
-            <p className="text-xs text-[#8EA8C3]">ioBroker-Objekt-IDs, z. B. <span className="font-mono text-[#93C5FD]">smartmeter.0.1-0:1_7_0__255.value</span>. Leere Felder werden ignoriert.</p>
+            <datalist id="measurement-options">{(points.data ?? []).filter(p => p.enabled).map(p => <option key={p.id} value={"point:" + p.id}>{p.name} · {p.unit}</option>)}</datalist>
+            <p className="text-xs text-[#8EA8C3]">Messpunkt aus Datenerfassung auswählen oder bestehende ioBroker-ID eingeben, z. B. <span className="font-mono text-[#93C5FD]">smartmeter.0.1-0:1_7_0__255.value</span>. Leere Felder werden ignoriert.</p>
             {form.run_power_w === null && <div className="grid gap-3 sm:grid-cols-2">
               <Field label={form.kind === "storage" ? "Speicherleistung mit Vorzeichen" : singlePower ? `Wirkleistung (${form.power_phase})` : "Gesamtleistung (optional, sonst Summe L1–L3)"}>
-                <Input className="font-mono text-xs" value={form.datapoints.power_total} onChange={(e) => setDp("power_total", e.target.value)} data-testid="flow-editor-dp-power_total" />
+                <Input list="measurement-options" className="font-mono text-xs" value={form.datapoints.power_total} onChange={(e) => setDp("power_total", e.target.value)} data-testid="flow-editor-dp-power_total" />
               </Field>
               {!singlePower &&
                 PHASES.map((p) => (
                   <Field key={p} label={`Wirkleistung ${p}`}>
-                    <Input className="font-mono text-xs" value={form.datapoints[`power_${p.toLowerCase()}`] ?? ""} onChange={(e) => setDp(`power_${p.toLowerCase()}`, e.target.value)} data-testid={`flow-editor-dp-power_${p.toLowerCase()}`} />
+                    <Input list="measurement-options" className="font-mono text-xs" value={form.datapoints[`power_${p.toLowerCase()}`] ?? ""} onChange={(e) => setDp(`power_${p.toLowerCase()}`, e.target.value)} data-testid={`flow-editor-dp-power_${p.toLowerCase()}`} />
                   </Field>
                 ))}
-              {form.kind === "device" && <><Field label={singleEnergy ? `Energiezähler (${form.energy_phase})` : "Energiezähler gesamt (optional)"}>
-                <Input className="font-mono text-xs" value={form.datapoints.energy_total} onChange={(e) => setDp("energy_total", e.target.value)} data-testid="flow-editor-dp-energy_total" />
+              {form.kind === "device" && <><Field label={form.category === "grid" && form.grid_mode === "signed" ? "Zähler Netzbezug (optional)" : singleEnergy ? `Energiezähler (${form.energy_phase})` : "Energiezähler gesamt (optional)"}>
+                <Input list="measurement-options" className="font-mono text-xs" value={form.datapoints[form.category === "grid" && form.grid_mode === "signed" ? "energy_import" : "energy_total"] ?? ""} onChange={(e) => setDp(form.category === "grid" && form.grid_mode === "signed" ? "energy_import" : "energy_total", e.target.value)} data-testid="flow-editor-dp-energy_total" />
               </Field>
+              {form.category === "grid" && form.grid_mode === "signed" && <Field label="Zähler Einspeisung (optional)"><Input list="measurement-options" value={form.datapoints.energy_export ?? ""} onChange={e => setDp("energy_export",e.target.value)} /></Field>}
               {!singleEnergy &&
                 PHASES.map((p) => (
                   <Field key={p} label={`Energiezähler ${p}`}>
-                    <Input className="font-mono text-xs" value={form.datapoints[`energy_${p.toLowerCase()}`] ?? ""} onChange={(e) => setDp(`energy_${p.toLowerCase()}`, e.target.value)} data-testid={`flow-editor-dp-energy_${p.toLowerCase()}`} />
+                    <Input list="measurement-options" className="font-mono text-xs" value={form.datapoints[`energy_${p.toLowerCase()}`] ?? ""} onChange={(e) => setDp(`energy_${p.toLowerCase()}`, e.target.value)} data-testid={`flow-editor-dp-energy_${p.toLowerCase()}`} />
                   </Field>
                 ))}
               <Field label="Netzfrequenz (optional)">
-                <Input className="font-mono text-xs" value={form.datapoints.frequency} onChange={(e) => setDp("frequency", e.target.value)} data-testid="flow-editor-dp-frequency" />
+                <Input list="measurement-options" className="font-mono text-xs" value={form.datapoints.frequency} onChange={(e) => setDp("frequency", e.target.value)} data-testid="flow-editor-dp-frequency" />
               </Field>
               </>}
             </div>}
           </TabsContent>
 
           <TabsContent value="extra" className="mt-4 space-y-2">
-            <Field label="Zusätzliche Felder (JSON)" hint="Frei erweiterbar, etwa um kwp, capacity_kwh oder Notizen.">
+            <Field label="Zusätzliche Felder (JSON)" hint='Zusatzmetadaten als JSON-Objekt, z. B. {"manufacturer":"Victron","notes":"Garage"}. Kapazität und Berechnungen über die regulären Felder einstellen. Schema unter /api/schemas/flow; Anleitung in DATENMODELL.md.'>
               <Textarea rows={8} className="font-mono text-xs" value={extraText} onChange={(e) => setExtraText(e.target.value)} data-testid="flow-editor-extra-textarea" />
             </Field>
           </TabsContent>

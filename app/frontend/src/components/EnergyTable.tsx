@@ -39,7 +39,7 @@ function Cell({ v, testid }: { v: EnergyValue; testid: string }) {
       <div className="flex items-center gap-1">
         <MethodBadge method={v.method} />
         {!v.complete && v.method !== "unavailable" && <AlertTriangle className="size-3.5 text-[#FBBF24]" aria-label="Lücken" />}
-        {v.resets > 0 && <RotateCcw className="size-3.5 text-[#38BDF8]" aria-label="Zähler-Reset" />}
+        {v.resets > 0 && <RotateCcw className="size-3.5 text-[var(--primary)]" aria-label="Zähler-Reset" />}
       </div>
     </div>
   );
@@ -49,10 +49,10 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
   const [open, setOpen] = useState<string | null>(null);
   const maxKwh = Math.max(1, ...report.flows.map((f) => f.total.kwh ?? 0));
   return (
-    <div className="rounded-xl border border-[#1E2F65] bg-[#111D42] panel-shadow">
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] panel-shadow">
       <Table data-testid="energy-table">
         <TableHeader>
-          <TableRow className="border-[#1E2F65] hover:bg-transparent">
+          <TableRow className="border-[var(--border)] hover:bg-transparent">
             <TableHead className="text-[#8EA8C3]">Fluss</TableHead>
             <TableHead className="text-[#8EA8C3]">Gesamt</TableHead>
             {PHASES.map((p) => (
@@ -69,7 +69,7 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
             const allGaps = f.total.gaps;
             return (
               <Fragment key={f.flow_id}>
-                <TableRow className="border-[#1E2F65] hover:bg-[#162552]/60" data-testid={`energy-row-${f.flow_id}`}>
+                <TableRow className="border-[var(--border)] hover:bg-muted/60" data-testid={`energy-row-${f.flow_id}`}>
                   <TableCell>
                     <div className="flex items-center gap-2.5">
                       <span className="grid size-8 shrink-0 place-items-center rounded-md" style={{ background: `${f.color}22` }}>
@@ -86,7 +86,7 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
                   <TableCell>
                     <div className="space-y-1.5">
                       <Cell v={f.total} testid={`energy-total-${f.flow_id}`} />
-                      <div className="h-1 w-28 overflow-hidden rounded-full bg-[#0B132B]">
+                      <div className="h-1 w-28 overflow-hidden rounded-full bg-[var(--background)]">
                         <div className="h-full rounded-full" style={{ width: `${((f.total.kwh ?? 0) / maxKwh) * 100}%`, background: f.color }} />
                       </div>
                     </div>
@@ -108,7 +108,7 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
                   <TableCell>
                     <button
                       type="button"
-                      className="grid size-7 place-items-center rounded-md text-[#8EA8C3] transition-colors hover:bg-[#1C2E6A] hover:text-white"
+                      className="grid size-7 place-items-center rounded-md text-[#8EA8C3] transition-colors hover:bg-accent hover:text-white"
                       onClick={() => setOpen(isOpen ? null : f.flow_id)}
                       data-testid={`energy-row-toggle-${f.flow_id}`}
                       aria-label="Details"
@@ -118,7 +118,7 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
                   </TableCell>
                 </TableRow>
                 {isOpen && (
-                  <TableRow className="border-[#1E2F65] bg-[#0E1838] hover:bg-[#0E1838]" data-testid={`energy-row-details-${f.flow_id}`}>
+                  <TableRow className="border-[var(--border)] bg-[var(--card)] hover:bg-[var(--card)]" data-testid={`energy-row-details-${f.flow_id}`}>
                     <TableCell colSpan={7} className="whitespace-normal">
                       <div className="grid gap-4 py-2 text-xs md:grid-cols-2">
                         <div className="space-y-1">

@@ -83,15 +83,23 @@ class LiveFlow(BaseModel):
 
 
 class LiveStorage(BaseModel):
+    hybrid_name: str | None = None
     id: str
     name: str
     parent_id: str | None
     soc_pct: float | None
     charge_w: float | None
     discharge_w: float | None
+    capacity_kwh: float | None = None
+    remaining_kwh: float | None = None
+    usable_kwh: float | None = None
+    runtime_h: float | None = None
+    smoothed_power_w: float | None = None
+    max_power_w: float = 5000
 
 
 class LiveNode(BaseModel):
+    parent_id: str | None = None
     id: str
     name: str
     phase_mode: Literal["single", "three"]
@@ -128,3 +136,6 @@ class LiveReport(BaseModel):
     nodes: list[LiveNode] = Field(default_factory=list)
     storages: list[LiveStorage] = Field(default_factory=list)
     summary: LiveSummary
+    storage_total: LiveStorage | None = None
+    dc_values: list[dict] = Field(default_factory=list)
+    grid_configured: bool = False

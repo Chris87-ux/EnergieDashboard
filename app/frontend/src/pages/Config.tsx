@@ -22,7 +22,7 @@ function FlowRow({ flow, parentName, onEdit, onDelete, onToggle }: { flow: Flow;
   const mapped = Object.values(flow.datapoints).filter((v) => v && String(v).trim()).length;
   return (
     <div
-      className="flex flex-col gap-3 rounded-xl border border-[#1E2F65] bg-[#111D42] p-4 transition-[border-color] duration-200 hover:border-[#2563EB]/60 sm:flex-row sm:items-center"
+      className="flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 transition-[border-color] duration-200 hover:border-[var(--primary)]/60 sm:flex-row sm:items-center"
       data-testid={`config-flow-row-${flow.id}`}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -32,7 +32,7 @@ function FlowRow({ flow, parentName, onEdit, onDelete, onToggle }: { flow: Flow;
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="truncate font-heading font-semibold" data-testid={`config-flow-name-${flow.id}`}>{flow.name}</span>
-            {!flow.enabled && <span className="rounded border border-[#1E2F65] px-1.5 text-[10px] text-[#8EA8C3]">inaktiv</span>}
+            {!flow.enabled && <span className="rounded border border-[var(--border)] px-1.5 text-[10px] text-[#8EA8C3]">inaktiv</span>}
           </div>
           <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[#8EA8C3]">
             <span>{flow.kind === "storage" ? "Speicher" : flow.kind === "node" ? "Knoten" : CATEGORY_LABELS[flow.category]}</span>
@@ -110,7 +110,7 @@ export default function Config() {
     <>
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
-          <p className="text-sm font-medium text-[#38BDF8]">Fluss-Konfiguration</p>
+          <p className="text-sm font-medium text-[var(--primary)]">Fluss-Konfiguration</p>
           <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="config-title">Zu- und Abflüsse</h1>
           <p className="max-w-2xl text-sm text-[#8EA8C3]">Beliebig viele Flüsse mit eigenen ioBroker-Datenpunkten, Name, Symbol, Farbe, Kategorie und Phasen-Zuordnung.</p>
         </div>
@@ -128,9 +128,9 @@ export default function Config() {
           <section key={g.dir} className="space-y-3" data-testid={`config-group-${g.dir}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <g.icon className="size-5 text-[#38BDF8]" />
+                <g.icon className="size-5 text-[var(--primary)]" />
                 <h2 className="font-heading text-lg font-semibold">{g.title}</h2>
-                <span className="rounded-md bg-[#162552] px-2 py-0.5 font-mono text-xs text-[#93C5FD]">{items.length}</span>
+                <span className="rounded-md bg-muted px-2 py-0.5 font-mono text-xs text-[#93C5FD]">{items.length}</span>
               </div>
               <Button variant="ghost" size="sm" onClick={() => openEditor(null, g.dir)} data-testid={`config-add-${g.dir}-button`}>
                 <Plus className="size-4" /> Hinzufügen
@@ -149,7 +149,7 @@ export default function Config() {
                 />
               ))}
               {items.length === 0 && !flows.isLoading && (
-                <div className="rounded-xl border border-dashed border-[#1E2F65] p-6 text-center text-sm text-[#8EA8C3]">Noch keine {g.title}.</div>
+                <div className="rounded-xl border border-dashed border-[var(--border)] p-6 text-center text-sm text-[#8EA8C3]">Noch keine {g.title}.</div>
               )}
             </div>
           </section>
@@ -173,7 +173,7 @@ export default function Config() {
       <FlowEditor key={editorKey} open={editorOpen} onOpenChange={setEditorOpen} editing={editing} initial={initial} flows={list} />
 
       <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
-        <DialogContent className="border-[#1E2F65] bg-[#111D42]" data-testid="delete-flow-dialog">
+        <DialogContent className="border-[var(--border)] bg-[var(--card)]" data-testid="delete-flow-dialog">
           <DialogHeader>
             <DialogTitle>Fluss löschen?</DialogTitle>
             <DialogDescription>„{toDelete?.name}“ wird aus Dashboard und Bilanz entfernt. Historie in InfluxDB bleibt erhalten.</DialogDescription>

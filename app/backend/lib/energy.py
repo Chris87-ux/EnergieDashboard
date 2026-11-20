@@ -258,8 +258,8 @@ def pick_step(start: float, end: float) -> int:
 async def compute_all(flows: list[Flow], src, start: float, end: float, step: int, thr: float):
     results = await asyncio.gather(*(compute_flow(f, src, start, end, step, thr) for f in flows))
     def total(direction: str) -> float | None:
-        values = [r.total.kwh for r in results if r.direction == direction and r.total.kwh is not None]
+        values = [r.total.kwh for r in results if r.direction == direction and r.total.kwh is not None and not r.storage_id]
         return round(sum(values), 3) if values else None
 
-    incomplete = any(not r.total.complete for r in results)
+    incomplete = any(not r.total.complete for r in results if not r.storage_id)
     return list(results), EnergyTotals(in_kwh=total("in"), out_kwh=total("out"), incomplete=incomplete)

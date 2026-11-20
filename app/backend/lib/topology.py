@@ -23,13 +23,38 @@ def derived_samples(flows: list[Flow], values: dict[str, float | None], now: flo
         else:
             continue
         samples.extend({"dp": sample_id(flow, key), "ts": now, "v": value, "valid_until": now + interval_s * 2.5} for key, value in channels.items())
+    from lib.live import evaluate
+    live, _, _ = evaluate(flows, values, now)
+    for item in live:
+        if ":rest_" in item.flow_id or item.flow_id.endswith((":import", ":export", ":ac_production", ":ac_consumption")):
+            if item.power_w is not None:
+                owner, channel = item.flow_id.rsplit(":", 1)
+                samples.append({"dp": f"energieboard:{owner}:{channel}", "ts": now,
+                    "v": item.power_w, "valid_until": now + interval_s * 2.5})
     return samples
 
 
 def history_flows(flows: list[Flow]) -> list[Flow]:
     out = []
     for flow in flows:
-        if flow.kind == "node":
+        if flow.kind == "node" or (flow.category == "grid" and flow.grid_mode == "signed") or (flow.category == "pv" and flow.pv_type == "hybrid"):
+            if not any(flow.datapoints.get(key) for key in ("power_total", "power_l1", "power_l2", "power_l3")):
+                continue
+            channels = (("rest_consumption", "out", "Restverbrauch"), ("rest_production", "in", "Resterzeugung")) if flow.kind == "node" else (("import", "in", "Bezug"), ("export", "out", "Einspeisung"))
+            if flow.category == "pv" and flow.pv_type == "hybrid":
+                channels = (("ac_production", "in", "AC-Abgabe"), ("ac_consumption", "out", "AC-Aufnahme"))
+            for channel, direction, suffix in channels:
+                out.append(flow.model_copy(update={
+                    "id": flow.id + ":" + channel, "name": flow.name + " · " + suffix,
+                    "kind": "device", "category": "custom" if flow.kind == "node" else flow.category,
+                    "direction": direction, "parent_id": flow.id if flow.kind == "node" else flow.parent_id,
+                    "power_unit": "W", "invert": False, "power_phase_mode": "single", "energy_phase_mode": "single",
+                    "datapoints": flow.datapoints.model_copy(update={
+                        **{key: "" for key in flow.datapoints.model_dump()}, "power_total": sample_id(flow, channel),
+                        "energy_total": flow.datapoints.get("energy_" + channel) if flow.category == "grid" else ""}),
+                }))
+            continue
+        if flow.kind != "storage" and (flow.electrical_side == "dc" or flow.pv_type == "mppt"):
             continue
         if flow.kind == "storage":
             for channel, direction, suffix in (("charge", "out", "Laden"), ("discharge", "in", "Entladen")):

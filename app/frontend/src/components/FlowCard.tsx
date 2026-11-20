@@ -16,7 +16,7 @@ export default function FlowCard({ flow, energy }: Props) {
   return (
     <div
       data-testid={`flow-card-${flow.flow_id}`}
-      className="group relative overflow-hidden rounded-xl border border-[#1E2F65] bg-[#111D42] p-4 panel-shadow transition-[transform,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[#2563EB]/60 animate-fade-up"
+      className="group relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 panel-shadow transition-[transform,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-[var(--primary)]/60 animate-fade-up"
     >
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: flow.color }} />
       <div className="flex items-start justify-between gap-3">
@@ -33,7 +33,7 @@ export default function FlowCard({ flow, energy }: Props) {
           </div>
         </div>
         <span
-          className="flex items-center gap-1 rounded-md border border-[#1E2F65] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#8EA8C3]"
+          className="flex items-center gap-1 rounded-md border border-[var(--border)] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#8EA8C3]"
           data-testid={`flow-card-direction-${flow.flow_id}`}
         >
           {flow.direction === "in" ? <ArrowDownLeft className="size-3" /> : <ArrowUpRight className="size-3" />}
@@ -60,7 +60,7 @@ export default function FlowCard({ flow, energy }: Props) {
           return (
             <div key={p} className="flex items-center gap-2 text-xs" data-testid={`flow-card-phase-${flow.flow_id}-${p}`}>
               <span className="w-5 font-mono font-semibold text-[#93C5FD]">{p}</span>
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#0B132B]">
+              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--background)]">
                 {used && v !== null && (
                   <div
                     className="h-full rounded-full transition-[width] duration-500"
@@ -74,7 +74,7 @@ export default function FlowCard({ flow, energy }: Props) {
         })}
       </div>
       {energy && (
-        <div className="mt-3 flex items-center justify-between border-t border-[#1E2F65] pt-3 text-xs">
+        <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-3 text-xs">
           <span className="text-[#8EA8C3]">Heute</span>
           <span className="flex items-center gap-2">
             <MethodBadge method={energy.total.method} />

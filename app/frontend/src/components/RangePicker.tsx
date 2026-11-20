@@ -64,8 +64,8 @@ export default function RangePicker({ value, presets, onChange, activePreset }: 
             className={cn(
               "rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors duration-150",
               activePreset === p.key
-                ? "border-[#2563EB] bg-[#2563EB] text-white"
-                : "border-[#1E2F65] bg-[#111D42] text-[#8EA8C3] hover:border-[#2563EB]/60 hover:text-white",
+                ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                : "border-[var(--border)] bg-[var(--card)] text-[#8EA8C3] hover:border-[var(--primary)]/60 hover:text-white",
             )}
           >
             {p.label}
@@ -74,12 +74,12 @@ export default function RangePicker({ value, presets, onChange, activePreset }: 
       </div>
       <Popover open={open} onOpenChange={openPicker}>
         <PopoverTrigger asChild>
-          <Button variant="outline" className="h-9 justify-start gap-2 border-[#1E2F65] bg-[#111D42] font-mono text-xs sm:text-sm" data-testid="energy-picker-open-button">
-            <CalendarRange className="size-4 text-[#38BDF8]" />
+          <Button variant="outline" className="h-9 justify-start gap-2 border-[var(--border)] bg-[var(--card)] font-mono text-xs sm:text-sm" data-testid="energy-picker-open-button">
+            <CalendarRange className="size-4 text-[var(--primary)]" />
             <span data-testid="energy-picker-label">{label}</span>
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto border-[#1E2F65] bg-[#111D42] p-3" align="start">
+        <PopoverContent className="w-auto border-[var(--border)] bg-[var(--card)] p-3" align="start">
           <Calendar
             mode="range"
             selected={draft}

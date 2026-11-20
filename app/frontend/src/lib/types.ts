@@ -27,6 +27,15 @@ export interface FlowInput {
   parent_id: string | null;
   run_power_w: number | null;
   charge_sign: "negative" | "positive";
+  capacity_kwh: number | null;
+  reserve_soc_pct: number;
+  max_power_w: number;
+  electrical_side: "ac" | "dc";
+  pv_type: "wr" | "hybrid" | "mppt";
+  hybrid_id: string | null;
+  storage_ids: string[];
+  mppt_ids: string[];
+  grid_mode: "directional" | "signed";
   name: string;
   category: Category;
   direction: Direction;
@@ -80,6 +89,7 @@ export interface RecorderSettings {
 }
 
 export interface AppSettings {
+  appearance?: Appearance;
   site_name: string;
   timezone: string;
   live_poll_s: number;
@@ -216,9 +226,13 @@ export interface LiveReport {
   frequency_hz: number | null;
   flows: LiveFlow[];
   summary: LiveSummary;
+  storage_total: LiveStorage | null;
+  dc_values: {id: string; name: string; power_w: number | null; hybrid_name: string | null}[];
+  grid_configured: boolean;
 }
 
 export interface LiveNode {
+  parent_id: string | null;
   id: string;
   name: string;
   phase_mode: PhaseMode;
@@ -230,10 +244,21 @@ export interface LiveNode {
 }
 
 export interface LiveStorage {
+  hybrid_name: string | null;
   id: string;
   name: string;
   parent_id: string | null;
   soc_pct: number | null;
+  capacity_kwh: number | null;
+  remaining_kwh: number | null;
+  usable_kwh: number | null;
+  runtime_h: number | null;
+  smoothed_power_w: number | null;
+  max_power_w: number;
   charge_w: number | null;
   discharge_w: number | null;
 }
+
+export interface Appearance { layout: "square" | "rounded" | "flow"; background: string; surface: string; accent: string; }
+export interface Connection { id: string; name: string; protocol: "iobroker" | "mqtt" | "modbus"; host: string; port: number; enabled: boolean; username: string; password: string; password_set?: boolean; tls: boolean; timeout_s: number; }
+export interface Measurement { id: string; name: string; connection_id: string; enabled: boolean; record: boolean; unit: string; address: string; json_path: string; scale: number; offset: number; stale_s: number; unit_id: number; register: number; function: 3 | 4; datatype: string; byte_order: "big" | "little"; word_order: "big" | "little"; history_key: string; }

@@ -127,7 +127,7 @@ def _summary(flows: list[LiveFlow]) -> LiveSummary:
     ge = total(lambda f: f.category == "grid" and f.direction == "out")
     bc = total(lambda f: f.category == "battery" and f.direction == "out")
     bd = total(lambda f: f.category == "battery" and f.direction == "in")
-    consumption = total(lambda f: f.direction == "out" and f.category not in ("grid", "battery"))
+    consumption = total(lambda f: f.direction == "out" and f.category not in ("grid", "battery") and not f.flow_id.endswith(":ac_consumption"))
     autarky = None if not consumption or gi is None else round(max(0.0, min(100.0, (1 - gi / consumption) * 100)), 1)
     selfc = None if not pv or ge is None else round(max(0.0, min(100.0, (pv - ge) / pv * 100)), 1)
     return LiveSummary(
@@ -140,85 +140,30 @@ def _summary(flows: list[LiveFlow]) -> LiveSummary:
 
 @router.get("/live", response_model=LiveReport)
 async def live():
+    from lib.acquisition import read_values
+    from lib.live import evaluate, aggregate_storage
     s = await load_settings()
     flows = await load_flows(enabled_only=True)
+    values, errors = await read_values(s, all_datapoints(flows))
     now = datetime.now(timezone.utc)
-    errors: list[str] = []
-    out: list[LiveFlow] = []
-    nodes: list[LiveNode] = []
-    storages: list[LiveStorage] = []
-    ids = all_datapoints(flows)
-    values: dict[str, float | None] = {}
-    if not s.iobroker.host:
-        errors.append("ioBroker ist nicht konfiguriert.")
-    elif not ids:
-        errors.append("Unter „Konfiguration“ müssen aktive Flüsse mit ioBroker-Datenpunkten angelegt werden.")
-    else:
-        try:
-            values = await iob_get_bulk(s, ids)
-        except Exception as exc:
-            errors.append(f"ioBroker nicht erreichbar: {exc}")
-    for f in flows:
-        def get(key: str, raw: bool = False, f: Flow = f):
-            v = values.get(f.datapoints.get(key))
-            if v is None:
-                return None
-            if raw:
-                return round(v, 3)
-            if f.kind == "node":
-                return v * (1000 if f.power_unit == "kW" else 1) * (-1 if f.invert else 1)
-            return to_power_w(f, v)
-        if f.kind == "storage":
-            raw_power = values.get(f.datapoints.get("power_total"))
-            signed = None if raw_power is None else raw_power * (1000 if f.power_unit == "kW" else 1)
-            if signed is not None and f.charge_sign == "negative":
-                signed = -signed
-            soc = values.get(f.datapoints.get("soc"))
-            storages.append(LiveStorage(
-                id=f.id, name=f.name, parent_id=f.parent_id,
-                soc_pct=soc if soc is not None and 0 <= soc <= 100 else None,
-                charge_w=None if signed is None else max(signed, 0),
-                discharge_w=None if signed is None else max(-signed, 0),
-            ))
-            for channel, direction, suffix in (("charge", "out", "Laden"), ("discharge", "in", "Entladen")):
-                power = None if signed is None else max(signed if channel == "charge" else -signed, 0)
-                virtual = f.model_copy(update={
-                    "id": f"{f.id}:{channel}", "name": f"{f.name} · {suffix}", "category": "battery",
-                    "direction": direction, "power_phase_mode": "single",
-                })
-                out.append(_live_flow(virtual, lambda key, raw=False, power=power: power if key == "power_total" else None))
-        elif f.kind == "node":
-            measured = _live_flow(f, get)
-            nodes.append(LiveNode(
-                id=f.id, name=f.name, phase_mode=f.power_phase_mode, phase=f.power_phase,
-                phases=measured.phases, meter_w=measured.power_w, children_w=None, difference_w=None,
-            ))
-        elif f.run_power_w is not None:
-            run = values.get(f.datapoints.get("run"))
-            watts = None if run is None else f.run_power_w if run != 0 else 0
-            virtual = f.model_copy(update={"power_phase_mode": "single"})
-            out.append(_live_flow(virtual, lambda key, raw=False, watts=watts: watts if key == "power_total" else None))
-        else:
-            out.append(_live_flow(f, get))
-    for node in nodes:
-        children = [f for f in out if f.parent_id == node.id]
-        if children and all(f.available for f in children):
-            # Positive = consumption, negative = production, including charge/discharge.
-            node.children_w = sum((f.power_w or 0) * (1 if f.direction == "out" else -1) for f in children)
-            if node.meter_w is not None:
-                node.difference_w = round(node.meter_w - node.children_w, 1)
-    if not errors and not any(f.available for f in out):
-        errors.append("ioBroker liefert keine Leistung für die konfigurierten Flüsse.")
-    freq = next((f.frequency_hz for f in out if f.frequency_hz is not None), None)
-    return LiveReport(
-        ts=now,
-        ok=not errors,
-        errors=errors,
-        site_name=s.site_name,
-        poll_s=s.live_poll_s,
-        frequency_hz=freq,
-        flows=out,
-        nodes=nodes,
-        storages=storages,
-        summary=_summary(out),
-    )
+    out, nodes, storages = evaluate(flows, values, now.timestamp())
+    grid = any(f.category == "grid" and f.kind == "device" for f in flows)
+    if not grid:
+        errors.append("Bitte einen Netzanschluss unter Konfiguration anlegen.")
+    if not any(f.available for f in out):
+        errors.append("Keine aktuellen Leistungswerte verfügbar. Datenerfassung prüfen.")
+    summary = _summary(out)
+    if any(f.pv_type == "hybrid" for f in flows):
+        # AC inverter output includes battery discharge; PV self-consumption cannot be inferred.
+        summary.self_consumption_pct = None
+        summary.pv_w = None
+    dc = [{"id": f.id, "name": f.name, "hybrid_id": next((h.id for h in flows if f.id in h.mppt_ids), None),
+           "hybrid_name": next((h.name for h in flows if f.id in h.mppt_ids), None),
+           "power_w": None if values.get(f.datapoints.get("power_total")) is None else
+           values[f.datapoints.get("power_total")] * (1000 if f.power_unit == "kW" else 1) * (-1 if f.invert else 1)}
+          for f in flows if f.kind == "device" and (f.electrical_side == "dc" or f.pv_type == "mppt")]
+    return LiveReport(ts=now, ok=grid and any(f.available for f in out), errors=errors,
+        site_name=s.site_name, poll_s=s.live_poll_s,
+        frequency_hz=next((f.frequency_hz for f in out if f.frequency_hz is not None), None),
+        flows=out, nodes=nodes, storages=storages, storage_total=aggregate_storage(storages),
+        dc_values=dc, grid_configured=grid, summary=summary)

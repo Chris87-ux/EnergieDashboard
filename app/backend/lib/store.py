@@ -43,8 +43,12 @@ async def load_flows(enabled_only: bool = False) -> list[Flow]:
     docs = await db.flows.find(query, {"_id": 0}).sort([("sort_order", 1), ("created_at", 1)]).to_list()
     flows = [Flow(**d) for d in docs]
     if enabled_only:
-        nodes = {flow.id for flow in flows if flow.kind == "node"}
-        flows = [flow for flow in flows if not flow.parent_id or flow.parent_id in nodes]
+        while True:
+            nodes = {flow.id for flow in flows if flow.kind == "node"}
+            active = [flow for flow in flows if not flow.parent_id or flow.parent_id in nodes]
+            if len(active) == len(flows):
+                break
+            flows = active
     return flows
 
 

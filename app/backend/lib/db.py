@@ -18,5 +18,8 @@ async def ensure_indexes() -> None:
         IndexModel([("id", ASCENDING)], name="id", unique=True),
         IndexModel([("enabled", ASCENDING), ("sort_order", ASCENDING), ("created_at", ASCENDING)], name="enabled_sort"),
     ])
+    await db.connections.create_index("id", unique=True)
+    await db.measurements.create_index("id", unique=True)
+    await db.metadata.create_index("id", unique=True)
     await db.settings.create_index("id", name="id", unique=True)
     await db.samples.create_index([("dp", ASCENDING), ("ts", DESCENDING)], name="dp_ts")

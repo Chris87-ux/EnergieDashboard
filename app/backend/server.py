@@ -16,7 +16,7 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection
 from lib.db import client, db, ensure_indexes  # noqa: E402
 from lib.recorder import recorder_loop  # noqa: E402
-from routers import energy, flows, settings  # noqa: E402
+from routers import energy, flows, settings, acquisition  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,8 @@ async def lifespan(app: FastAPI):
     try:
         try:
             await ensure_indexes()
+            from lib.migrations import migrate
+            await migrate()
         except Exception:
             logger.exception("MongoDB-Start fehlgeschlagen. MONGO_URL und DB_NAME prüfen.")
             raise
@@ -36,11 +38,13 @@ async def lifespan(app: FastAPI):
             recorder.cancel()
             with suppress(asyncio.CancelledError):
                 await recorder
+            from lib.acquisition import close_connections
+            await close_connections()
     finally:
         await client.close()
 
 
-app = FastAPI(lifespan=lifespan, title="Energy Flow")
+app = FastAPI(lifespan=lifespan, title="Energieboard", version="2.0.0")
 
 api_router = APIRouter(prefix="/api")
 
@@ -51,12 +55,13 @@ async def root():
         await db.command("ping")
     except PyMongoError as exc:
         raise HTTPException(status_code=503, detail="MongoDB ist derzeit nicht erreichbar.") from exc
-    return {"message": "Energy Flow API", "status": "ok"}
+    return {"message": "Energieboard API", "status": "ok", "version": "2.0.0", "schema_version": 3}
 
 
 api_router.include_router(flows.router)
 api_router.include_router(settings.router)
 api_router.include_router(energy.router)
+api_router.include_router(acquisition.router)
 
 logging.basicConfig(
     level=logging.INFO,

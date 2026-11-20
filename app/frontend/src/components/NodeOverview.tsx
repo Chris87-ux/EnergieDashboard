@@ -1,74 +1,28 @@
 import { useState } from "react";
 import FlowCard from "@/components/FlowCard";
 import { Input } from "@/components/ui/input";
-import { fmtPct, fmtW } from "@/lib/format";
-import type { FlowEnergy, LiveReport, Phase } from "@/lib/types";
+import { fmtW } from "@/lib/format";
+import type { FlowEnergy, LiveReport } from "@/lib/types";
 
-export default function NodeOverview({ data, energy }: { data: LiveReport; energy: FlowEnergy[] }) {
-  const [search, setSearch] = useState("");
-  const match = (name: string) => name.toLocaleLowerCase().includes(search.toLocaleLowerCase());
-  const energyById = new Map(energy.map((flow) => [flow.flow_id, flow]));
-  const groups = [
-    { id: null, name: "Hauptebene" },
-    ...data.nodes.map((node) => ({ id: node.id, name: node.name })),
-  ];
-
-  return (
-    <section className="space-y-4">
-      <h2 className="font-heading text-lg font-semibold">Produktion, Verbrauch und Speicher</h2>
-      <Input aria-label="Geräte suchen" placeholder="Geräte oder Knoten suchen" value={search} onChange={(event) => setSearch(event.target.value)} />
-      {groups.map((group) => {
-        const node = data.nodes.find((item) => item.id === group.id);
-        const children = data.flows.filter((flow) => flow.parent_id === group.id);
-        const childCount = children.filter((flow) => !flow.storage_id).length + data.storages.filter((item) => item.parent_id === group.id).length;
-        const visible = children.filter((flow) => match(flow.name) || match(group.name));
-        const storage = data.storages.filter((item) => item.parent_id === group.id && (match(item.name) || match(group.name)));
-        if (group.id === null && children.length === 0 && storage.length === 0) return null;
-        if (search && visible.length === 0 && storage.length === 0 && !match(group.name)) return null;
-        return (
-          <div key={group.id ?? "root"} className="rounded-xl border border-border bg-card p-4" data-testid={`node-group-${group.id ?? "root"}`}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="font-heading font-semibold">{group.name}</h3>
-              {node && <details className="text-sm" data-testid={`node-meter-${node.id}`}>
-                <summary className="cursor-pointer text-[#BFDBFE]">Zähler und Verrechnung</summary>
-                <dl className="mt-2 space-y-1 text-xs text-muted-foreground">
-                  <div>Zähler netto {fmtW(node.meter_w)}</div>
-                  <div>Geräte netto {fmtW(node.children_w)}</div>
-                  <div>Unzugeordnete Differenz {fmtW(node.difference_w)}</div>
-                  {(node.phase_mode === "three" ? ["L1", "L2", "L3"] as Phase[] : [node.phase]).map((phase) => <div key={phase}>{phase} {fmtW(node.phases[phase])}</div>)}
-                  <div>Positiv = Verbrauch · negativ = Erzeugung</div>
-                </dl>
-              </details>}
-            </div>
-            {storage.map((item) => (
-              <div key={item.id} className="mt-3 flex flex-wrap gap-4 rounded-lg border border-border bg-background p-3 text-sm" data-testid={`storage-${item.id}`}>
-                <span className="font-semibold">{item.name}</span>
-                <span>SOC {fmtPct(item.soc_pct)}</span>
-                <span>Laden {fmtW(item.charge_w)}</span>
-                <span>Entladen {fmtW(item.discharge_w)}</span>
-              </div>
-            ))}
-            <details open={group.id === null || search.length > 0} className="mt-4">
-              <summary className="cursor-pointer text-sm text-[#BFDBFE]">Geräte und Tageswerte ({childCount})</summary>
-              <div className="mt-3 grid gap-4 lg:grid-cols-2">
-              {(["in", "out"] as const).map((direction) => (
-                <div key={direction} className="space-y-3">
-                  <h4 className="text-sm font-semibold text-[#BFDBFE]">{direction === "in" ? "Produktion / Zufluss" : "Verbrauch / Abfluss"}</h4>
-                  {visible.filter((flow) => flow.direction === direction && !flow.storage_id).map((flow) => (
-                    <FlowCard key={flow.flow_id} flow={flow} energy={energyById.get(flow.flow_id)} />
-                  ))}
-                  {visible.filter((flow) => flow.direction === direction && flow.storage_id).map((flow) => (
-                    <div key={flow.flow_id} className="flex justify-between gap-2 text-xs text-muted-foreground">
-                      <span>{flow.name}</span><span>{energyById.get(flow.flow_id)?.total.kwh?.toLocaleString("de-DE", { maximumFractionDigits: 3 }) ?? "n. v."} kWh heute</span>
-                    </div>
-                  ))}
-                </div>
-              ))}
-              </div>
-            </details>
-          </div>
-        );
-      })}
-    </section>
-  );
+export default function NodeOverview({data,energy}:{data:LiveReport;energy:FlowEnergy[]}) {
+ const [search,setSearch]=useState("");
+ const energyById=new Map(energy.map(e=>[e.flow_id,e]));
+ const match=(name:string)=>name.toLowerCase().includes(search.toLowerCase());
+ function group(id:string|null,depth=0):React.ReactNode {
+  if(depth>50)return null;
+  const node=data.nodes.find(n=>n.id===id);
+  const children=data.nodes.filter(n=>n.parent_id===id);
+  const flows=data.flows.filter(f=>f.parent_id===id&&!f.storage_id);
+  const shown=flows.filter(f=>(!search||match(f.name)||match(node?.name??"")) &&
+    (!f.flow_id.includes(":rest_") || (f.power_w==null ? f.direction==="out" : f.power_w>0 || f.direction==="out" && !flows.some(t=>t.flow_id===id+":rest_production" && (t.power_w??0)>0))));
+  return <section key={id??"root"} className={`node-section space-y-3 border-l-4 border-primary bg-card p-3 sm:p-4 ${depth?"ml-1 sm:ml-3":""}`} data-testid={`node-group-${id??"root"}`}>
+   <div className="flex flex-wrap justify-between gap-3"><h3 className="font-bold">{node?`▣ ${node.name}`:"Hauptebene"}</h3>{node&&<span className="text-sm">Zähler netto {fmtW(node.meter_w)} · Rest {fmtW(node.difference_w)}</span>}</div>
+   {node&&<details className="text-xs text-muted-foreground"><summary>Phasen und Verrechnung</summary><p>Verbrauch positiv · Erzeugung negativ · Kinder netto {fmtW(node.children_w)}</p>{Object.entries(node.phases).map(([p,v])=><p key={p}>{p}: {fmtW(v)}</p>)}<p>DC-Speicher und MPPTs werden separat angezeigt.</p></details>}
+   <details open={depth===0||!!search}><summary className="cursor-pointer text-sm text-primary">Geräte und Unterknoten ({flows.length+children.length})</summary>
+    <div className="mt-3 grid gap-3 xl:grid-cols-2">{(["in","out"] as const).map(direction=><div key={direction} className="space-y-2"><h4 className="text-sm text-muted-foreground">{direction==="in"?"Erzeugung / Zufluss":"Verbrauch / Abfluss"}</h4>{shown.filter(f=>f.direction===direction).map(f=><FlowCard key={f.flow_id} flow={f} energy={energyById.get(f.flow_id)}/>)}</div>)}</div>
+    <div className="mt-3 space-y-3">{children.map(n=>group(n.id,depth+1))}</div>
+   </details>
+  </section>;
+ }
+ return <section className="space-y-3"><h2 className="text-lg font-bold">Produktion und Verbrauch</h2><Input aria-label="Geräte suchen" placeholder="Geräte oder Knoten suchen" value={search} onChange={e=>setSearch(e.target.value)}/>{group(null)}</section>;
 }

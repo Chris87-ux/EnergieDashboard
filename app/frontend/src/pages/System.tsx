@@ -17,9 +17,9 @@ import type { LucideIcon } from "lucide-react";
 
 function Panel({ title, icon: Icon, children, testid }: { title: string; icon: LucideIcon; children: React.ReactNode; testid: string }) {
   return (
-    <section className="rounded-xl border border-[#1E2F65] bg-[#111D42] p-5 panel-shadow" data-testid={testid}>
+    <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 panel-shadow" data-testid={testid}>
       <div className="mb-4 flex items-center gap-2">
-        <Icon className="size-5 text-[#38BDF8]" />
+        <Icon className="size-5 text-[var(--primary)]" />
         <h2 className="font-heading text-lg font-semibold">{title}</h2>
       </div>
       {children}
@@ -168,7 +168,7 @@ function SettingsForm({ initial }: { initial: SettingsOut }) {
               <Input type="number" min={5} className="w-28" value={form.recorder.interval_s} onChange={(e) => recSet("interval_s", num(e.target.value))} data-testid="settings-recorder-interval-input" />
             </F>
           </div>
-          <div className="mt-4 rounded-lg border border-[#1E2F65] bg-[#0E1838] p-3 text-xs" data-testid="recorder-status">
+          <div className="mt-4 rounded-lg border border-[var(--border)] bg-[var(--card)] p-3 text-xs" data-testid="recorder-status">
             <div className="flex items-center justify-between">
               <span className="font-semibold" data-testid="recorder-status-state">{rec ? RECORDER_LABELS[rec.state] : "—"}</span>
               <span className="font-mono text-[#93C5FD]" data-testid="recorder-status-samples">{rec ? `${rec.samples_total.toLocaleString("de-DE")} Messwerte` : ""}</span>
@@ -258,7 +258,7 @@ export default function System() {
   return (
     <>
       <section className="space-y-1">
-        <p className="text-sm font-medium text-[#38BDF8]">Einstellungen &amp; LXC</p>
+        <p className="text-sm font-medium text-[var(--primary)]">Einstellungen &amp; LXC</p>
         <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="system-title">System &amp; Verbindungen</h1>
         <p className="max-w-2xl text-sm text-[#8EA8C3]">ioBroker eintragen, Verbindung testen und speichern. Anschließend unter „Konfiguration“ Flüsse mit den Datenpunkt-IDs der Anlage anlegen.</p>
       </section>

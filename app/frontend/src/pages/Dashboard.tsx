@@ -1,16 +1,34 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Gauge, Leaf, PlugZap, Sun, UtilityPole, Waves } from "lucide-react";
 import FlowDiagram from "@/components/FlowDiagram";
+import StorageOverview from "@/components/StorageOverview";
 import NodeOverview from "@/components/NodeOverview";
 import MethodBadge from "@/components/MethodBadge";
 import { buttonVariants } from "@/components/ui/button";
 import { fmtHz, fmtKwh, fmtPct, fmtTime, fmtW } from "@/lib/format";
 import { useEnergyToday, useLive } from "@/lib/queries";
+import type { LiveFlow, LiveReport } from "@/lib/types";
 import type { LucideIcon } from "lucide-react";
+
+function graphFlows(data:LiveReport|undefined):LiveFlow[] {
+  if (!data) return [];
+  if (data.flows.length <= 12) return data.flows;
+  const groups = new Map<string,LiveFlow>();
+  for (const f of data.flows) {
+    let root = data.nodes.find(n=>n.id===f.parent_id);
+    const seen = new Set<string>();
+    while(root?.parent_id && !seen.has(root.id)) {seen.add(root.id); const parent=data.nodes.find(n=>n.id===root?.parent_id); if(!parent)break;root=parent;}
+    const key = `${root?.id??f.category}:${f.direction}`;
+    const previous = groups.get(key);
+    const power = previous ? previous.power_w==null || f.power_w==null ? null : previous.power_w+f.power_w : f.power_w;
+    groups.set(key,{...f,flow_id:key,name:`${root?.name??f.category} · ${f.direction==="in"?"Zufluss":"Abfluss"}`,power_w:power,available:power!=null});
+  }
+  return [...groups.values()];
+}
 
 function Kpi({ label, value, icon: Icon, color, testid }: { label: string; value: string; icon: LucideIcon; color: string; testid: string }) {
   return (
-    <div className="rounded-xl border border-[#1E2F65] bg-[#111D42] p-4 panel-shadow animate-fade-up" data-testid={testid}>
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 panel-shadow animate-fade-up" data-testid={testid}>
       <div className="flex items-center gap-2 text-xs font-medium text-[#8EA8C3]">
         <Icon className="size-4" style={{ color }} />
         {label}
@@ -22,25 +40,26 @@ function Kpi({ label, value, icon: Icon, color, testid }: { label: string; value
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({embedded=false}:{embedded?:boolean}) {
   const live = useLive();
   const today = useEnergyToday();
   const data = live.isError ? undefined : live.data;
   const s = data?.ok ? data.summary : null;
+  const diagramFlows=graphFlows(data);
   const todayReport = today.isError ? undefined : today.data;
 
   return (
     <>
       <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-[#38BDF8]">Aktuelle Leistung</p>
+          <p className="text-sm font-medium text-[var(--primary)]">Aktuelle Leistung</p>
           <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="dashboard-title">
             Energiefluss{data ? ` · ${data.site_name}` : ""}
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-[#8EA8C3]">
           {data?.frequency_hz != null && (
-            <span className="flex items-center gap-1 rounded-md border border-[#1E2F65] px-2 py-1 font-mono text-[#93C5FD]" data-testid="dashboard-frequency">
+            <span className="flex items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 font-mono text-[#93C5FD]" data-testid="dashboard-frequency">
               <Waves className="size-3.5" /> {fmtHz(data.frequency_hz)}
             </span>
           )}
@@ -48,7 +67,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {data && data.errors.length > 0 && (
+      {!embedded && data && data.errors.length > 0 && (
         <div className="rounded-xl border border-[#7F1D1D] bg-[#450A0A]/60 p-3 text-sm text-[#FECACA]" data-testid="dashboard-errors">
           {data.errors.join(" · ")}
           {" "}
@@ -66,11 +85,11 @@ export default function Dashboard() {
       </section>
 
       <section className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
-        <div className={(data?.flows.length ?? 0) > 12 ? "hidden" : "lg:col-span-8"}>
-          {(data?.flows.length ?? 0) <= 12 && <FlowDiagram flows={data?.flows ?? []} summary={s} />}
+        <div className={`flow-visual ${diagramFlows.length > 12 ? "hidden" : "lg:col-span-8"}`}>
+          {diagramFlows.length <= 12 && <FlowDiagram flows={diagramFlows} summary={s} />}
         </div>
-        <aside className={(data?.flows.length ?? 0) > 12 ? "grid gap-4 md:grid-cols-2 lg:col-span-12" : "space-y-4 lg:col-span-4"}>
-          <div className="rounded-xl border border-[#1E2F65] bg-[#111D42] p-5 panel-shadow" data-testid="today-panel">
+        <aside className="today-aside space-y-4 lg:col-span-4">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 panel-shadow" data-testid="today-panel">
             <div className="flex items-center justify-between">
               <h2 className="font-heading text-lg font-semibold">Heute</h2>
               <Link to="/energie" className={buttonVariants({ variant: "ghost", size: "sm" })} data-testid="today-panel-open-energy">
@@ -78,11 +97,11 @@ export default function Dashboard() {
               </Link>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
-              <div className="rounded-lg bg-[#162552] p-3">
+              <div className="rounded-lg bg-muted p-3">
                 <div className="text-xs text-[#8EA8C3]">Zufluss</div>
                 <div className="font-mono text-lg font-bold" data-testid="today-in-kwh">{fmtKwh(todayReport?.totals.in_kwh)}</div>
               </div>
-              <div className="rounded-lg bg-[#162552] p-3">
+              <div className="rounded-lg bg-muted p-3">
                 <div className="text-xs text-[#8EA8C3]">Abfluss</div>
                 <div className="font-mono text-lg font-bold" data-testid="today-out-kwh">{fmtKwh(todayReport?.totals.out_kwh)}</div>
               </div>
@@ -90,7 +109,7 @@ export default function Dashboard() {
             <details className="mt-4" open={(todayReport?.flows.length ?? 0) <= 12}>
               <summary className="cursor-pointer text-xs text-muted-foreground">Tageswerte der Geräte</summary>
             <ul className="mt-3 space-y-2">
-              {(todayReport?.flows ?? []).map((f) => (
+              {(todayReport?.flows.filter(f=>!f.storage_id) ?? []).map((f) => (
                 <li key={f.flow_id} className="flex items-center justify-between gap-2 text-sm" data-testid={`today-row-${f.flow_id}`}>
                   <span className="flex min-w-0 items-center gap-2">
                     <span className="size-2 shrink-0 rounded-full" style={{ background: f.color }} />
@@ -107,7 +126,7 @@ export default function Dashboard() {
             </ul>
             </details>
           </div>
-          <div className="rounded-xl border border-[#1E2F65] bg-[#111D42] p-5 panel-shadow text-sm">
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 panel-shadow text-sm">
             <div className="text-xs text-[#8EA8C3]">Hausbilanz (Zufluss − gemessene Abflüsse)</div>
             <div className="mt-1 font-mono text-xl font-bold" data-testid="house-rest-power">{fmtW(s?.house_rest_w)}</div>
             <p className="mt-1 text-xs text-[#8EA8C3]">Nicht separat gemessener Restverbrauch bzw. Messabweichung.</p>
@@ -115,7 +134,10 @@ export default function Dashboard() {
         </aside>
       </section>
 
-      {data && <NodeOverview data={data} energy={todayReport?.flows ?? []} />}
+      {data && !data.grid_configured && <p role="alert" className="rounded-lg border border-amber-500 p-4">Ein Netzanschluss ist erforderlich. Unter Konfiguration einen Netzanschluss anlegen und Messpunkte zuordnen.</p>}
+      {(data?.flows.length??0)>12 && <p className="text-xs text-muted-foreground">Das Flussdiagramm fasst größere Anlagen nach Abschnitten zusammen. Die Abschnittsansicht zeigt alle Geräte und Knoten.</p>}
+      {data && <NodeOverview data={data} energy={todayReport?.flows.filter(f=>!f.storage_id) ?? []} />}
+      {data && <StorageOverview data={data} />}
     </>
   );
 }

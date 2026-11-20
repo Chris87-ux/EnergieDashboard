@@ -1,93 +1,62 @@
-# Energieboard
+# Energieboard 2.0
 
-Dashboard für aktuelle ioBroker-Leistungswerte und Energiebilanzen. MongoDB speichert Konfiguration und lokal aufgezeichnete Messwerte. InfluxDB kann vorhandene Historie liefern.
+Selbst gehostetes Energiedashboard für Proxmox-LXC. FastAPI und React, MongoDB für Konfiguration und Aufzeichnung. Messwerterfassung über ioBroker simple-api, MQTT oder Modbus TCP. Kein Demo-Modus und keine vorgefüllten Geräte.
 
-Die ausführliche [Installationsanleitung](INSTALLATION.md) beschreibt Voraussetzungen, Container-Erstellung, Dateiübertragung, Einrichtung und Fehlersuche. Die Prüfergebnisse stehen im [Prüfbericht](PRUEFBERICHT.md).
+- Verschachtelte AC-Knoten, automatische Restverbraucher/-erzeuger und verpflichtender Netzanschluss.
+- Sensorgeräte und RUN-Signale mit fester Leistung und aufgezeichneter kWh-Schätzung.
+- WR, Hybrid-WR und separate DC-MPPTs.
+- Mehrere Speicher mit Kapazität, gewichtetem Gesamt-SOC, Leistungsbalken, Restenergie und geglätteter Restlaufzeit.
+- Drei Darstellungen, globale Farben, über 50 suchbare Symbole und eingebettete Ansicht unter `/flow`.
+- Update mit Sicherung, Konfigurationsmigration und Rückfall auf die vorherige Version.
 
-## Auf Proxmox vorbereiten
+## Dokumentation
 
-Im Proxmox-Webinterface einen unprivilegierten LXC mit dem Debian-12-Template (Bookworm, amd64) anlegen. Für die geplanten 30–50 Geräte zunächst 2 vCPU, 4 GB RAM und 32 GB Speicher einplanen. Das Datenwachstum regelmäßig prüfen. Der Container braucht eine LAN-Adresse und Zugriff auf ioBroker, optional InfluxDB sowie die Paketquellen während der Installation.
+- [Installation, Ersteinrichtung und Updates](INSTALLATION.md)
+- [Messpunkte, Bilanzregeln und JSON-Beispiele](DATENMODELL.md)
+- [Prüfbericht und Grenzen der Prüfung](PRUEFBERICHT.md)
+- [Änderungen](CHANGELOG.md)
 
-Das Archiv `Energieboard-LXC.tar.gz` auf den Proxmox-Host übertragen, etwa per SCP nach `/root/`. Dann in der **Proxmox-Host-Shell** ausführen und `123` durch die eigene Container-ID ersetzen.
+## Voraussetzungen
 
-```sh
-CTID=123
-pct push "$CTID" /root/Energieboard-LXC.tar.gz /tmp/Energieboard-LXC.tar.gz
-pct enter "$CTID"
+Unprivilegierter Debian-12-LXC, amd64, systemd, empfohlen 2 vCPU, 4 GB RAM und 32 GB SSD. Lokale MongoDB benötigt AVX und einen kompatiblen Hostkernel. Externe MongoDB ist möglich. Netzwerkzugriff auf die tatsächlichen Datenquellen und während Installation/Updates auf Paketquellen, PyPI und GitHub.
+
+## Erstinstallation von GitHub
+
+Als root im LXC ausführen. Für bestehende Installationen den Updateweg verwenden.
+
+```bash
+(
+  set -e
+  apt-get update
+  apt-get install -y ca-certificates curl
+  cd /tmp
+  basis="https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/main/outputs"
+  curl -fL --retry 3 "$basis/Energieboard-LXC.tar.gz" -o Energieboard-LXC.tar.gz
+  curl -fL --retry 3 "$basis/SHA256SUMS" -o SHA256SUMS
+  sha256sum -c SHA256SUMS
+  mkdir -p /opt
+  tar -xzf Energieboard-LXC.tar.gz -C /opt
+  bash /opt/energieboard/deploy/install.sh
+)
 ```
 
-## Im Debian-LXC installieren
+Öffnen: `http://<LXC-IP>:8000/datenerfassung`. Zuerst Verbindungen und Messpunkte, anschließend unter Konfiguration den Netzanschluss einrichten.
 
-In der **LXC-Konsole** als root ausführen.
+## Bestehende Installation aktualisieren
 
-```sh
-tar -xzf /tmp/Energieboard-LXC.tar.gz -C /opt
-bash /opt/energieboard/deploy/install.sh
+Die erste alte Version enthält noch kein Updateskript. Den neuen Updater einmal herunterladen und starten:
+
+```bash
+curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/main/deploy/update.sh -o /tmp/energieboard-update.sh
+bash /tmp/energieboard-update.sh
 ```
 
-Das Skript installiert die festgelegten Python-Abhängigkeiten und bei Bedarf lokale MongoDB 8.0. Dafür muss der Proxmox-Prozessor AVX unterstützen. Bei neu installierter MongoDB wird der Cache auf 0,5 GB begrenzt. Vor dem Dienststart werden Oberfläche, Datenbank und Indizes geprüft. FastAPI liefert die gebaute Oberfläche zusammen mit der API aus. Systemd startet `energieboard.service` und bei lokaler MongoDB auch `mongod.service` beim Hochfahren des Containers. In den Proxmox-Optionen lässt sich zusätzlich der Autostart des LXC beim Hoststart einschalten.
+Danach genügt:
 
-Öffne `http://LXC-IP:8000/system` mit der tatsächlichen Container-IP. Das Board hat keine eigene Anmeldung. TCP-Port 8000 per Proxmox-Firewall auf vertrauenswürdige Geräte begrenzen oder einen Reverse-Proxy mit Zugriffsschutz verwenden.
-
-### Externe MongoDB verwenden
-
-Wenn du eine bestehende MongoDB nutzt, die Konfigurationsdatei bei der ersten Installation anlegen und dort die Verbindungsdaten eintragen.
-
-```sh
-install -d -m 0700 /etc/energieboard
-install -m 0600 /opt/energieboard/deploy/energieboard.env.example /etc/energieboard/energieboard.env
-editor /etc/energieboard/energieboard.env
-bash /opt/energieboard/deploy/install.sh --external-mongo
+```bash
+bash /opt/energieboard/deploy/update.sh
 ```
 
-`MONGO_URL` enthält die URI, `DB_NAME` den Datenbanknamen. Bei einer Migration dieselbe Datenbank wie bisher angeben, um Konfiguration und Historie weiterzuverwenden.
+Anwendung und Datenbank werden vor der Umstellung gesichert. Zugangsdaten in `/etc/energieboard/energieboard.env`, bestehende Messpunktzuordnungen und Historie bleiben erhalten. Für Sicherungsplatz, Ablauf und Rückkehr zur alten Version siehe Installationsanleitung. Kein gleichzeitiges zweites Update starten.
 
-## Verbindung einrichten
-
-### Knoten und Geräte
-
-Unter **Konfiguration** lassen sich Geräte, Knoten und Speicher anlegen. Ein Knoten bildet einen Abschnittszähler mit einstellbarer ein- oder dreiphasiger Anzeige ab. Geräte können der Hauptebene oder einem Knoten zugeordnet werden. Jeder Knoten kann gleichzeitig Verbraucher, Erzeuger und Speicher enthalten.
-
-Die Übersicht bilanziert die Geräte. Der Abschnittszähler dient im Knoten zur Verrechnung. Positiv bedeutet Verbrauch, negativ Erzeugung. Die Differenz ergibt sich aus Zählerwert minus der vorzeichenrichtigen Summe der zugeordneten Geräte einschließlich Speicher. Fehlende Gerätewerte führen zu einer nicht verfügbaren Differenz. Ein deaktivierter Knoten deaktiviert seine zugeordneten Geräte in Anzeige und Bilanz.
-
-Die Knoten bilden aktuell eine Ebene unter der Hauptebene. Geräte und Speicher vor Abschnittszählern werden der Hauptebene zugeordnet. Bevor ein Knoten gelöscht werden kann, müssen seine Geräte und Speicher verschoben werden.
-
-### RUN-Geräte
-
-Im Geräteeditor unter **Datenpunkte** die RUN-Schätzung einschalten, einen RUN-Datenpunkt und die feste Leistung in Watt hinterlegen. `true` beziehungsweise ein Wert ungleich `0` bedeutet Betrieb. `false` oder `0` bedeutet aus. Ein fehlender Datenpunkt gilt als unbekannt.
-
-Live wird bei aktivem RUN die feste Leistung angezeigt. Die aufgezeichneten Betriebszeiten werden als **RUN-Schätzung** in kWh bilanziert. Änderungen der festen Leistung gelten für künftig aufgezeichnete Werte. Die Historie bewahrt die zuvor aufgezeichnete Leistung. Die Zeitauflösung entspricht dem Recorder-Intervall. Ein eingeschalteter Recorder ist für diese Historie erforderlich.
-
-### Speicher
-
-Speicher werden als eigener Typ mit einem vorzeichenbehafteten Leistungsdatenpunkt und einem SOC-Datenpunkt in Prozent angelegt. Das Lade-Vorzeichen wird pro Speicher eingestellt. Die Anschlusszuordnung gilt sowohl beim Laden als auch beim Entladen. Laden wird als Abfluss und Entladen als Zufluss bilanziert.
-
-Die Energie wird ab Einrichtung aus getrennt aufgezeichneter Lade- und Entladeleistung integriert. Vorhandene historische Leistung aus InfluxDB wird für diese neuen Speicherkanäle aktuell nicht rückwirkend aufgeteilt. Der Recorder hält dazu zusätzlich die konfigurierten Messwerte lokal vor. Aufzeichnungslücken werden zeitlich begrenzt und als unvollständige Energie markiert.
-
-Bei 30–50 Geräten kann die Übersicht nach Geräten und Knoten durchsucht werden. Gerätelisten lassen sich je Knoten aufklappen. Abschnittszähler werden innerhalb des Knotens angezeigt. Die separate Kreisdarstellung wird bei mehr als zwölf Leistungsflüssen ausgeblendet.
-
-### Datenquellen anschließen
-
-1. In ioBroker den Adapter **simple-api** bereitstellen. Der Energieboard-Server muss dessen Host und Port erreichen können. Der Standardport ist `8087`.
-2. Im Board unter **System** Host, Protokoll und Port eintragen, Verbindung testen und speichern.
-3. Unter **Konfiguration** einen Fluss pro Anlage oder Verbraucher mit den tatsächlichen ioBroker-Datenpunkt-IDs anlegen. Die Einheiten und bei Bedarf Vorzeichen und Phasen passend zum Gerät wählen.
-4. Für vorhandene Historie normaler Messgeräte unter **System** optional InfluxDB aktivieren und testen. Die Datenpunkt-ID muss als Measurement vorliegen. Der Feldname ist standardmäßig `value`. Der Recorder sammelt zusätzlich die aktuellen Werte in MongoDB.
-
-## Dienst prüfen und aktualisieren
-
-In der LXC-Konsole.
-
-```sh
-systemctl status energieboard
-journalctl -u energieboard -n 60 --no-pager
-curl -fsS http://127.0.0.1:8000/api/
-```
-
-Für ein Update den Dienst mit `systemctl stop energieboard` anhalten, das neue Archiv wie bei der Erstinstallation nach `/opt` entpacken und das Installationsskript mit derselben MongoDB-Option erneut ausführen. Das Skript liest weiterhin `/etc/energieboard/energieboard.env`. Die lokale Datenbank liegt bei einer Standardinstallation unter `/var/lib/mongodb`.
-
-Falls du die Oberfläche selbst änderst, in `app/frontend` mit Node.js ab 22.12 `npm ci` und `npm run build` ausführen, bevor das Paket auf den LXC kopiert wird.
-
-## Referenzen
-
-- [Proxmox VE Container-Verwaltung](https://pve.proxmox.com/pve-docs/pct.1.html)
-- [MongoDB 8.0 auf Debian installieren](https://www.mongodb.com/docs/v8.0/tutorial/install-mongodb-on-debian/)
+Das Board hat keine eigene Anmeldung. Im vertrauenswürdigen LAN betreiben oder über einen Reverse-Proxy schützen.

@@ -31,9 +31,6 @@ async def _tick() -> int:
     if not s.recorder.enabled:
         _set("disabled", "Aufzeichnung ist deaktiviert")
         return s.recorder.interval_s
-    if not s.iobroker.host:
-        _set("waiting", "ioBroker-Verbindung ist noch nicht konfiguriert")
-        return s.recorder.interval_s
     flows = await load_flows(enabled_only=True)
     dps = tuple(all_datapoints(flows))
     if not dps:
@@ -46,9 +43,13 @@ async def _tick() -> int:
     STATUS.influx_dps = []
     STATUS.recorded_dps = missing
     if missing:
-        values = await iob_get_bulk(s, missing)
+        from lib.acquisition import read_values
+        values, errors = await read_values(s, missing)
+        STATUS.last_error = "; ".join(errors) or None
+        points = await db.measurements.find({}, {"_id": 0}).to_list()
+        unrecorded = {"point:" + p["id"] for p in points if not p.get("record", True)}
         now = time.time()
-        docs = [{"dp": dp, "ts": now, "v": v} for dp, v in values.items() if v is not None]
+        docs = [{"dp": dp, "ts": now, "v": v, "valid_until": now + s.recorder.interval_s * 2.5} for dp, v in values.items() if v is not None and dp not in unrecorded]
         docs.extend(derived_samples(flows, values, now, s.recorder.interval_s))
         if docs:
             await db.samples.insert_many(docs)

@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 Phase = Literal["L1", "L2", "L3"]
 PhaseMode = Literal["single", "three"]
@@ -12,7 +12,7 @@ Direction = Literal["in", "out"]
 Category = Literal["pv", "grid", "battery", "heatpump", "ev", "consumer", "custom"]
 
 PHASES: tuple[Phase, ...] = ("L1", "L2", "L3")
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 
 class Datapoints(BaseModel):
@@ -24,6 +24,8 @@ class Datapoints(BaseModel):
     power_l1: str = ""
     power_l2: str = ""
     power_l3: str = ""
+    energy_import: str = ""
+    energy_export: str = ""
     energy_total: str = ""
     energy_l1: str = ""
     energy_l2: str = ""
@@ -45,6 +47,15 @@ class FlowBase(BaseModel):
     parent_id: str | None = None
     run_power_w: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     charge_sign: Literal["negative", "positive"] = "negative"
+    capacity_kwh: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+    reserve_soc_pct: float = Field(default=0, ge=0, le=100, allow_inf_nan=False)
+    max_power_w: float = Field(default=5000, gt=0, allow_inf_nan=False)
+    electrical_side: Literal["ac", "dc"] = "ac"
+    pv_type: Literal["wr", "hybrid", "mppt"] = "wr"
+    hybrid_id: str | None = None
+    storage_ids: list[str] = Field(default_factory=list)
+    mppt_ids: list[str] = Field(default_factory=list)
+    grid_mode: Literal["directional", "signed"] = "directional"
     category: Category = "consumer"
     direction: Direction = "out"
     icon: str = "plug"
@@ -61,12 +72,26 @@ class FlowBase(BaseModel):
     datapoints: Datapoints = Field(default_factory=Datapoints)
     extra: dict[str, Any] = Field(default_factory=dict)
 
+    @field_validator("extra")
+    @classmethod
+    def json_metadata(cls, value):
+        import json
+        try:
+            encoded = json.dumps(value, allow_nan=False)
+        except (ValueError, TypeError, RecursionError) as exc:
+            raise ValueError("Zusatzfelder müssen gültige JSON-Werte mit endlichen Zahlen enthalten.") from exc
+        if len(encoded.encode("utf-8")) > 16384:
+            raise ValueError("Zusatzfelder dürfen höchstens 16 KiB belegen.")
+        return value
+
     @model_validator(mode="after")
     def validate_kind(self):
+        if self.kind == "storage":
+            self.electrical_side = "dc"
         if self.kind != "device" and (self.run_power_w is not None or self.datapoints.get("run")):
             raise ValueError("RUN-Schätzungen werden für Geräte konfiguriert.")
-        if self.kind == "node" and self.parent_id:
-            raise ValueError("Knoten werden auf der obersten Ebene angelegt.")
+        if self.category == "grid" and (self.parent_id or self.kind != "device"):
+            raise ValueError("Der Netzanschluss muss ein Gerät auf der Hauptebene sein.")
         if self.kind == "storage" and not (self.datapoints.get("power_total") and self.datapoints.get("soc")):
             raise ValueError("Ein Speicher benötigt einen Leistungs- und einen SOC-Datenpunkt.")
         if self.kind == "device" and bool(self.datapoints.get("run")) != (self.run_power_w is not None):

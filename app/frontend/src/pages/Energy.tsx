@@ -33,14 +33,14 @@ export default function Energy() {
   return (
     <>
       <section className="space-y-1">
-        <p className="text-sm font-medium text-[#38BDF8]">Energie-Bilanz</p>
+        <p className="text-sm font-medium text-[var(--primary)]">Energie-Bilanz</p>
         <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="energy-title">Gesamt- und Phasenenergie in kWh</h1>
         <p className="max-w-3xl text-sm text-[#8EA8C3]">
           Zählerdeltas mit Reset-Erkennung, Summe vollständiger Phasen oder Integration historischer Wirkleistung – fehlende Daten werden als Lücke bzw. „Nicht verfügbar“ markiert.
         </p>
       </section>
 
-      <section className="rounded-xl border border-[#1E2F65] bg-[#111D42] p-4 panel-shadow">
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 panel-shadow">
         <RangePicker
           value={range}
           presets={presets.data ?? []}
@@ -59,21 +59,21 @@ export default function Energy() {
       )}
 
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-testid="energy-summary">
-        <div className="rounded-xl border border-[#1E2F65] bg-[#111D42] p-4 panel-shadow">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 panel-shadow">
           <div className="text-xs text-[#8EA8C3]">Zufluss gesamt</div>
           <div className="mt-1 font-mono text-xl font-extrabold sm:text-2xl" data-testid="energy-sum-in">{report ? fmtKwh(report.totals.in_kwh) : "—"}</div>
         </div>
-        <div className="rounded-xl border border-[#1E2F65] bg-[#111D42] p-4 panel-shadow">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 panel-shadow">
           <div className="text-xs text-[#8EA8C3]">Abfluss gesamt</div>
           <div className="mt-1 font-mono text-xl font-extrabold sm:text-2xl" data-testid="energy-sum-out">{report ? fmtKwh(report.totals.out_kwh) : "—"}</div>
         </div>
-        <div className="rounded-xl border border-[#1E2F65] bg-[#111D42] p-4 panel-shadow">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 panel-shadow">
           <div className="text-xs text-[#8EA8C3]">Zeitraum ({report?.timezone ?? "—"})</div>
           <div className="mt-1 font-mono text-xs font-semibold sm:text-sm" data-testid="energy-range-label">
             {report ? `${fmtLocal(report.start_local)} – ${fmtLocal(report.end_local)}` : "—"}
           </div>
         </div>
-        <div className="rounded-xl border border-[#1E2F65] bg-[#111D42] p-4 panel-shadow">
+        <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 panel-shadow">
           <div className="text-xs text-[#8EA8C3]">Auflösung / Lückenschwelle</div>
           <div className="mt-1 font-mono text-sm font-semibold" data-testid="energy-resolution">
             {report ? `${fmtDuration(report.step_s)} / ${fmtDuration(report.gap_threshold_s)}` : "—"}
@@ -94,7 +94,7 @@ export default function Energy() {
         <MethodBadge method="run_estimate" />
         <MethodBadge method="unavailable" />
         <span className="flex items-center gap-1"><AlertTriangle className="size-3.5 text-[#FBBF24]" /> unvollständig</span>
-        <span className="flex items-center gap-1"><RotateCcw className="size-3.5 text-[#38BDF8]" /> Zähler-Reset</span>
+        <span className="flex items-center gap-1"><RotateCcw className="size-3.5 text-[var(--primary)]" /> Zähler-Reset</span>
       </section>
 
       {report && report.errors.length > 0 && (

@@ -24,9 +24,14 @@ journalctl -u energieboard -n 60 --no-pager`,
   },
   {
     title: "4. Datenquellen verbinden",
-    text: "Im Browser die IP des LXC-Containers auf Port 8000 öffnen. Unter „System“ ioBroker und optional InfluxDB eintragen. Unter „Konfiguration“ Flüsse mit den tatsächlichen Datenpunkt-IDs anlegen.",
+    text: "Im Browser die IP des LXC-Containers auf Port 8000 öffnen. Unter „Datenerfassung“ Verbindungen (ioBroker, MQTT, Modbus TCP) und Messpunkte anlegen. Unter „Konfiguration“ zuerst den Netzanschluss und danach Knoten, Geräte und Speicher einrichten. InfluxDB und Aufzeichnung stehen unter „System“.",
     code: `# Beispiel für die Adresse im Browser
-http://<LXC-IP>:8000/system`,
+http://<LXC-IP>:8000/datenerfassung`,
+  },
+  {
+    title: "5. Aktualisieren",
+    text: "Das Update sichert Anwendung, Datenbank und Konfiguration. Messpunkt-IDs und Historie bleiben erhalten. Bei einem Fehler wird die Sicherung zurückgespielt. Die erste Übernahme einer älteren Installation ist in INSTALLATION.md beschrieben.",
+    code: `bash /opt/energieboard/deploy/update.sh`,
   },
 ];
 
@@ -43,7 +48,7 @@ function CodeBlock({ code, testid }: { code: string; testid: string }) {
   };
   return (
     <div className="relative">
-      <pre className="overflow-x-auto rounded-lg border border-[#1E2F65] bg-[#0B132B] p-3 pr-12 font-mono text-[11px] leading-relaxed text-[#BFDBFE]">{code}</pre>
+      <pre className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 pr-12 font-mono text-[11px] leading-relaxed text-[#BFDBFE]">{code}</pre>
       <Button variant="ghost" size="icon-sm" className="absolute right-2 top-2" onClick={copy} aria-label="Kopieren" data-testid={testid}>
         {copied ? <Check className="size-4 text-[#34D399]" /> : <Copy className="size-4" />}
       </Button>
@@ -54,12 +59,12 @@ function CodeBlock({ code, testid }: { code: string; testid: string }) {
 export default function LxcGuide() {
   return (
     <div className="space-y-5" data-testid="lxc-guide">
-      <div className="grid gap-2 rounded-lg border border-[#1E2F65] bg-[#0E1838] p-4 font-mono text-[11px] text-[#93C5FD] sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center sm:text-center">
-        <div className="rounded-md border border-[#1E2F65] bg-[#111D42] p-2">Browser im LAN</div>
+      <div className="grid gap-2 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 font-mono text-[11px] text-[#93C5FD] sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center sm:text-center">
+        <div className="rounded-md border border-[var(--border)] bg-[var(--card)] p-2">Browser im LAN</div>
         <div className="text-[#8EA8C3]">→ :8000</div>
-        <div className="rounded-md border border-[#2563EB] bg-[#1C2E6A] p-2 text-white">LXC Energieboard<br />FastAPI · MongoDB</div>
+        <div className="rounded-md border border-[var(--primary)] bg-accent p-2 text-white">LXC Energieboard<br />FastAPI · MongoDB</div>
         <div className="text-[#8EA8C3]">→</div>
-        <div className="rounded-md border border-[#1E2F65] bg-[#111D42] p-2">ioBroker :8087<br />InfluxDB :8086</div>
+        <div className="rounded-md border border-[var(--border)] bg-[var(--card)] p-2">ioBroker :8087<br />InfluxDB :8086</div>
       </div>
       {STEPS.map((s, i) => (
         <div key={s.title} className="space-y-2">
