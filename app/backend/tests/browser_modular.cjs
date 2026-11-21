@@ -142,6 +142,16 @@ const assert=require("node:assert/strict");
   const hybridId=allFlows.find(f=>f.name==="Victron Hybrid").id;
   await page.getByTestId("hybrid-efficiency-"+hybridId).waitFor();
   assert.match(await page.getByTestId("hybrid-efficiency-"+hybridId).innerText(),/25/);
+  const hybrid=allFlows.find(f=>f.id===hybridId);
+  await page.request.put(url+"/api/flows/"+hybridId,{data:{...hybrid,hybrid_ac_mode:"terminals",datapoints:{...hybrid.datapoints,ac_input:"point:mppt"}}});
+  await page.reload();
+  await page.getByTestId("flow-card-"+hybridId+":ac_consumption").waitFor();
+  const terminalCard=page.getByTestId("flow-card-"+hybridId+":ac_consumption");
+  assert.match(await terminalCard.innerText(),/Gesamtwert · ohne Phasenaufteilung/);
+  assert.equal(await terminalCard.locator('[data-testid^="flow-card-phase-"]').count(),0);
+  assert.equal(await page.getByTestId("hybrid-efficiency-"+hybridId).innerText(),"n. v.");
+  await page.request.put(url+"/api/flows/"+hybridId,{data:hybrid});
+
   for(const layout of ["square","rounded","flow"]){
    await page.goto(url+"/darstellung");
    await page.getByRole("button",{name:layout==="square"?/Kompakt \/ eckig/:layout==="rounded"?/Modern \/ Karten/:/Flussdiagramm/}).click();

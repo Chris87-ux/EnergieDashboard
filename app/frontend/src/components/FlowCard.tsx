@@ -12,7 +12,8 @@ interface Props {
 export default function FlowCard({ flow, energy }: Props) {
   const Icon = iconFor(flow.icon);
   const max = Math.max(1, ...PHASES.map((p) => Math.abs(flow.phases[p] ?? 0)));
-  const modeLabel = flow.power_phase_mode === "three" ? "3-phasig" : `1-phasig · ${flow.power_phase}`;
+  const totalOnly = flow.available && PHASES.every(p => flow.phases[p] == null);
+  const modeLabel = totalOnly ? "Gesamtwert · ohne Phasenaufteilung" : flow.power_phase_mode === "three" ? "3-phasig" : `1-phasig · ${flow.power_phase}`;
   return (
     <div
       data-testid={`flow-card-${flow.flow_id}`}
@@ -56,7 +57,7 @@ export default function FlowCard({ flow, energy }: Props) {
       {flow.category === "generator" && <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">
         {Object.entries({engine_temperature:["Motortemperatur","°C"],efficiency:["Effizienz","%"],fuel_consumption:["Kraftstoffverbrauch",String(flow.telemetry?.fuel_unit??"L/h")],operating_hours:["Betriebsstunden","h"]}).map(([key,[label,unit]])=><div key={key}><dt className="text-muted-foreground">{label}</dt><dd>{flow.telemetry?.[key]==null?"n. v.":`${flow.telemetry[key]} ${unit}`}</dd></div>)}
       </dl>}
-      <div className="mt-3 space-y-1.5">
+      {!totalOnly && <div className="mt-3 space-y-1.5">
         {PHASES.map((p) => {
           const v = flow.phases[p];
           const used = flow.power_phase_mode === "three" || p === flow.power_phase;
@@ -75,7 +76,7 @@ export default function FlowCard({ flow, energy }: Props) {
             </div>
           );
         })}
-      </div>
+      </div>}
       {energy && (
         <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-3 text-xs">
           <span className="text-[#8EA8C3]">Heute</span>
