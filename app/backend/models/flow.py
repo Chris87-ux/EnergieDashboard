@@ -12,7 +12,7 @@ Direction = Literal["in", "out"]
 Category = Literal["pv", "generator", "grid", "battery", "heatpump", "ev", "consumer", "custom"]
 
 PHASES: tuple[Phase, ...] = ("L1", "L2", "L3")
-SCHEMA_VERSION = 4
+SCHEMA_VERSION = 5
 
 
 class Datapoints(BaseModel):
@@ -20,6 +20,9 @@ class Datapoints(BaseModel):
 
     model_config = ConfigDict(extra="allow")
 
+    ac_input: str = ""
+    dc_power: str = ""
+    dc_load_power: str = ""
     power_total: str = ""
     power_l1: str = ""
     power_l2: str = ""
@@ -58,6 +61,11 @@ class FlowBase(BaseModel):
     max_power_w: float = Field(default=5000, gt=0, allow_inf_nan=False)
     electrical_side: Literal["ac", "dc"] = "ac"
     pv_type: Literal["wr", "hybrid", "mppt"] = "wr"
+    hybrid_ac_mode: Literal["net", "terminals"] = "net"
+    dc_power_unit: Literal["W", "kW"] = "W"
+    dc_invert: bool = False
+    dc_balance_complete: bool = False
+    hybrid_min_power_w: float = Field(default=100, gt=0, allow_inf_nan=False)
     hybrid_id: str | None = None
     storage_ids: list[str] = Field(default_factory=list)
     mppt_ids: list[str] = Field(default_factory=list)
@@ -105,6 +113,11 @@ class FlowBase(BaseModel):
 
     @model_validator(mode="after")
     def validate_kind(self):
+        if self.kind == "device" and self.category == "pv" and self.pv_type == "mppt":
+            self.electrical_side = "dc"
+            self.power_phase_mode = "single"
+            self.energy_phase_mode = "single"
+            self.direction = "in"
         if self.kind == "storage" and self.electrical_side == "dc":
             self.power_phase_mode = "single"
             self.energy_phase_mode = "single"

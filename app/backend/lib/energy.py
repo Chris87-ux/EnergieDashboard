@@ -235,7 +235,10 @@ async def compute_flow(flow: Flow, src, start: float, end: float, step: int, thr
             total = unavailable(start, end)
         phases = {p: (total if p == sel else not_applicable()) for p in PHASES}
 
+    if flow.electrical_side == "dc" or flow.extra.get("total_only"):
+        phases = {p:not_applicable() for p in PHASES}
     return FlowEnergy(
+        electrical_side=flow.electrical_side,
         flow_id=flow.id,
         name=flow.name,
         category=flow.category,
@@ -258,8 +261,8 @@ def pick_step(start: float, end: float) -> int:
 async def compute_all(flows: list[Flow], src, start: float, end: float, step: int, thr: float):
     results = await asyncio.gather(*(compute_flow(f, src, start, end, step, thr) for f in flows))
     def total(direction: str) -> float | None:
-        values = [r.total.kwh for r in results if r.direction == direction and r.total.kwh is not None and not r.storage_id]
+        values = [r.total.kwh for r in results if r.direction == direction and r.total.kwh is not None and not r.storage_id and r.electrical_side == "ac"]
         return round(sum(values), 3) if values else None
 
-    incomplete = any(not r.total.complete for r in results if not r.storage_id)
+    incomplete = any(not r.total.complete for r in results if not r.storage_id and r.electrical_side == "ac")
     return list(results), EnergyTotals(in_kwh=total("in"), out_kwh=total("out"), incomplete=incomplete)

@@ -1,6 +1,16 @@
-# Prüfbericht · Energieboard 2.2.0
+# Prüfbericht · Energieboard 2.3.0
 
 Stand: 21. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokolladapter, Konfigurationsübernahme, Sicherung und Updateablauf. Das ausgelieferte Programm enthält keinen Demo-Modus; Messwerte der Tests stammen ausschließlich aus isolierten Testprozessen.
+
+## Neue Prüfungen für 2.3
+
+- 60 Backendtests erfolgreich: zusätzlich DC-MPPT-Normalisierung, relevante Datenpunkte, getrennte DC-Zählerenergie, Entladung, PV mit gleichzeitiger Batterieladung, Netzladung, mehrere MPPTs/Speicher, DC-Lasten, Einheiten und Vorzeichen, AC-Netzdurchleitung, Rückspeisung und dreiphasige AC-Out-Summe.
+- Wirkungsgrad aus direkter DC-WR-Messung oder ausdrücklich bestätigter DC-Busbilanz. Fehlende/inkompatible Quellen, kleine Leistungen, entgegengesetzte Vorzeichen und Werte über 100 % erzeugen keinen scheinbaren gültigen Wirkungsgrad.
+- CSV-Rundlauf erhält neue Hybrid-Felder und verweigert AC-Speicher als DC-Hybrid-Verknüpfung.
+- Echte API prüft DC-Gesamtenergie, Wirkungsgrad, MPPT-Normalisierung und ungültigen Wechsel eines zugeordneten Speichers auf AC. Migration Schema 4→5 wird wiederholt ausgeführt; IDs, Datenpunkte und Historie bleiben erhalten.
+- Chromium prüft fehlende Phasen-/RUN-/Frequenzfelder für DC-MPPT, DC-Energiezuordnung, neue Hybrid-AC-/DC-Eingaben und den angezeigten Wirkungsgrad. Bestehende Desktop-/Mobilprüfungen bleiben aktiv.
+- Der im gemeldeten Screenshot sichtbare Dockerfehler gehört zum älteren Lauf 44885156398. Die Ursache war der Updater-Test im schreibgeschützten/noexec App-Container. Der Test wird seit dem Korrekturlauf 44885373167 auf dem Linux-Runner ausgeführt; App-Build und Persistenz bleiben weiterhin echte Dockerprüfungen.
+- Erneuter Dockerlauf dieser Version: ausstehend bis zur Veröffentlichung des geprüften Quellstands.
 
 ## Neue Prüfungen für 2.2
 

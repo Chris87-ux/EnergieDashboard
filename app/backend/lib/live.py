@@ -31,6 +31,9 @@ def evaluate(flows, values, now):
             telemetry={**{k:values.get(flow.datapoints.get(k)) for k in ("engine_temperature","efficiency","fuel_consumption","operating_hours")},"fuel_unit":flow.fuel_unit} if flow.category == "generator" else {})
     for flow in flows:
         total, phases = measured(flow)
+        if flow.kind == "device" and flow.category == "pv" and flow.pv_type == "hybrid":
+            from lib.hybrid import hybrid_ac
+            total, phases, _, _ = hybrid_ac(flow, values)
         if flow.kind == "storage":
             factor = (1000 if flow.power_unit == "kW" else 1) * (-1 if flow.invert else 1)
             raw = None if total is None else total / factor

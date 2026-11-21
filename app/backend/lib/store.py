@@ -56,8 +56,10 @@ def all_datapoints(flows: list[Flow]) -> list[str]:
     ids: set[str] = set()
     for flow in flows:
         keys = flow.datapoints.model_dump()
-        if flow.kind == "storage":
-            keys = {key: "" for key in ("power_total", "power_l1", "power_l2", "power_l3", "soc", "soc_reserve")}
+        if flow.kind == "device" and flow.category == "pv" and flow.pv_type == "mppt":
+            keys = {"power_total":"", "energy_total":""}
+        elif flow.kind == "storage":
+            keys = {key: "" for key in (("power_total", "soc", "soc_reserve") if flow.electrical_side == "dc" else ("power_total", "power_l1", "power_l2", "power_l3", "soc", "soc_reserve"))}
         elif flow.run_power_w is not None:
             keys = {key: "" for key in ("run", "engine_temperature", "efficiency", "fuel_consumption", "operating_hours")}
         ids.update(flow.datapoints.get(key) for key in keys if flow.datapoints.get(key))

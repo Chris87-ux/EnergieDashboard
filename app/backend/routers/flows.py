@@ -11,6 +11,16 @@ topology_lock = config_lock
 
 
 async def validate_parent(flow: Flow) -> None:
+    if flow.kind == "device" and flow.category == "pv" and flow.pv_type == "mppt":
+        if not flow.datapoints.get("power_total") or flow.run_power_w is not None or flow.datapoints.get("run"):
+            raise HTTPException(422,"DC-MPPT benötigt einen DC-Leistungsdatenpunkt und unterstützt keine RUN-Schätzung.")
+    if flow.kind == "device" and flow.category == "pv" and flow.pv_type == "hybrid":
+        if flow.electrical_side != "ac" or flow.run_power_w is not None:
+            raise HTTPException(422,"Hybrid-WR verwendet gemessene AC-Leistung, keine RUN-Schätzung.")
+        if not (flow.datapoints.get("power_total") or flow.power_phase_mode == "three" and all(flow.datapoints.get("power_"+p.lower()) for p in ("L1","L2","L3"))):
+            raise HTTPException(422,"Hybrid-WR benötigt AC-Gesamtleistung oder vollständige Phasenwerte.")
+        if flow.hybrid_ac_mode == "terminals" and not flow.datapoints.get("ac_input"):
+            raise HTTPException(422,"Für AC-In/Out ist auch ein AC-Eingangsleistungsdatenpunkt erforderlich.")
     if flow.kind == "storage" and flow.capacity_kwh is None:
         raise HTTPException(422, "Bitte die feste Gesamtkapazität des Speichers in kWh angeben.")
     if flow.kind == "device" and flow.category == "pv" and flow.pv_type == "hybrid" and not flow.storage_ids:
@@ -41,6 +51,8 @@ async def validate_parent(flow: Flow) -> None:
             doc = await db.flows.find_one({"id": id, "kind": kind})
             if not doc or id == flow.id or (kind == "device" and doc.get("pv_type") != "mppt"):
                 raise HTTPException(422, "Ungültige Hybrid-Zuordnung. Speicher bzw. DC-MPPT zuerst anlegen.")
+            if kind == "storage" and doc.get("electrical_side","dc") != "dc":
+                raise HTTPException(422,"Einem Hybrid-WR dürfen nur DC-Speicher zugeordnet werden.")
             field = "storage_ids" if kind == "storage" else "mppt_ids"
             if await db.flows.find_one({"id": {"$ne": flow.id}, field: id}):
                 raise HTTPException(422, "Dieser Eintrag ist bereits einem Hybrid-WR zugeordnet.")
@@ -85,7 +97,7 @@ async def update_flow(id: str, body: FlowCreate):
         doc = await db.flows.find_one({"id": id}, {"_id": 0})
         if not doc:
             raise HTTPException(status_code=404, detail="Fluss nicht gefunden")
-        if body.kind != "storage" and await db.flows.find_one({"storage_ids": id}):
+        if (body.kind != "storage" or body.electrical_side != "dc") and await db.flows.find_one({"storage_ids": id}):
             raise HTTPException(409, "Zuerst die Speicherzuordnung im Hybrid-WR entfernen.")
         if (body.kind != "device" or body.category != "pv" or body.pv_type != "mppt") and await db.flows.find_one({"mppt_ids": id}):
             raise HTTPException(409, "Zuerst die MPPT-Zuordnung im Hybrid-WR entfernen.")

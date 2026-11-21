@@ -3,6 +3,7 @@ import { ArrowRight, Gauge, Leaf, Sun, Waves } from "lucide-react";
 import {useState} from "react";
 import GridConnection from "@/components/GridConnection";
 import TopologyDiagram from "@/components/TopologyDiagram";
+import HybridOverview from "@/components/HybridOverview";
 import StorageOverview from "@/components/StorageOverview";
 import NodeOverview from "@/components/NodeOverview";
 import MethodBadge from "@/components/MethodBadge";
@@ -94,7 +95,7 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
             <details className="mt-4" open={(todayReport?.flows.length ?? 0) <= 12}>
               <summary className="cursor-pointer text-xs text-muted-foreground">Tageswerte der Geräte</summary>
             <ul className="mt-3 space-y-2">
-              {(todayReport?.flows.filter(f=>!f.storage_id) ?? []).map((f) => (
+              {(todayReport?.flows.filter(f=>!f.storage_id&&f.electrical_side!=="dc") ?? []).map((f) => (
                 <li key={f.flow_id} className="flex items-center justify-between gap-2 text-sm" data-testid={`today-row-${f.flow_id}`}>
                   <span className="flex min-w-0 items-center gap-2">
                     <span className="size-2 shrink-0 rounded-full" style={{ background: f.color }} />
@@ -121,7 +122,8 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
 
       {data && !data.grid_configured && <p role="alert" className="rounded-lg border border-amber-500 p-4">Ein Netzanschluss ist erforderlich. Unter Konfiguration einen Netzanschluss anlegen und Messpunkte zuordnen.</p>}
 
-      {data && <NodeOverview showInactive={showInactive} data={data} energy={todayReport?.flows.filter(f=>!f.storage_id) ?? []} />}
+      {data && <NodeOverview showInactive={showInactive} data={data} energy={todayReport?.flows.filter(f=>!f.storage_id&&f.electrical_side!=="dc") ?? []} />}
+      {data && <HybridOverview data={data} />}
       {data && <StorageOverview data={data} />}
     </>
   );

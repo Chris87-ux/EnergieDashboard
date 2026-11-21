@@ -24,7 +24,7 @@ Selbst gehostetes Energiedashboard für Proxmox-LXC. FastAPI und React, MongoDB 
 ## Docker als zusätzliche Installation
 
 ```bash
-git clone --branch v2.2.0 https://github.com/Chris87-ux/EnergieDashboard.git
+git clone --branch v2.3.0 https://github.com/Chris87-ux/EnergieDashboard.git
 cd EnergieDashboard
 docker compose up -d --build --wait --wait-timeout 180
 ```

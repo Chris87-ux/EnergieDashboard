@@ -33,6 +33,11 @@ export interface FlowInput {
   max_power_w: number;
   electrical_side: "ac" | "dc";
   pv_type: "wr" | "hybrid" | "mppt";
+  hybrid_ac_mode: "net" | "terminals";
+  dc_power_unit: "W" | "kW";
+  dc_invert: boolean;
+  dc_balance_complete: boolean;
+  hybrid_min_power_w: number;
   hybrid_id: string | null;
   storage_ids: string[];
   mppt_ids: string[];
@@ -141,6 +146,7 @@ export interface EnergyValue {
 }
 
 export interface FlowEnergy {
+  electrical_side: "ac" | "dc";
   parent_id: string | null;
   storage_id: string | null;
   flow_id: string;
@@ -231,8 +237,9 @@ export interface LiveReport {
   frequency_hz: number | null;
   flows: LiveFlow[];
   summary: LiveSummary;
+  hybrids: LiveHybrid[];
   storage_total: LiveStorage | null;
-  dc_values: {id: string; name: string; power_w: number | null; hybrid_name: string | null}[];
+  dc_values: {id: string; name: string; power_w: number | null; energy_total_kwh: number | null; hybrid_name: string | null}[];
   grid_configured: boolean;
 }
 
@@ -273,3 +280,11 @@ export interface LiveStorage {
 export interface Appearance { zero_threshold_w?: number; zero_delay_s?: number; layout: "square" | "rounded" | "flow"; background: string; surface: string; accent: string; }
 export interface Connection { id: string; name: string; protocol: "iobroker" | "mqtt" | "modbus"; host: string; port: number; enabled: boolean; username: string; password: string; password_set?: boolean; tls: boolean; timeout_s: number; }
 export interface Measurement { id: string; name: string; connection_id: string; enabled: boolean; record: boolean; unit: string; address: string; json_path: string; scale: number; offset: number; stale_s: number; unit_id: number; register: number; function: 3 | 4; datatype: string; byte_order: "big" | "little"; word_order: "big" | "little"; history_key: string; }
+
+export interface LiveHybrid {
+ id:string; name:string; parent_id:string|null;
+ ac_net_w:number|null; ac_output_w:number|null; ac_input_w:number|null;
+ dc_pv_w:number|null; battery_charge_w:number|null; battery_discharge_w:number|null;
+ dc_load_w:number|null; dc_net_w:number|null; dc_source:string;
+ efficiency_pct:number|null; loss_w:number|null; mode:string; note:string;
+}

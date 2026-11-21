@@ -36,7 +36,7 @@ export default function Energy() {
         <p className="text-sm font-medium text-[var(--primary)]">Energie-Bilanz</p>
         <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="energy-title">Gesamt- und Phasenenergie in kWh</h1>
         <p className="max-w-3xl text-sm text-[#8EA8C3]">
-          Zählerdeltas mit Reset-Erkennung, Summe vollständiger Phasen oder Integration historischer Wirkleistung – fehlende Daten werden als Lücke bzw. „Nicht verfügbar“ markiert.
+          DC-MPPT und Speicher stehen separat und gehen nicht in die AC-Gesamtsummen ein. Zählerdeltas mit Reset-Erkennung, Summe vollständiger Phasen oder Integration historischer Wirkleistung – fehlende Daten werden als Lücke bzw. „Nicht verfügbar“ markiert.
         </p>
       </section>
 

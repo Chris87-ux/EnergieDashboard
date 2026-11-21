@@ -22,7 +22,7 @@ docker compose version
 Auf dem Docker-Host:
 
 ```bash
-git clone --branch v2.2.0 https://github.com/Chris87-ux/EnergieDashboard.git
+git clone --branch v2.3.0 https://github.com/Chris87-ux/EnergieDashboard.git
 cd EnergieDashboard
 cp docker.env.example .env
 docker compose up -d --build --wait --wait-timeout 180
@@ -85,10 +85,10 @@ Vorher die oben beschriebene Datenbanksicherung erstellen und die bisherige Git-
 ```bash
 git describe --tags --always
 git fetch --tags
-git checkout v2.2.0
+git checkout v2.3.0
 ```
 
-Bei einem späteren Release statt `v2.2.0` dessen Tag auswählen. In `.env` `ENERGIEBOARD_VERSION` auf denselben neuen Versionsnamen setzen, damit das gebaute Image eindeutig benannt ist. Danach:
+Bei einem späteren Release statt `v2.3.0` dessen Tag auswählen. In `.env` `ENERGIEBOARD_VERSION` auf denselben neuen Versionsnamen setzen, damit das gebaute Image eindeutig benannt ist. Danach:
 
 ```bash
 docker compose up -d --build --wait --wait-timeout 180

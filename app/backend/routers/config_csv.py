@@ -130,7 +130,7 @@ def prepare(state, text, mode):
                 data.setdefault("influx",{})
                 for key in ("password","token"):data["influx"][key]=previous.get("influx",{}).get(key,"")
             if kind=="flow":
-                data["schema_version"]=4
+                data["schema_version"]=5
                 if previous:data["created_at"]=previous.get("created_at",datetime.now(timezone.utc))
             try:parsed=model.model_validate(data).model_dump()
             except ValueError as exc:raise ValueError(f"{kind} {id}: {exc}") from exc
@@ -168,11 +168,18 @@ def validate_graph(state):
             if not any(f["datapoints"].get(k) for k in ("power_total","power_l1","power_l2","power_l3")):raise ValueError("Netzleistungs-Messpunkt fehlt.")
             grids.append(f)
         if f["pv_type"]=="hybrid" and f["category"]=="pv" and not f["storage_ids"]:raise ValueError("Hybrid-WR benötigt Speicher.")
+        if f["kind"]=="device" and f["category"]=="pv" and f["pv_type"]=="mppt":
+            if not f["datapoints"].get("power_total") or f["run_power_w"] is not None or f["datapoints"].get("run"):raise ValueError("DC-MPPT benötigt DC-Leistung und keine RUN-Schätzung.")
+        if f["kind"]=="device" and f["category"]=="pv" and f["pv_type"]=="hybrid":
+            if f["electrical_side"]!="ac" or f["run_power_w"] is not None:raise ValueError("Hybrid-WR benötigt gemessene AC-Leistung.")
+            if not (f["datapoints"].get("power_total") or f["power_phase_mode"]=="three" and all(f["datapoints"].get("power_"+p) for p in ("l1","l2","l3"))):raise ValueError("Hybrid-AC-Leistung fehlt.")
+            if f["hybrid_ac_mode"]=="terminals" and not f["datapoints"].get("ac_input"):raise ValueError("AC-In-Messpunkt fehlt.")
         if (f["storage_ids"] or f["mppt_ids"]) and not (f["kind"]=="device" and f["category"]=="pv" and f["pv_type"]=="hybrid"):
             raise ValueError("Speicher-/MPPT-Zuordnung gehört zu einem Hybrid-WR.")
         for field,kind in (("storage_ids","storage"),("mppt_ids","device")):
             for id in f[field]:
                 if id not in flows or flows[id]["kind"]!=kind or kind=="device" and flows[id]["pv_type"]!="mppt":raise ValueError("Ungültige Hybrid-Zuordnung.")
+                if kind=="storage" and flows[id]["electrical_side"]!="dc":raise ValueError("Hybrid-WR darf nur DC-Speicher zuordnen.")
                 if (field,id) in owners:raise ValueError("Doppelte Hybrid-Zuordnung.")
                 owners.add((field,id))
     if any(f["enabled"] for f in flows.values()) and not grids:raise ValueError("Mindestens ein aktiver Netzanschluss erforderlich.")

@@ -1,4 +1,32 @@
-# Datenmodell und Erweiterungen · Version 2.2.0
+# Datenmodell und Erweiterungen · Version 2.3.0
+
+## DC-MPPT und Hybrid-WR ab 2.3 (Schema 5)
+
+**DC-MPPT:** `kind: "device"`, `category: "pv"`, `pv_type: "mppt"`. Die Anwendung setzt die Messebene auf DC und verwendet keine Phasen. `datapoints.power_total` misst die **DC-Ausgangsleistung des MPPT zum gemeinsamen DC-Bus**, nicht die PV-Eingangsleistung vor dem MPPT. `power_unit` ist W oder kW. `datapoints.energy_total` ist der optionale kumulative DC-Energiezähler dieses Ausgangs, mit `energy_unit` Wh oder kWh. Er wird live als Gesamtenergie angezeigt und für Zeiträume als Zählerdelta ausgewertet; ohne Zähler verwendet die Historie aufgezeichnete Leistung. RUN, Frequenz und alte Phasenzuordnungen werden dafür nicht verwendet. DC-MPPT-Zeilen erscheinen separat in der Energieauswertung und gehen nicht nochmals in die AC-Gesamtsumme ein.
+
+**Hybrid-WR:** Zuerst DC-Speicher (jeweils gesamter Speicher mit Kapazität, SOC und vorzeichenbehafteter Leistung) sowie DC-MPPTs anlegen; anschließend im Hybrid auswählen. Jeder Eintrag gehört höchstens zu einem Hybrid-WR. Knoten bleiben AC-Abschnitte; DC-Geräte/Speicher können organisatorisch einem Knoten zugeordnet sein, ohne dessen AC-Restbilanz zu verfälschen. Der Hybrid-WR gehört zum AC-Knoten seines tatsächlichen AC-Anschlusses. Seine zugeordnete Batterie darf keine AC-Batterie sein.
+
+Für die **AC-Messgrenze** stehen zwei Modi zur Verfügung:
+
+| Feld | Bedeutung |
+|---|---|
+| `hybrid_ac_mode: "net"` | Standard, bisheriges Verhalten: `power_total` oder die Summe dreier Phasen ist bereits die bidirektionale Nettoleistung des Wandlers. Positiv = DC → AC, negativ = AC → DC. |
+| `hybrid_ac_mode: "terminals"` | `power_total`/Phasen sind AC-Out; `datapoints.ac_input` ist die Gesamtleistung am AC-In desselben WR. Netto = AC-Out − AC-In. Beide Messgrenzen in derselben Einheit `power_unit`. Positiv an AC-In = in den WR, positiv an AC-Out = aus dem WR; Rückflusswerte bleiben negativ. `invert` kehrt beide AC-Messwerte um. |
+
+Beispiel Durchleitung: AC-Out 2.950 W und AC-In 2.000 W ergeben **950 W Wandlerabgabe**, nicht 2.950 W PV-Erzeugung. Ein Haus-Netzzähler an anderer Messgrenze ersetzt AC-In nicht. Der Wandler muss bei Netzladung negative Nettoleistung liefern. AC-Netto wird in getrennten Abgabe-/Aufnahmekanälen aufgezeichnet. Aus einem gesamten AC-In lässt sich keine zuverlässige Nettoleistung je Phase ableiten; abgeleitete Energiekanäle zeigen daher Gesamtenergie ohne erfundene Phasenzuordnung. Netzbezug und Hybridaufnahme sind unterschiedliche Messgrenzen; wie bisher sind die tabellarischen Zufluss-/Abflusssummen keine deduplizierte Haus-PV-Ertragsmessung.
+
+Für den **WR-Wirkungsgrad** bestehen zwei Möglichkeiten:
+
+1. Bevorzugt `datapoints.dc_power`: tatsächliche vorzeichenbehaftete DC-Leistung **am Wandler**, positiv DC → AC, negativ AC → DC. `dc_power_unit` W/kW, `dc_invert` kehrt das Vorzeichen um. Keine alleinige Batterie- oder MPPT-Leistung einsetzen. Diese Messung hat Vorrang; fehlt ihr Wert, wird keine andere Quelle stillschweigend verwendet.
+2. Ohne direkte Messung ausdrücklich `dc_balance_complete: true` bestätigen. Dann entsteht eine gekennzeichnete **Schätzung**: DC am WR = Summe MPPT-Ausgänge + Batterieentladung − Batterieladung − weitere DC-Lasten. Letztere sind optional über `datapoints.dc_load_power` mit derselben `dc_power_unit` messbar. Alle beteiligten Quellen, Speicher und Lasten am DC-Bus müssen vollständig und zeitgleich erfasst sein. Fehlt eine konfigurierte Quelle, bleibt die Schätzung unbekannt.
+
+Bei DC → AC gilt η = AC-netto / DC-netto × 100; beim Laden AC → DC gilt η = Betrag(DC-netto) / Betrag(AC-netto) × 100. Beispiel: PV 2.000 W, Batterieladung 1.000 W, keine weiteren DC-Lasten, AC-netto 950 W → DC am WR 1.000 W, η 95 %. Netzladung AC-netto −1.000 W, Batterie lädt 900 W und PV 0 W → η 90 %. Verlustleistung = Wandlereingang − Wandlerausgang.
+
+`hybrid_min_power_w` (Standard 100 W, muss >0 sein) muss auf beiden Wandlerseiten erreicht sein. Kleine Leistung, fehlende Werte, widersprüchliche Vorzeichen oder rechnerische Werte über 100 % ergeben **keinen Wirkungsgrad**, sondern einen Hinweis. Rein DC-seitiges PV→Batterie-Laden bei ruhendem AC-Wandler ergibt keinen AC-Wirkungsgrad. MPPT- und Batteriewirkungsgrad sind darin nicht enthalten. Ein systemseitig bereits berechneter DC-Wert ergibt keine unabhängige Wirkungsgradmessung; unterschiedliche Messzeitpunkte und Auflösung können die Anzeige unplausibel machen. Das Panel zeigt Quelle und Betriebsrichtung.
+
+Victron trennt AC-In, AC-Out und DC-Werte ebenfalls; konkrete Quellen/Skalierung je Gerät anhand der eigenen Installation prüfen, siehe [Victron dbus-systemcalc](https://github.com/victronenergy/dbus-systemcalc-py). Energieboard liest nur und steuert den WR nicht.
+
+Bestehende IDs, Messpunkte, Historie und Einstellungen bleiben beim Update erhalten. Vorhandene MPPTs werden automatisch auf DC/Gesamtwerte normalisiert, alte Phasenfelder bleiben gespeichert und werden ignoriert. Bestehende Hybrid-WR bleiben im Modus `net`; bei bisher zugeordnetem AC-Out bitte bewusst auf `terminals` umstellen und AC-In ergänzen. Eine irrtümlich als AC konfigurierte verknüpfte Batterie muss über Entfernen der Verknüpfung, Korrektur der Messebene und erneute Verknüpfung korrigiert werden. Vorher aufgezeichnete falsche Hybrid-Nettohistorie wird nicht rückwirkend berechnet.
 
 ## Vorzeichen und Anzeige ab 2.2
 

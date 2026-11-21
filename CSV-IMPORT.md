@@ -1,4 +1,4 @@
-# CSV-Konfiguration · Energieboard 2.1
+# CSV-Konfiguration · Energieboard 2.3
 
 Im Reiter **Datenerfassung** und unter **Konfiguration** den Abschnitt „Konfiguration als CSV herunterladen / hochladen“ öffnen.
 
@@ -85,3 +85,9 @@ CSV-Import verändert oder löscht keine Messhistorie. Namens-, Quellen- und Fak
 Verbindungskennwörter und Influx-Passwörter/-Tokens werden nicht exportiert. Beim Import werden vorhandene Zugangsdaten anhand derselben ID beibehalten. Neue Verbindungen benötigen ihre Kennwörter anschließend im Board. Zugangsdatenfelder können nicht per CSV befüllt werden. Selbst in freie Zusatzmetadaten eingetragene Geheimnisse sind davon nicht automatisch erfasst.
 
 Der Export kennzeichnet Zeichenketten, die Tabellenkalkulationen als Formel interpretieren könnten, mit einem führenden Apostroph. Beim Wiedereinlesen entfernt Energieboard seine entsprechende Kennzeichnung. IDs sowie Messpunkt-/Gerätenamen bleiben dabei erhalten.
+
+## Hybrid-/MPPT-Felder ab 2.3
+
+CSV-Version bleibt 1. Einen neuen Gesamtexport verwenden, damit alle Spalten enthalten sind. `hybrid_ac_mode` (`net`/`terminals`), `dc_power_unit` (`W`/`kW`), `dc_invert`, `dc_balance_complete` und `hybrid_min_power_w` sind Konfigurationsfelder. In den exportierten Datenpunktspalten stehen `datapoints.ac_input`, `datapoints.dc_power` und `datapoints.dc_load_power`. Die vorhandenen `storage_ids`/`mppt_ids` verwenden die exportierte Listen-Schreibweise. Ein Hybrid benötigt mindestens einen DC-Speicher; AC-Speicher werden als Hybrid-Verknüpfung abgewiesen.
+
+Für MPPT `pv_type=mppt`, `category=pv`, `kind=device`, `datapoints.power_total` und optional `datapoints.energy_total` zuordnen. Phasen werden nicht verwendet. Die genaue Messgrenze und Wirkungsgradberechnung stehen in [DATENMODELL.md](DATENMODELL.md#dc-mppt-und-hybrid-wr-ab-23-schema-5). Alte CSV-Dateien ohne neue Spalten erhalten deren Standardwerte; daher bestehende Hybrid-Zeilen zum Bearbeiten frisch exportieren.

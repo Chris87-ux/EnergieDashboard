@@ -48,12 +48,13 @@ def history_flows(flows: list[Flow]) -> list[Flow]:
                     "kind": "device", "category": "custom" if flow.kind == "node" else "grid" if flow.kind == "grid" else flow.category,
                     "direction": direction, "parent_id": flow.id if flow.kind == "node" else flow.parent_id,
                     "power_unit": "W", "invert": False, "power_phase_mode": "single", "energy_phase_mode": "single",
+                    "extra": {**flow.extra, "total_only": True},
                     "datapoints": flow.datapoints.model_copy(update={
                         **{key: "" for key in flow.datapoints.model_dump()}, "power_total": sample_id(flow, channel),
                         "energy_total": flow.datapoints.get("energy_" + channel) if flow.kind == "grid" else ""}),
                 }))
             continue
-        if flow.kind != "storage" and (flow.electrical_side == "dc" or flow.pv_type == "mppt"):
+        if flow.kind != "storage" and flow.pv_type != "mppt" and flow.electrical_side == "dc":
             continue
         if flow.kind == "storage":
             for channel, direction, suffix in (("charge", "out", "Laden"), ("discharge", "in", "Entladen")):
@@ -62,6 +63,7 @@ def history_flows(flows: list[Flow]) -> list[Flow]:
                     "category": "battery", "direction": direction, "power_unit": "W",
                     "power_phase_mode": "single", "energy_phase_mode": "single",
                     "energy_phase": flow.power_phase, "invert": False,
+                    "extra": {**flow.extra, "total_only": flow.power_phase_mode == "three"},
                     "datapoints": flow.datapoints.model_copy(update={
                         **{key: "" for key in flow.datapoints.model_dump()},
                         "power_total": sample_id(flow, channel),

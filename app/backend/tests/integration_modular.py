@@ -45,7 +45,7 @@ def exact(sock, n):
 
 
 values = {"legacy": 125, "grid": 500, "a": 1000, "b": 600, "motor": 300, "pv": -200,
-          "bat1": 1000, "soc1": 80, "bat2": 500, "soc2": 20, "mppt": 1500, "hybrid": 750, "run": 1,"idle":0,"engine_temperature":86,"efficiency":80,"fuel_consumption":2.3,"operating_hours":1234,"reserve":30}
+          "bat1": 1000, "soc1": 80, "bat2": 500, "soc2": 20, "mppt": 1500, "mppt_energy": 12340, "hybrid": 750, "run": 1,"idle":0,"engine_temperature":86,"efficiency":80,"fuel_consumption":2.3,"operating_hours":1234,"reserve":30}
 
 
 class IoBroker(BaseHTTPRequestHandler):
@@ -142,7 +142,7 @@ def main():
                 connection = get("/connections")[0]
                 def point(id,address,unit="W",**fields):
                     return put("/measurements/"+id,{"name":id,"connection_id":connection["id"],"address":address,"unit":unit,**fields})
-                for key in values: point(key,key,"%" if key.startswith("soc") else "W")
+                for key in values: point(key,key,"Wh" if key=="mppt_energy" else "%" if key.startswith("soc") else "W")
                 grid = create(name="Netzanschluss",category="grid",grid_mode="signed",datapoints={"power_total":"point:grid"})
                 assert grid["kind"]=="grid"
                 create(name="BHKW",category="generator",direction="in",icon="generator",datapoints={"power_total":"point:pv","engine_temperature":"point:engine_temperature","efficiency":"point:efficiency","fuel_consumption":"point:fuel_consumption","operating_hours":"point:operating_hours"})
@@ -152,10 +152,10 @@ def main():
                 create(name="Motor",parent_id=b["id"],datapoints={"power_total":"point:motor"})
                 create(name="Dach PV",category="pv",direction="in",parent_id=b["id"],datapoints={"power_total":"point:pv"})
                 create(name="RUN-Pumpe",run_power_w=200,datapoints={"run":"point:run"})
-                bat1 = create(name="Speicher A",kind="storage",capacity_kwh=10,reserve_soc_pct=20,parent_id=b["id"],datapoints={"power_total":"point:bat1","soc":"point:soc1"})
-                bat2 = create(name="Speicher B",kind="storage",capacity_kwh=5,datapoints={"power_total":"point:bat2","soc":"point:soc2"})
-                mppt = create(name="MPPT Garten",category="pv",pv_type="mppt",electrical_side="dc",datapoints={"power_total":"point:mppt"})
-                hybrid = create(name="Victron Hybrid",category="pv",pv_type="hybrid",direction="in",storage_ids=[bat1["id"],bat2["id"]],mppt_ids=[mppt["id"]],datapoints={"power_total":"point:hybrid"})
+                bat1 = create(name="Speicher A",kind="storage",electrical_side="dc",capacity_kwh=10,reserve_soc_pct=20,parent_id=b["id"],datapoints={"power_total":"point:bat1","soc":"point:soc1"})
+                bat2 = create(name="Speicher B",kind="storage",electrical_side="dc",capacity_kwh=5,datapoints={"power_total":"point:bat2","soc":"point:soc2"})
+                mppt = create(name="MPPT Garten",category="pv",pv_type="mppt",electrical_side="dc",energy_unit="Wh",power_phase_mode="three",energy_phase_mode="three",datapoints={"power_total":"point:mppt","energy_total":"point:mppt_energy"})
+                hybrid = create(name="Victron Hybrid",category="pv",pv_type="hybrid",direction="in",dc_balance_complete=True,storage_ids=[bat1["id"],bat2["id"]],mppt_ids=[mppt["id"]],datapoints={"power_total":"point:hybrid"})
                 assert http.put("/flows/"+bat1["id"],json={**bat1,"kind":"device","category":"consumer"}).status_code==409
                 assert http.put("/flows/"+mppt["id"],json={**mppt,"pv_type":"wr"}).status_code==409
                 assert http.put("/flows/"+a["id"],json={**a,"parent_id":b["id"]}).status_code==422
@@ -182,8 +182,20 @@ def main():
                 assert live["storages"][0]["runtime_h"]==6
                 assert not any(f["storage_id"] or f["flow_id"]==mppt["id"] for f in live["flows"])
                 assert live["summary"]["pv_w"] is None
+                assert live["hybrids"][0]["efficiency_pct"]==25
+                assert live["hybrids"][0]["dc_net_w"]==3000
+                assert next(v for v in live["dc_values"] if v["id"]==mppt["id"])["energy_total_kwh"]==12.34
+                assert mppt["power_phase_mode"]=="single"
+                assert http.put("/flows/"+bat1["id"],json={**bat1,"electrical_side":"ac"}).status_code==409
+                assert http.put("/flows/"+hybrid["id"],json={**hybrid,"hybrid_ac_mode":"terminals"}).status_code==422
                 assert next(n for n in live["nodes"] if n["id"]==a["id"])["difference_w"]==400
                 assert next(n for n in live["nodes"] if n["id"]==b["id"])["difference_w"]==500
+                put("/flows/"+hybrid["id"],{**hybrid,"hybrid_ac_mode":"terminals","datapoints":{**hybrid["datapoints"],"ac_input":"point:mppt"}})
+                terminal=get("/live")
+                assert terminal["hybrids"][0]["ac_net_w"]==-750
+                assert terminal["hybrids"][0]["mode"]=="inconsistent"
+                assert next(f for f in terminal["flows"] if f["flow_id"]==hybrid["id"]+":ac_consumption")["power_w"]==750
+                put("/flows/"+hybrid["id"],hybrid)
                 assert get("/schemas/flow")["properties"]["capacity_kwh"]
                 for i in range(50):
                     values[f"load{i}"]=10
@@ -252,8 +264,12 @@ def main():
                 assert probe["binary"]==b"\x00\xff" and probe["decimal"]==Decimal128("1.25")
                 assert db.backup_probe.index_information()["code_1"]["unique"]
                 count=db.measurements.count_documents({})
+                db.flows.update_one({"id":mppt["id"]},{"$set":{"electrical_side":"ac","power_phase_mode":"three","energy_phase_mode":"three","schema_version":4}})
                 subprocess.run([sys.executable,"-c","import asyncio; from lib.migrations import migrate; from lib.db import client;\nasync def check():\n await migrate(); await migrate(); await client.close()\nasyncio.run(check())"],env=env,cwd=BACKEND,check=True)
                 assert db.measurements.count_documents({})==count
+                migrated=db.flows.find_one({"id":mppt["id"]})
+                assert migrated["electrical_side"]=="dc" and migrated["power_phase_mode"]==migrated["energy_phase_mode"]=="single"
+                assert migrated["datapoints"]==mppt["datapoints"] and db.metadata.find_one({"id":"schema"})["version"]==5
                 print("Backup/restore including history and repeated configuration migration OK",flush=True)
         finally:
             if api is not None:

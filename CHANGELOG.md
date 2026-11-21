@@ -1,5 +1,13 @@
 # Änderungen
 
+## 2.3.0
+
+- DC-MPPT ohne Phasen, Frequenz oder RUN; DC-Leistung und kumulative Gesamtenergie, separate DC-Energiezeilen ohne doppelte AC-Zählung.
+- Hybrid-WR mit AC-Netto oder AC-Out minus AC-In; Netzdurchleitung wird nicht als Wandlererzeugung gezählt.
+- Hybrid-Panel mit bidirektionalem Wirkungsgrad aus direkter DC-WR-Messung oder bestätigter vollständiger DC-Busbilanz, Verlustleistung und Diagnose ungültiger Messwerte.
+- Sichere DC-Speicher-/MPPT-Zuordnungen, passende CSV-Felder und additive Migration auf Schema 5.
+- Erweiterte Tests für Hybrid-Richtungen, Einheiten, Messgrenzen, CSV und MPPT-Browserkonfiguration. Docker-Updater-Test läuft auf dem Linux-Host; der frühere Fehler „Bestehende Installation fehlt“ war bereits vor dieser Version behoben.
+
 ## 2.2.0
 
 - Eine gemeinsame, dauerhaft sichtbare Netzkachel oben mittig für Bezug und Lieferung; keine getrennten Netzgeräte im Diagramm oder in Live-Gerätelisten.

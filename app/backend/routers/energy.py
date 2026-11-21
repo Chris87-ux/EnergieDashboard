@@ -163,8 +163,11 @@ async def live():
         # AC inverter output includes battery discharge; PV self-consumption cannot be inferred.
         summary.self_consumption_pct = None
         summary.pv_w = None
+    from lib.hybrid import hybrid_reports
+    hybrids = hybrid_reports(flows, values, storages)
     dc = [{"id": f.id, "name": f.name, "hybrid_id": next((h.id for h in flows if f.id in h.mppt_ids), None),
            "hybrid_name": next((h.name for h in flows if f.id in h.mppt_ids), None),
+           "energy_total_kwh": None if values.get(f.datapoints.get("energy_total")) is None else values[f.datapoints.get("energy_total")] * (0.001 if f.energy_unit == "Wh" else 1),
            "power_w": None if values.get(f.datapoints.get("power_total")) is None else
            values[f.datapoints.get("power_total")] * (1000 if f.power_unit == "kW" else 1) * (-1 if f.invert else 1)}
           for f in flows if f.kind == "device" and (f.electrical_side == "dc" or f.pv_type == "mppt")]
@@ -172,4 +175,4 @@ async def live():
         site_name=s.site_name, poll_s=s.live_poll_s,
         frequency_hz=next((f.frequency_hz for f in out if f.frequency_hz is not None), None),
         flows=out, nodes=nodes, storages=storages, storage_total=aggregate_storage(storages),
-        dc_values=dc, grid_configured=grid, summary=summary)
+        dc_values=dc, hybrids=hybrids, grid_configured=grid, summary=summary)

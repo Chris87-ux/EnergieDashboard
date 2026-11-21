@@ -22,6 +22,7 @@ class EnergyValue(BaseModel):
 
 
 class FlowEnergy(BaseModel):
+    electrical_side: str = "ac"
     flow_id: str
     name: str
     category: str
@@ -133,6 +134,25 @@ class LiveSummary(BaseModel):
     self_consumption_pct: float | None
 
 
+class LiveHybrid(BaseModel):
+    id: str
+    name: str
+    parent_id: str | None
+    ac_net_w: float | None
+    ac_output_w: float | None
+    ac_input_w: float | None
+    dc_pv_w: float | None
+    battery_charge_w: float | None
+    battery_discharge_w: float | None
+    dc_load_w: float | None
+    dc_net_w: float | None
+    dc_source: str
+    efficiency_pct: float | None
+    loss_w: float | None
+    mode: str
+    note: str
+
+
 class LiveReport(BaseModel):
     ts: datetime
     mode: Literal["live"] = "live"
@@ -142,6 +162,7 @@ class LiveReport(BaseModel):
     poll_s: int
     frequency_hz: float | None
     flows: list[LiveFlow]
+    hybrids: list[LiveHybrid] = Field(default_factory=list)
     nodes: list[LiveNode] = Field(default_factory=list)
     storages: list[LiveStorage] = Field(default_factory=list)
     summary: LiveSummary
