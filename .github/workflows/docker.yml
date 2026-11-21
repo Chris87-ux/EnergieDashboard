@@ -31,7 +31,7 @@ jobs:
           docker compose up -d --no-deps --force-recreate --wait --wait-timeout 120 energieboard
           docker compose exec -T energieboard python - verify < deploy/docker_smoke.py
       - name: Updater failure recovery tests on Linux
-        run: docker compose run --rm --no-deps -v "$PWD/deploy:/deploy:ro" energieboard python /deploy/test_update.py
+        run: python3 deploy/test_update.py
       - name: Logs
         if: always()
         run: docker compose logs --no-color
