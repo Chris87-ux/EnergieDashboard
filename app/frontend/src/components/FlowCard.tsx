@@ -11,7 +11,7 @@ interface Props {
 
 export default function FlowCard({ flow, energy }: Props) {
   const Icon = iconFor(flow.icon);
-  const max = Math.max(1, ...PHASES.map((p) => flow.phases[p] ?? 0));
+  const max = Math.max(1, ...PHASES.map((p) => Math.abs(flow.phases[p] ?? 0)));
   const modeLabel = flow.power_phase_mode === "three" ? "3-phasig" : `1-phasig · ${flow.power_phase}`;
   return (
     <div
@@ -67,7 +67,7 @@ export default function FlowCard({ flow, energy }: Props) {
                 {used && v !== null && (
                   <div
                     className="h-full rounded-full transition-[width] duration-500"
-                    style={{ width: `${Math.min(100, (v / max) * 100)}%`, background: flow.color }}
+                    style={{ width: `${Math.min(100, (Math.abs(v) / max) * 100)}%`, background: flow.color }}
                   />
                 )}
               </div>

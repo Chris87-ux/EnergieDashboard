@@ -25,7 +25,7 @@ def evaluate(flows, values, now):
         return LiveFlow(flow_id=id or flow.id, name=name or flow.name, category=category or flow.category,
             direction=direction or flow.direction, color=flow.color, icon=flow.icon,
             power_phase_mode=flow.power_phase_mode, power_phase=flow.power_phase,
-            power_w=None if power is None else round(power, 2),
+            power_w=power,
             phases=phases or {p: None for p in PHASES}, frequency_hz=values.get(flow.datapoints.get("frequency")),
             available=power is not None, parent_id=flow.parent_id, estimated=flow.run_power_w is not None,
             telemetry={**{k:values.get(flow.datapoints.get(k)) for k in ("engine_temperature","efficiency","fuel_consumption","operating_hours")},"fuel_unit":flow.fuel_unit} if flow.category == "generator" else {})
@@ -76,9 +76,8 @@ def evaluate(flows, values, now):
             power = None if run is None else flow.run_power_w if run else 0
             out.append(row(flow, power, {p: power if p == flow.power_phase else None for p in PHASES}))
         else:
-            # Directional devices are nonnegative, inversion selects the source side.
-            out.append(row(flow, None if total is None else max(0, total),
-                {p: None if v is None else max(0, v) for p, v in phases.items()}, category="grid" if flow.kind == "grid" else flow.category))
+            # Preserve source polarity. Configured direction determines the accounting role.
+            out.append(row(flow, total, phases, category="grid" if flow.kind == "grid" else flow.category))
     by_parent = {}
     for flow in flows:
         by_parent.setdefault(flow.parent_id, []).append(flow)
@@ -93,7 +92,7 @@ def evaluate(flows, values, now):
             children = [contribution(c, seen | {flow.id}) for c in by_parent.get(flow.id, [])]
             return None if any(v is None for v in children) else sum(children)
         rows = [r for r in out if r.flow_id == flow.id or r.flow_id in (flow.id + ":import", flow.id + ":export", flow.id + ":ac_production", flow.id + ":ac_consumption")]
-        return None if any(r.power_w is None for r in rows) else sum(r.power_w * (1 if r.direction == "out" else -1) for r in rows)
+        return None if any(r.power_w is None for r in rows) else sum(abs(r.power_w) * (1 if r.direction == "out" else -1) for r in rows)
     for flow in flows:
         if flow.kind != "node":
             continue

@@ -1,0 +1,40 @@
+name: Docker build and persistence
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'outputs/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Validate and build Compose
+        run: |
+          docker compose config --quiet
+          MONGO_URL=mongodb://example.invalid:27017 docker compose -f compose.external.yaml config --quiet
+          docker compose build
+      - name: Start app and database
+        run: docker compose up -d --wait --wait-timeout 180
+      - name: Backend regression tests in runtime image
+        run: docker compose run --rm --no-deps -v "$PWD/app/backend/tests:/tests:ro" energieboard python -m unittest discover -s /tests -v
+      - name: Health and persistence
+        run: |
+          docker compose exec -T energieboard python - create < deploy/docker_smoke.py
+          docker compose up -d --no-deps --force-recreate --wait --wait-timeout 120 energieboard
+          docker compose exec -T energieboard python - verify < deploy/docker_smoke.py
+      - name: Updater failure recovery tests on Linux
+        run: docker compose run --rm --no-deps -v "$PWD/deploy:/deploy:ro" energieboard python /deploy/test_update.py
+      - name: Logs
+        if: always()
+        run: docker compose logs --no-color
+      - name: Cleanup
+        if: always()
+        run: docker compose down --volumes

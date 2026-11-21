@@ -44,7 +44,7 @@ def exact(sock, n):
     return out
 
 
-values = {"legacy": 125, "grid": 500, "a": 1000, "b": 600, "motor": 300, "pv": 200,
+values = {"legacy": 125, "grid": 500, "a": 1000, "b": 600, "motor": 300, "pv": -200,
           "bat1": 1000, "soc1": 80, "bat2": 500, "soc2": 20, "mppt": 1500, "hybrid": 750, "run": 1,"idle":0,"engine_temperature":86,"efficiency":80,"fuel_consumption":2.3,"operating_hours":1234,"reserve":30}
 
 
@@ -103,7 +103,7 @@ def main():
     token = uuid.uuid4().hex
     database = "energieboard_integration_" + uuid.uuid4().hex[:8]
     ROOT.joinpath("work").mkdir(exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="modular-", dir=ROOT/"work") as temporary:
+    with tempfile.TemporaryDirectory(prefix="energieboard-integration-", ignore_cleanup_errors=True) as temporary:
         temporary = Path(temporary)
         mongo_log = (temporary/"mongo.log").open("w")
         mongo = subprocess.Popen([os.environ["MONGOD_BIN"], "--dbpath", str(temporary), "--port", str(mongo_port), "--bind_ip", "127.0.0.1", "--wiredTigerCacheSizeGB", "0.25"], stdout=mongo_log, stderr=subprocess.STDOUT, creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
@@ -175,6 +175,8 @@ def main():
                 assert preview["states"]["modbus"]["value"]==250.5,preview
                 assert preview["states"]["mqtt"]["retained"]
                 live=get("/live")
+                assert any(f["name"]=="Dach PV" and f["power_w"]==-200 for f in live["flows"])
+                assert all(not f["hidden"] for f in live["flows"] if f["category"]=="grid")
                 assert live["storage_total"]["soc_pct"]==60,live
                 assert live["storage_total"]["remaining_kwh"]==9
                 assert live["storages"][0]["runtime_h"]==6

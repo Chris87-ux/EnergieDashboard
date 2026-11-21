@@ -12,7 +12,7 @@ export default function NodeOverview({data,energy,showInactive=false}:{data:Live
   if(depth>50)return null;
   const node=data.nodes.find(n=>n.id===id);
   const children=data.nodes.filter(n=>n.parent_id===id);
-  const flows=data.flows.filter(f=>f.parent_id===id&&!f.storage_id);
+  const flows=data.flows.filter(f=>f.parent_id===id&&!f.storage_id&&f.category!=="grid");
   const shown=flows.filter(f=>(!search||match(f.name)||match(node?.name??""))&&(showInactive||!f.hidden));
   return <section key={id??"root"} className={`node-section space-y-3 border-l-4 border-primary bg-card p-3 sm:p-4 ${depth?"ml-1 sm:ml-3":""}`} data-testid={`node-group-${id??"root"}`}>
    <div className="flex flex-wrap justify-between gap-3"><h3 className="font-bold">{node?`▣ ${node.name}`:"Hauptebene"}</h3>{node&&<span className="text-sm">Zähler netto {fmtW(node.meter_w)} · Rest {fmtW(node.difference_w)}</span>}</div>

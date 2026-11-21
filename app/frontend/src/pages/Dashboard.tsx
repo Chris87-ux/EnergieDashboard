@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Gauge, Leaf, PlugZap, Sun, UtilityPole, Waves } from "lucide-react";
+import { ArrowRight, Gauge, Leaf, Sun, Waves } from "lucide-react";
 import {useState} from "react";
+import GridConnection from "@/components/GridConnection";
 import TopologyDiagram from "@/components/TopologyDiagram";
 import StorageOverview from "@/components/StorageOverview";
 import NodeOverview from "@/components/NodeOverview";
@@ -59,16 +60,15 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
         </div>
       )}
 
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6" data-testid="kpi-strip">
+      <GridConnection data={data} />
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="kpi-strip">
         <Kpi label="Erzeugung" value={fmtW(s?.pv_w)} icon={Sun} color="#EAB308" testid="kpi-production" />
         <Kpi label="Verbrauch" value={fmtW(s?.consumption_w)} icon={Gauge} color="#38BDF8" testid="kpi-consumption" />
-        <Kpi label="Netzbezug" value={fmtW(s?.grid_import_w)} icon={UtilityPole} color="#EF4444" testid="kpi-grid-import" />
-        <Kpi label="Einspeisung" value={fmtW(s?.grid_export_w)} icon={PlugZap} color="#10B981" testid="kpi-grid-export" />
         <Kpi label="Autarkiegrad" value={fmtPct(s?.autarky_pct)} icon={Leaf} color="#34D399" testid="kpi-autarky" />
         <Kpi label="Eigenverbrauch" value={fmtPct(s?.self_consumption_pct)} icon={Sun} color="#FBBF24" testid="kpi-self-consumption" />
       </section>
 
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showInactive} onChange={e=>setShowInactive(e.target.checked)}/>Inaktive anzeigen{data ? ` (${data.flows.filter(f=>f.hidden).length} ausgeblendet)` : ""}</label>
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showInactive} onChange={e=>setShowInactive(e.target.checked)}/>Inaktive anzeigen{data ? ` (${data.flows.filter(f=>f.hidden&&f.category!=="grid").length} ausgeblendet)` : ""}</label>
       <section className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         <div className="flow-visual lg:col-span-8">
           {data && <TopologyDiagram data={data} showInactive={showInactive} />}

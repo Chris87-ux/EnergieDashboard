@@ -11,3 +11,5 @@ dist/
 !/outputs/Installationsanleitung.md
 !/outputs/Pruefbericht.md
 /build.log
+
+/backups/

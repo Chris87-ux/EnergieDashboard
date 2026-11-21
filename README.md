@@ -1,4 +1,4 @@
-# Energieboard 2.1
+# Energieboard 2.2
 
 Selbst gehostetes Energiedashboard für Proxmox-LXC. FastAPI und React, MongoDB für Konfiguration und Aufzeichnung. Messwerterfassung über ioBroker simple-api, MQTT oder Modbus TCP. Kein Demo-Modus und keine vorgefüllten Geräte.
 
@@ -14,13 +14,24 @@ Selbst gehostetes Energiedashboard für Proxmox-LXC. FastAPI und React, MongoDB 
 
 ## Dokumentation
 
+- [Docker Compose: Installation, Datenvolume, Backup und Update](DOCKER.md)
 - [Installation, Ersteinrichtung und Updates](INSTALLATION.md)
 - [CSV-Import, Export und Vorlagen](CSV-IMPORT.md)
 - [Messpunkte, Bilanzregeln und JSON-Beispiele](DATENMODELL.md)
 - [Prüfbericht und Grenzen der Prüfung](PRUEFBERICHT.md)
 - [Änderungen](CHANGELOG.md)
 
-## Voraussetzungen
+## Docker als zusätzliche Installation
+
+```bash
+git clone --branch v2.2.0 https://github.com/Chris87-ux/EnergieDashboard.git
+cd EnergieDashboard
+docker compose up -d --build --wait --wait-timeout 180
+```
+
+Die Konfiguration und Historie liegen im persistenten MongoDB-Volume. Voraussetzungen und Umzug vom LXC stehen in [DOCKER.md](DOCKER.md).
+
+## Voraussetzungen für die direkte LXC-Installation
 
 Unprivilegierter Debian-12-LXC, amd64, systemd, empfohlen 2 vCPU, 4 GB RAM und 32 GB SSD. Lokale MongoDB benötigt AVX und einen kompatiblen Hostkernel. Externe MongoDB ist möglich. Netzwerkzugriff auf die tatsächlichen Datenquellen und während Installation/Updates auf Paketquellen, PyPI und GitHub.
 

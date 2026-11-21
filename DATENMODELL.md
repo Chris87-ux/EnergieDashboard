@@ -1,4 +1,12 @@
-# Datenmodell und Erweiterungen · Version 2.1.0
+# Datenmodell und Erweiterungen · Version 2.2.0
+
+## Vorzeichen und Anzeige ab 2.2
+
+Normale Geräte bewahren das Messvorzeichen in der Anzeige, einschließlich negativer PV-/Generatorwerte und nichtnulliger Werte unter 1 W. Für die Bilanz bestimmt die konfigurierte Richtung die Rolle: Verbrauch nutzt den Betrag als Abfluss, Erzeugung den Betrag als Zufluss. `invert` ändert das dargestellte Quellvorzeichen, nicht diese feste Rolle. Die Leistungsintegration normaler Geräte nutzt ebenfalls den Betrag. Echte bidirektionale Messstellen weiterhin als Netzanschluss oder Hybrid-WR einrichten. Ein normaler Erzeuger ist kein bidirektionaler Wechselrichter.
+
+Die Standardschwelle blendet nur Werte **größer als -1 W und kleiner als +1 W** nach 60 Sekunden aus. Genau -1 W/+1 W und größere Beträge bleiben sichtbar. Netzkanäle sind ausdrücklich vom Filter ausgenommen. Bezug und Lieferung stehen gemeinsam in einer permanenten Netzkachel oben mittig; doppelte Netz-Gerätekarten entfallen. Bereits mit der alten falschen Nullbegrenzung aufgezeichnete abgeleitete Knotenreste werden nicht rückwirkend neu berechnet. Erhaltene rohe negative Leistungshistorie normaler Geräte kann dagegen jetzt korrekt als Erzeugungsbetrag integriert werden.
+
+Die Anwendung ist zusätzlich mit Docker Compose betreibbar. Datenmodell und Datenbankformat entsprechen der LXC-Installation; siehe [DOCKER.md](DOCKER.md).
 
 ## Neuerungen in 2.1
 

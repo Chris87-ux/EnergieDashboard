@@ -1,0 +1,39 @@
+name: energieboard
+services:
+  energieboard:
+    image: energieboard:${ENERGIEBOARD_VERSION:-2.2.0}
+    build:
+      context: .
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      MONGO_URL: mongodb://mongo:27017
+      DB_NAME: energieboard
+    ports:
+      - "${ENERGIEBOARD_BIND:-0.0.0.0}:${ENERGIEBOARD_PORT:-8000}:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mongo:
+        condition: service_healthy
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    command: ["mongod", "--bind_ip_all", "--wiredTigerCacheSizeGB", "0.5"]
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "quit(db.adminCommand('ping').ok ? 0 : 1)"]
+      interval: 5s
+      timeout: 5s
+      start_period: 20s
+      retries: 30
+volumes:
+  mongo_data:

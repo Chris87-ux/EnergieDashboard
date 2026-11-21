@@ -1,5 +1,13 @@
 # Änderungen
 
+## 2.2.0
+
+- Eine gemeinsame, dauerhaft sichtbare Netzkachel oben mittig für Bezug und Lieferung; keine getrennten Netzgeräte im Diagramm oder in Live-Gerätelisten.
+- Negative Gerätewerte bleiben als Messwerte erhalten. Die Bilanz verwendet den Betrag gemäß konfigurierter Verbraucher-/Erzeugerrolle; auch historische Leistungsintegration berücksichtigt negative Erzeugerwerte.
+- Kleine Leistungswerte unter 1 W werden mit Nachkommastellen angezeigt. Der Ausblendebereich bleibt strikt zwischen -1 W und +1 W bei der Standardschwelle.
+- Dockerfile mit mehrstufigem Build, Compose für lokale bzw. externe MongoDB, persistentem Datenvolume, Healthchecks und Appbetrieb ohne Root-Rechte.
+- Docker-Anleitung einschließlich Backup, Update und LXC-Umzug sowie automatisierter Linux-Docker-Prüfung.
+
 ## 2.1.0
 
 - Hierarchisches Flussdiagramm mit rechteckigen Knoten, Navigation zu Kindern und Pfadleiste.

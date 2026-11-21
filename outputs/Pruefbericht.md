@@ -1,6 +1,17 @@
-# Prüfbericht · Energieboard 2.1.0
+# Prüfbericht · Energieboard 2.2.0
 
-Stand: 20. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokolladapter, Konfigurationsübernahme, Sicherung und Updateablauf. Das ausgelieferte Programm enthält keinen Demo-Modus; Messwerte der Tests stammen ausschließlich aus isolierten Testprozessen.
+Stand: 21. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokolladapter, Konfigurationsübernahme, Sicherung und Updateablauf. Das ausgelieferte Programm enthält keinen Demo-Modus; Messwerte der Tests stammen ausschließlich aus isolierten Testprozessen.
+
+## Neue Prüfungen für 2.2
+
+- Gemeinsame Netzkachel mit Bezug und Lieferung; nur eine sichtbare Netzkachel, oben mittig, auch im eingebetteten Dashboard. Getrennte Netz-Geräte entfallen im Diagramm und in Live-Gerätelisten.
+- Negative Erzeugerleistung bleibt als Messwert erhalten. Knotenrest und Gesamtbilanz nutzen den Betrag gemäß konfigurierter Rolle.
+- Der Filter wurde ausdrücklich für -1000, -1.1, -1, +1, +1.1 und +1000 W sowie für den Nullbereich getestet. Er blendet standardmäßig nur strikt zwischen -1 und +1 W aus; Netzkanäle bleiben unabhängig davon sichtbar.
+- Kleine Werte ±0.25 W sowie ±0.0001 W werden im Backend nicht mehr auf null gerundet. Im Browser wird die Anzeige von -0,25 W und +0,25 W geprüft.
+- Integration historischer negativer Erzeugerleistung liefert den korrekten positiven Energiebeitrag.
+- Dockerfile, lokale/externe Compose-Variante, persistentes MongoDB-Volume, Healthchecks, Non-Root-App und Docker-Anleitung ergänzt. Der Laufzeittest wird mit dem Workflow [Docker build and persistence](https://github.com/Chris87-ux/EnergieDashboard/actions/workflows/docker.yml) auf Linux ausgeführt. Er baut das Image, startet Compose, prüft 48 Backendtests im Image und Konfigurationspersistenz nach Container-Neuerstellung. Auf dem Entwicklungs-PC wurde keine Docker-Laufzeit installiert.
+
+Die unten genannten Windows-Integrations-/Browserprüfungen verwenden lokale Testquellen und echte MongoDB. Ein tatsächlich an Proxmox bzw. die eigenen Geräte angeschlossener Docker-Host ist davon zu unterscheiden.
 
 ## Neue Prüfungen für 2.1
 
@@ -21,7 +32,7 @@ Beim Prüfen der Knotennavigation wurde die anklickbare SVG-Fläche auf den Knot
 
 ### Backend
 
-43 Unit-/Regressionstests mit Python 3.11 erfolgreich:
+48 Unit-/Regressionstests mit Python 3.11 erfolgreich:
 
 - Energiegrenzen, Zählerresets und Zählerrauschen, Datenlücken und übernommene Historie.
 - Fehlende Netzwerte erzeugen keine scheinbar vollständige Autarkie; fehlende DC-Speicherwerte verfälschen den Vollständigkeitsstatus der AC-Summen nicht.

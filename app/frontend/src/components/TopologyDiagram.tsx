@@ -13,7 +13,7 @@ export default function TopologyDiagram({data,showInactive}:{data:LiveReport;sho
   const power=n.meter_w??n.children_w;
   return {flow_id:`node:${n.id}`,node_id:n.id,name:n.name,category:"custom",direction:power!=null&&power<0?"in":"out",icon:n.icon,color:n.color,power_w:power==null?null:Math.abs(power),available:power!=null,parent_id:id,power_phase_mode:n.phase_mode,power_phase:n.phase,phases:n.phases,frequency_hz:null,estimated:false,storage_id:null,hidden:false,zero_since:null,telemetry:{}};
  });
- const flows=[...children,...data.flows.filter(f=>f.parent_id===id&&(showInactive||!f.hidden))];
+ const flows=[...children,...data.flows.filter(f=>f.category!=="grid"&&f.parent_id===id&&(showInactive||!f.hidden))];
  const batches:LiveFlow[][]=[[]];
  for(const flow of flows){let batch=batches[batches.length-1];if(batch.filter(f=>f.direction===flow.direction).length>=4){batch=[];batches.push(batch);}batch.push(flow);}
  const pages=batches.length;const activePage=Math.min(page,pages-1);

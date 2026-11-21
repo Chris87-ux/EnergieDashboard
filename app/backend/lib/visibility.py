@@ -22,6 +22,8 @@ async def update_visibility(flows, now, settings):
     for flow in flows:
         state = next_visibility(previous.get(flow.flow_id), flow.power_w, now,
             settings.appearance.zero_threshold_w,settings.appearance.zero_delay_s,gap)
+        if flow.category == "grid":
+            state["hidden"],state["zero_since"] = False,None
         flow.hidden, flow.zero_since = state["hidden"],state["zero_since"]
         operations.append(UpdateOne({"id":flow.flow_id},{"$set":state},upsert=True))
     if operations:

@@ -6,6 +6,7 @@ import hashlib
 import io
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -84,8 +85,7 @@ else shift 2; cp "$@"; fi
             write(folder/"mock/python3",f'#!/usr/bin/env bash\nexec "{unix(Path(sys.executable))}" "$@"\n')
         script=(ROOT/"deploy/update.sh").read_text(encoding="utf-8")
         script=script.replace("[[ $EUID == 0 ]]","[[ 1 == 1 ]]")
-        for prefix in ("/opt","/etc","/var","/tmp"):
-            script=script.replace(prefix,unix(folder)+prefix)
+        script=re.sub(r"/(?:opt|etc|var|tmp)(?=/|[\s\"]|$)",lambda match:unix(folder)+match.group(),script)
         script=script.replace("set -euo pipefail", 'set -euo pipefail\nexport PATH="$TEST_SANDBOX/mock:$PATH"\nhash -r', 1)
         write(folder/"update.sh",script)
         env={**os.environ,"TEST_SANDBOX":unix(folder),"TEST_FAIL":"yes" if fail else "no","PATH":str(folder/"mock")+os.pathsep+os.environ["PATH"]}

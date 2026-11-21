@@ -121,7 +121,7 @@ def _summary(flows: list[LiveFlow]) -> LiveSummary:
         selected = [f for f in flows if pred(f)]
         if not selected or any(f.power_w is None for f in selected):
             return None
-        return round(sum(f.power_w for f in selected), 1)
+        return sum(abs(f.power_w) for f in selected)
 
     in_w = total(lambda f: f.direction == "in")
     out_w = total(lambda f: f.direction == "out")

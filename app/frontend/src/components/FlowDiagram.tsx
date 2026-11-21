@@ -46,7 +46,7 @@ interface NodeProps {
 
 function FlowNode({ flow, pos, hub, vertical, r, onSelectNode }: NodeProps) {
   const Icon = iconFor(flow.icon);
-  const w = flow.power_w ?? 0;
+  const w = Math.abs(flow.power_w ?? 0);
   const active = flow.available && w > 5;
   const ctrl = vertical ? { x: pos.x, y: (pos.y + hub.y) / 2 } : { x: (pos.x + hub.x) / 2, y: pos.y };
   const d =

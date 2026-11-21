@@ -3,12 +3,15 @@ import type { Category, Method } from "@/lib/types";
 const nf0 = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 });
 const nf2 = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const nf1 = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const smallPower = new Intl.NumberFormat("de-DE", { maximumSignificantDigits: 3 });
 const nf3 = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
 export const NA = "n. v.";
 
 export function fmtW(w: number | null | undefined): string {
   if (w === null || w === undefined) return NA;
+  if (w === 0) return "0 W";
+  if (Math.abs(w) < 1) return `${smallPower.format(w)} W`;
   if (Math.abs(w) >= 1000) return `${nf2.format(w / 1000)} kW`;
   return `${nf0.format(w)} W`;
 }

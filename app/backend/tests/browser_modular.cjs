@@ -13,12 +13,27 @@ const assert=require("node:assert/strict");
   assert.match(await page.getByTestId("storage-aggregate").innerText(),/9/);
   assert.equal(await page.getByRole("meter").count(),3);
   const allFlows=await page.request.get(url+"/api/flows").then(r=>r.json());
+  assert.equal(await page.getByTestId("grid-connection").count(),1);
+  assert.equal(await page.getByTestId("topology-diagram").locator('[data-testid^="flow-node-"]').filter({hasText:"Netzanschluss"}).count(),0);
+  const gridRect=await page.getByTestId("grid-connection").boundingBox();
+  assert.ok(Math.abs(gridRect.x+gridRect.width/2-720)<3);
   const idleId=allFlows.find(f=>f.name==="Nullgerät").id;
   assert.equal(await page.getByTestId("flow-card-"+idleId).count(),0);
   await page.getByLabel("Inaktive anzeigen").check();
   await page.getByTestId("flow-card-"+idleId).waitFor();
   await page.getByLabel("Inaktive anzeigen").uncheck();
   const generatorId=allFlows.find(f=>f.name==="BHKW").id;
+  assert.equal(await page.getByTestId("flow-card-power-"+generatorId).innerText(),"-200 W");
+  const generator=allFlows.find(f=>f.id===generatorId);
+  for(const invert of [false,true]){
+    await page.request.put(url+"/api/measurements/pv",{data:{...(await page.request.get(url+"/api/measurements").then(r=>r.json())).find(p=>p.id==="pv"),scale:0.00125}});
+    await page.request.put(url+"/api/flows/"+generatorId,{data:{...generator,invert}});
+    await page.reload();await page.getByTestId("flow-card-power-"+generatorId).waitFor();
+    await page.waitForFunction(({id,value})=>document.querySelector(`[data-testid="flow-card-power-${id}"]`)?.textContent===value,{id:generatorId,value:invert?"0,25 W":"-0,25 W"});
+  }
+  await page.request.put(url+"/api/measurements/pv",{data:{...(await page.request.get(url+"/api/measurements").then(r=>r.json())).find(p=>p.id==="pv"),scale:1}});
+  await page.request.put(url+"/api/flows/"+generatorId,{data:generator});
+  await page.reload();await page.getByText("Gesamtspeicher",{exact:true}).waitFor();
   assert.match(await page.getByTestId("flow-card-"+generatorId).innerText(),/86 °C/);
   const settings=await page.request.get(url+"/api/settings").then(r=>r.json());
   assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue("--background").trim()),"#101216");
@@ -114,6 +129,7 @@ const assert=require("node:assert/strict");
   }
   await page.goto(url+"/flow");
   await page.getByText("Gesamtspeicher",{exact:true}).waitFor();
+  assert.equal(await page.getByTestId("grid-connection").count(),1);
   assert.equal(await page.locator('header,[data-testid="main-nav"]').count(),0);
   await page.setViewportSize({width:390,height:844});
   for(const path of ["/flow","/","/datenerfassung","/darstellung","/konfiguration","/system","/energie"]){

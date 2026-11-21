@@ -1,5 +1,7 @@
 # Energieboard · Installation und Betrieb im Proxmox-LXC
 
+Alternativ zur direkten LXC-/systemd-Installation ist [Docker Compose](DOCKER.md) verfügbar. Die folgende Anleitung beschreibt weiterhin die direkte LXC-Installation.
+
 ## 1. Voraussetzungen
 
 | Bereich | Voraussetzung |
