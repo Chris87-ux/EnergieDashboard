@@ -10,7 +10,7 @@ Stand: 21. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokol
 - Echte API prüft DC-Gesamtenergie, Wirkungsgrad, MPPT-Normalisierung und ungültigen Wechsel eines zugeordneten Speichers auf AC. Migration Schema 4→5 wird wiederholt ausgeführt; IDs, Datenpunkte und Historie bleiben erhalten.
 - Chromium prüft fehlende Phasen-/RUN-/Frequenzfelder für DC-MPPT, DC-Energiezuordnung, neue Hybrid-AC-/DC-Eingaben und den angezeigten Wirkungsgrad. Bestehende Desktop-/Mobilprüfungen bleiben aktiv.
 - Der im gemeldeten Screenshot sichtbare Dockerfehler gehört zum älteren Lauf 44885156398. Die Ursache war der Updater-Test im schreibgeschützten/noexec App-Container. Der Test wird seit dem Korrekturlauf 44885373167 auf dem Linux-Runner ausgeführt; App-Build und Persistenz bleiben weiterhin echte Dockerprüfungen.
-- Erneuter Dockerlauf dieser Version: ausstehend bis zur Veröffentlichung des geprüften Quellstands.
+- Endgültiger Quellstand erfolgreich auf Linux geprüft: [Docker build and persistence – Lauf 44906013502](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/44906013502). Compose-Validierung (lokal/externe DB), Image-Build, Start mit MongoDB, alle 60 Backendtests im Laufzeitimage, Health-/Non-Root-Prüfung, Konfigurationspersistenz nach App-Neuerstellung und Updater-Erfolgs-/Fehlerfälle bestanden. Auch der vorhergehende Lauf 44905786043 war erfolgreich.
 
 ## Neue Prüfungen für 2.2
 
