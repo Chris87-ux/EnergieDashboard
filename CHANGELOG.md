@@ -1,5 +1,13 @@
 # Änderungen
 
+## Dokumentation nach 2.3.0 · 21. November 2026
+
+- Zentraler Dokumentationsindex mit Lesereihenfolge und getrennten Anleitungen für Proxmox-LXC und Docker-Erstinstallation.
+- Schritt-für-Schritt-Konfiguration für Messquellen, Netz, Knoten, RUN, Generator, Speicher, DC-MPPT und Hybrid-WR.
+- Eigene Seiten für Darstellung/Einbettung, Backup/Restore, Updates/Umzug, Fehlersuche, Glossar und Entwicklung.
+- Datenmodell, API-/JSON-Beispiele, CSV-Hinweise und Versionsangaben auf Anwendung 2.3.0 / Schema 5 abgeglichen.
+- Anwendungslogik und historische Release-Tags bleiben unverändert; neue Anleitungen werden mit dem aktuellen LXC-Paket ausgeliefert.
+
 ## 2.3.0
 
 - DC-MPPT ohne Phasen, Frequenz oder RUN; DC-Leistung und kumulative Gesamtenergie, separate DC-Energiezeilen ohne doppelte AC-Zählung.

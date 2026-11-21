@@ -158,7 +158,7 @@ function SettingsForm({ initial }: { initial: SettingsOut }) {
         </Panel>
 
         <Panel title="Aufzeichnungs-Dienst (Recorder)" icon={Database} testid="settings-recorder-panel">
-          <p className="mb-3 text-xs text-[#8EA8C3]">Die aktiven Datenpunkte werden aus ioBroker aufgezeichnet. RUN-Laufzeiten und Speicherleistung gehen ab diesem Zeitpunkt in die lokale Historie ein.</p>
+          <p className="mb-3 text-xs text-[#8EA8C3]">Die normalisierten Messwerte werden aus ioBroker, MQTT und Modbus TCP aufgezeichnet. RUN-Laufzeiten und Speicherleistung gehen ab diesem Zeitpunkt in die lokale Historie ein.</p>
           <div className="flex flex-wrap items-end gap-4">
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={form.recorder.enabled} onCheckedChange={(c) => recSet("enabled", c === true)} data-testid="settings-recorder-enabled-checkbox" />
@@ -260,7 +260,7 @@ export default function System() {
       <section className="space-y-1">
         <p className="text-sm font-medium text-[var(--primary)]">Einstellungen &amp; LXC</p>
         <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="system-title">System &amp; Verbindungen</h1>
-        <p className="max-w-2xl text-sm text-[#8EA8C3]">ioBroker eintragen, Verbindung testen und speichern. Anschließend unter „Konfiguration“ Flüsse mit den Datenpunkt-IDs der Anlage anlegen.</p>
+        <p className="max-w-2xl text-sm text-[#8EA8C3]">Neue Verbindungen und Messpunkte unter „Datenerfassung“ anlegen. Hier Anlagenname, Zeitzone, Recorder und optionale bestehende InfluxDB-Historie konfigurieren.</p>
       </section>
       {settings.data && !settings.isError ? (
         <SettingsForm initial={settings.data} />

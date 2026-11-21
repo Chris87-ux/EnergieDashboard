@@ -1,5 +1,22 @@
 # Datenmodell und Erweiterungen · Version 2.3.0
 
+[Dokumentationsübersicht](docs/README.md) · [Schritt-für-Schritt-Konfiguration](docs/ERSTE-SCHRITTE.md) · [Hybrid-Anleitung](docs/SPEICHER-UND-HYBRID.md)
+
+Diese Seite ist die technische Referenz. Für die Bedienung zuerst die Benutzeranleitungen lesen. Stand: 21. November 2026, Anwendung 2.3.0, Schema 5, CSV 1.
+
+## Inhalt
+
+- [DC-MPPT und Hybrid-WR](#dc-mppt-und-hybrid-wr-ab-23-schema-5)
+- [Vorzeichen und Anzeige](#vorzeichen-und-anzeige)
+- [Typen und allgemeine Regeln](#typen-darstellung-und-allgemeine-regeln)
+- [Verbindungen](#verbindungen)
+- [Messpunkte und Protokolle](#messpunkte)
+- [Geräte, Netz und Knoten](#geräte-netzanschluss-und-knoten)
+- [Speicherfelder](#pv-hybrid-wr-und-speicher)
+- [Erweitertes JSON](#das-feld-zusätzliche-felder-json)
+- [API-Beispiele und Systemparameter](#api-beispiele-und-systemparameter)
+- [Versionierung](#versionierung)
+
 ## DC-MPPT und Hybrid-WR ab 2.3 (Schema 5)
 
 **DC-MPPT:** `kind: "device"`, `category: "pv"`, `pv_type: "mppt"`. Die Anwendung setzt die Messebene auf DC und verwendet keine Phasen. `datapoints.power_total` misst die **DC-Ausgangsleistung des MPPT zum gemeinsamen DC-Bus**, nicht die PV-Eingangsleistung vor dem MPPT. `power_unit` ist W oder kW. `datapoints.energy_total` ist der optionale kumulative DC-Energiezähler dieses Ausgangs, mit `energy_unit` Wh oder kWh. Er wird live als Gesamtenergie angezeigt und für Zeiträume als Zählerdelta ausgewertet; ohne Zähler verwendet die Historie aufgezeichnete Leistung. RUN, Frequenz und alte Phasenzuordnungen werden dafür nicht verwendet. DC-MPPT-Zeilen erscheinen separat in der Energieauswertung und gehen nicht nochmals in die AC-Gesamtsumme ein.
@@ -28,7 +45,7 @@ Victron trennt AC-In, AC-Out und DC-Werte ebenfalls; konkrete Quellen/Skalierung
 
 Bestehende IDs, Messpunkte, Historie und Einstellungen bleiben beim Update erhalten. Vorhandene MPPTs werden automatisch auf DC/Gesamtwerte normalisiert, alte Phasenfelder bleiben gespeichert und werden ignoriert. Bestehende Hybrid-WR bleiben im Modus `net`; bei bisher zugeordnetem AC-Out bitte bewusst auf `terminals` umstellen und AC-In ergänzen. Eine irrtümlich als AC konfigurierte verknüpfte Batterie muss über Entfernen der Verknüpfung, Korrektur der Messebene und erneute Verknüpfung korrigiert werden. Vorher aufgezeichnete falsche Hybrid-Nettohistorie wird nicht rückwirkend berechnet.
 
-## Vorzeichen und Anzeige ab 2.2
+## Vorzeichen und Anzeige
 
 Normale Geräte bewahren das Messvorzeichen in der Anzeige, einschließlich negativer PV-/Generatorwerte und nichtnulliger Werte unter 1 W. Für die Bilanz bestimmt die konfigurierte Richtung die Rolle: Verbrauch nutzt den Betrag als Abfluss, Erzeugung den Betrag als Zufluss. `invert` ändert das dargestellte Quellvorzeichen, nicht diese feste Rolle. Die Leistungsintegration normaler Geräte nutzt ebenfalls den Betrag. Echte bidirektionale Messstellen weiterhin als Netzanschluss oder Hybrid-WR einrichten. Ein normaler Erzeuger ist kein bidirektionaler Wechselrichter.
 
@@ -36,7 +53,7 @@ Die Standardschwelle blendet nur Werte **größer als -1 W und kleiner als +1 W*
 
 Die Anwendung ist zusätzlich mit Docker Compose betreibbar. Datenmodell und Datenbankformat entsprechen der LXC-Installation; siehe [DOCKER.md](DOCKER.md).
 
-## Neuerungen in 2.1
+## Typen, Darstellung und allgemeine Regeln
 
 CSV-Export/-Import mit Vorschau und stabilen IDs ist in [CSV-IMPORT.md](CSV-IMPORT.md) beschrieben. Beim Bearbeiten eines Messpunkts oder einer Verbindung erscheint das Formular unter der betreffenden Zeile. Kleine `sort_order`-Werte stehen zuerst; diese Anzeigereihenfolge beeinflusst keine Bilanz.
 
@@ -48,7 +65,7 @@ Speicher unterstützen `electrical_side: "dc"` oder `"ac"`. Bei DC gibt es keine
 
 Die Diagrammansicht zeigt pro Ebene direkt angeschlossene Geräte und rechteckige Unterknoten. Knoten öffnen ihre Kinder, die Pfadleiste führt zurück. Pro Diagrammseite werden bis zu vier Elemente je Richtung angezeigt; weitere Elemente einer Ebene folgen auf weiteren Seiten. Die Bilanz bezieht sich immer auf die vollständige Anlage.
 
-`appearance.zero_threshold_w` (Standard 1 W) und `appearance.zero_delay_s` (Standard 60 s) steuern den Livefilter. Unterhalb der Schwelle verschwindet ein Gerät nach der Frist aus Diagramm und Livekarten. Schwelle 0 zählt ausschließlich exakt 0 W. Neue Leistung macht es sofort wieder sichtbar. Unbekannte Messwerte setzen die Nullfrist zurück. Bei Beobachtungslücken über höchstens 30 Sekunden beginnt die Frist neu. Der Server speichert den Zustand in `visibility`, sodass ein Browser-Neuladen die Frist nicht zurücksetzt. Knotenstruktur, Speicher/SOC, Netz-Kennzahlen, Konfiguration, Historie und Bilanz bleiben sichtbar bzw. unverändert. „Inaktive anzeigen“ hebt den Darstellungsfilter auf.
+`appearance.zero_threshold_w` (Standard 1 W) und `appearance.zero_delay_s` (Standard 60 s) steuern den Livefilter. Bei einem Betrag strikt unterhalb der Schwelle verschwindet ein Gerät nach der Frist aus Diagramm und Livekarten. Schwelle 0 zählt ausschließlich exakt 0 W. Neue Leistung macht es sofort wieder sichtbar. Unbekannte Messwerte setzen die Nullfrist zurück. Bei Beobachtungslücken über höchstens 30 Sekunden beginnt die Frist neu. Der Server speichert den Zustand in `visibility`, sodass ein Browser-Neuladen die Frist nicht zurücksetzt. Knotenstruktur, Speicher/SOC, Netz-Kennzahlen, Konfiguration, Historie und Bilanz bleiben sichtbar bzw. unverändert. „Inaktive anzeigen“ hebt den Darstellungsfilter auf.
 
 ## Aufbau
 
@@ -222,8 +239,73 @@ Dieses Feld ist für Metadaten gedacht. Inhalt ist ein JSON-Objekt, maximal 16 K
 
 Zeichenketten und Schlüssel benötigen doppelte Anführungszeichen. Kommentare, nachgestellte Kommas, NaN/Infinity und JavaScript-Ausdrücke sind ungültig. In einer vollständigen API-Konfiguration steht dieses Objekt unter dem Schlüssel `extra`.
 
-Die Metadaten werden gespeichert und von der API zurückgegeben. Sie führen keinen Code aus und verändern keine Berechnung. Kapazität, Vorzeichen, Datenpunktzuordnung und Hybrid-Zuordnungen werden in den dafür vorgesehenen regulären Feldern eingestellt. Früher in `extra.capacity_kwh` eingetragene Werte müssen einmal in das reguläre Kapazitätsfeld übernommen werden. Beliebige Formeln und benutzerdefinierte Programmausführung sind nicht vorgesehen.
+Das Objekt darf höchstens 16 KiB in JSON-Darstellung belegen. Die Metadaten werden gespeichert und von der API zurückgegeben. Sie führen keinen Code aus und verändern keine Berechnung. Kapazität, Vorzeichen, Datenpunktzuordnung und Hybrid-Zuordnungen werden in den dafür vorgesehenen regulären Feldern eingestellt. Früher in `extra.capacity_kwh` eingetragene Werte müssen einmal in das reguläre Kapazitätsfeld übernommen werden. Beliebige Formeln und benutzerdefinierte Programmausführung sind nicht vorgesehen.
+
+## API-Beispiele und Systemparameter
+
+Die lokale API-Dokumentation ist unter `http://<SERVER-IP>:8000/docs`, das OpenAPI-Schema unter `/openapi.json` erreichbar. Die API hat denselben Zugriffsschutz wie die Anwendung, also ohne vorgeschalteten Proxy keine eigene Anmeldung. Folgende Beispiele beschreiben Objekte, die nach Anlage der angegebenen Verbindungen/Messpunkte gültig sind; Platzhalter durch vorhandene IDs ersetzen.
+
+### Netzanschluss per API
+
+`POST /api/flows`:
+
+```json
+{
+  "name": "Netzanschluss",
+  "kind": "grid",
+  "grid_mode": "signed",
+  "electrical_side": "ac",
+  "power_unit": "W",
+  "energy_unit": "kWh",
+  "datapoints": {
+    "power_total": "point:netz-leistung",
+    "energy_import": "point:netz-bezug-zaehler",
+    "energy_export": "point:netz-lieferung-zaehler"
+  }
+}
+```
+
+Die Netz-Zählereinträge sind optional und brauchen nicht verfügbare Zuordnungen nicht zu enthalten. Netz/Speicher werden intern auf die neutrale Kategorie `custom` normalisiert. `id`, `schema_version` und `created_at` nicht selbst für neue API-Einträge festlegen. Zum Bearbeiten `PUT /api/flows/<id>` mit der vollständigen gewünschten Konfiguration verwenden, nicht als partielles PATCH behandeln. CSV-Import ist ein eigener geprüfter Ablauf mit Vorschau.
+
+### DC-Speicher per API
+
+```json
+{
+  "name": "Technikraum-Speicher",
+  "kind": "storage",
+  "electrical_side": "dc",
+  "capacity_kwh": 10,
+  "charge_sign": "negative",
+  "reserve_soc_pct": 20,
+  "max_power_w": 5000,
+  "power_unit": "W",
+  "datapoints": {
+    "power_total": "point:batterie-leistung",
+    "soc": "point:batterie-soc",
+    "soc_reserve": "point:batterie-reserve"
+  },
+  "extra": {"location": "Technikraum", "tags": ["speicher"]}
+}
+```
+
+Ohne Reserve-Datenpunkt `soc_reserve` weglassen; dann gilt der feste Wert. Im Editorfeld **Zusätzliche Felder (JSON)** nur den Inhalt von `extra` einfügen, nicht das komplette Geräteobjekt. Das Feld ist kein JSON-Import für sämtliche Einstellungen.
+
+### Systemparameter
+
+| Parameter | Standard / Bereich | Wirkung |
+|---|---|---|
+| `timezone` | `Europe/Berlin`, gültige IANA-Zeitzone | Tagesgrenzen und Zeitraumauswahl |
+| `live_poll_s` | 5; 1–300 s | Live-Aktualisierung |
+| `recorder.enabled` | true | Lokale Aufzeichnung |
+| `recorder.interval_s` | 15; 5–3600 s | Aufzeichnungsintervall |
+| `gap_threshold_min` | 15; 1–1440 min | Lückenbewertung der Historienauswertung |
+| `appearance.zero_threshold_w` | 1; 0–100 W | Ausblendeschwelle für Leistungsbetrag, strikt kleiner |
+| `appearance.zero_delay_s` | 60; 1–3600 s | Durchgehend beobachtete Nullfrist |
+| `appearance.layout` | `rounded`; `square`, `rounded`, `flow` | Übersichtsart |
+| `appearance.background/surface/accent` | Farben im Format `#RRGGBB` | Darstellung |
+
+Die Lückenschwelle gibt keine unbegrenzte Gültigkeit für RUN-/Rest-/Speicherkanäle. Diese werden passend zum Recorder-Intervall zeitlich begrenzt integriert. InfluxDB-Konfiguration dient dem Lesen passender vorhandener Historie und macht den Recorder nicht zum Influx-Schreibadapter. Details: [Datenerfassung](docs/DATENERFASSUNG.md) und [Betrieb](docs/BETRIEB-UND-UPDATES.md).
 
 ## Versionierung
 
-Anwendungsversion in `VERSION`; Datenbankschema aktuell Version 4. Additive Migrationen laufen beim Start und dürfen mehrfach ausgeführt werden. Ein neueres Datenbankschema wird von dieser Version abgewiesen. Ein Downgrade erfolgt zusammen mit der dazugehörigen Datenbanksicherung. Messpunkt- und Geräte-IDs bleiben bei Updates erhalten.
+Anwendungsversion in `VERSION`; Datenbankschema aktuell Version 5; CSV-Format Version 1. Additive Migrationen laufen beim Start und dürfen mehrfach ausgeführt werden. Ein neueres Datenbankschema wird von dieser Version abgewiesen. Ein Downgrade erfolgt zusammen mit der dazugehörigen Datenbanksicherung. Messpunkt- und Geräte-IDs bleiben bei Updates erhalten.

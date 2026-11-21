@@ -1,4 +1,19 @@
-# CSV-Konfiguration · Energieboard 2.3
+# CSV-Konfiguration · Energieboard 2.3.0
+
+[Dokumentationsübersicht](docs/README.md) · [Datenerfassung](docs/DATENERFASSUNG.md) · [Vollständige Sicherung](docs/BETRIEB-UND-UPDATES.md)
+
+Stand: 21. November 2026. CSV-Format **1**, unabhängig von Anwendung 2.3.0 und Datenbankschema 5.
+
+## Inhalt
+
+- [Export und Vorlage](#export-und-vorlage)
+- [Typische Bearbeitung](#typische-bearbeitung)
+- [Neue Modbus-Messpunkte](#beispiel-für-neue-modbus-messpunkte)
+- [Neue MQTT-Messpunkte](#beispiel-für-mqtt-messpunkte)
+- [Spalten und Datensatztypen](#spalten-und-datensatztypen)
+- [Vollständiges Ersetzen](#vollständiges-ersetzen)
+- [Zugangsdaten und Tabellenformeln](#zugangsdaten-und-tabellenformeln)
+- [Hybrid-/MPPT-Felder](#hybrid-mppt-felder-ab-23)
 
 Im Reiter **Datenerfassung** und unter **Konfiguration** den Abschnitt „Konfiguration als CSV herunterladen / hochladen“ öffnen.
 
@@ -65,12 +80,23 @@ measurement;1;generator-hours;Generator Betriebsstunden;mqtt-haus;haus/bhkw/wert
 | `datapoints.efficiency` | Gemessene Effizienz in Prozent |
 | `datapoints.fuel_consumption` | Kraftstoffverbrauch in der gewählten Einheit |
 | `datapoints.operating_hours` | Betriebsstunden in Stunden |
-| `storage_ids`, `mppt_ids` | Zugeordnete IDs, mehrere mit `|` trennen |
+| `storage_ids`, `mppt_ids` | Zugeordnete IDs, mehrere mit `\|` trennen |
 | `sort_order` | Anzeigereihenfolge: kleinere Zahl zuerst, ohne Bilanzwirkung |
 | `extra` | Zusatzmetadaten als JSON-Objekt innerhalb einer CSV-Zelle; Export übernimmt die nötigen CSV-Anführungszeichen |
 | `appearance.*`, `recorder.*`, `influx.*` | Systemeinstellungen in flachen Spalten |
 
 Unbekannte Spalten und ungültige Werte werden zurückgewiesen. Schlüssel und Werte nicht übersetzen. `true`/`false` für boolesche Einstellungen verwenden. Optionale Felder können leer bleiben. Bei vollständigen Anlagenexporten die Verwaltungsfelder und IDs möglichst unverändert lassen.
+
+## Beispiel: bestehende Anlage um 20 Messpunkte erweitern
+
+1. Die vorhandene Verbindung unter Datenerfassung prüfen, ihre stabile ID aus dem Verbindungen-Export übernehmen.
+2. Messpunkt-Vorlage herunterladen und 20 Zeilen mit `record_type=measurement`, `csv_version=1`, neuen eindeutigen IDs und derselben `connection_id` ergänzen.
+3. Erst eine Zeile importieren und den Rohwert vergleichen. Danach dieselbe Datei mit allen geprüften Register-/Topic-Zuordnungen ergänzend importieren.
+4. Für neue Kennwort-Verbindungen die Zugangsdaten im Board hinterlegen; CSV transportiert sie nicht.
+5. Erst danach Geräte mit den entsprechenden `point:<id>`-Verweisen zuordnen. Messpunkte allein erzeugen noch keine Verbraucher-/Erzeugerkarten.
+6. Frischen Gesamtexport als Konfigurationsstand speichern und zusätzlich Datenbankbackup erstellen.
+
+Sollen bestehende Geräteeinträge geändert werden, deren **vollständige exportierte Zeilen** bearbeiten. Fehlende neue Spalten können auf Standardwerte zurückfallen; eine schmale selbst gebaute Datei eignet sich nicht zum partiellen Ändern eines komplexen Hybrid-Geräts.
 
 ## Vollständiges Ersetzen
 

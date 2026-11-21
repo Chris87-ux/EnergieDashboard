@@ -2,6 +2,10 @@
 
 Stand: 21. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokolladapter, Konfigurationsübernahme, Sicherung und Updateablauf. Das ausgelieferte Programm enthält keinen Demo-Modus; Messwerte der Tests stammen ausschließlich aus isolierten Testprozessen.
 
+## Dokumentationsstand
+
+Die Benutzeranleitungen wurden am 21. November 2026 neu gegliedert und mit Modellen, Editor, Compose-Dateien, Installer, Updater und Backupwerkzeug abgeglichen. Einstieg: [Dokumentationsübersicht](../docs/README.md). Dokumentationslinks, lokale Sprungmarken, JSON-Beispiele, Bash-Syntax der Anleitungsblöcke sowie Paketinhalt und SHA-256 werden vor Veröffentlichung geprüft. Ergebnis: 19 Markdown-Dateien einschließlich ausgelieferter Kopien, 166 lokale Links/Sprungmarken, 8 JSON-Blöcke und 42 Bash-Blöcke geprüft; TypeScript/Vite-Build erfolgreich. Das neue Paket enthält alle zehn Dateien unter `docs/`. Diese Dokumentationsprüfung ersetzt keine erneute reale Zielinstallation; die folgenden Anwendungstests beziehen sich auf den genannten geprüften 2.3.0-Quellstand.
+
 ## Neue Prüfungen für 2.3
 
 - 60 Backendtests erfolgreich: zusätzlich DC-MPPT-Normalisierung, relevante Datenpunkte, getrennte DC-Zählerenergie, Entladung, PV mit gleichzeitiger Batterieladung, Netzladung, mehrere MPPTs/Speicher, DC-Lasten, Einheiten und Vorzeichen, AC-Netzdurchleitung, Rückspeisung und dreiphasige AC-Out-Summe.

@@ -1,143 +1,159 @@
-# Energieboard mit Docker Compose
+# Erstinstallation mit Docker Compose
 
-Energieboard kann weiterhin direkt im Debian-LXC betrieben werden. Docker ist eine zusätzliche Bereitstellungsart. Es werden dieselbe Anwendung und dieselben Konfigurations-/Historienformate verwendet. Der systemd-/APT-Installer wird innerhalb des Docker-Containers nicht ausgeführt.
+[Dokumentationsübersicht](docs/README.md) · [Alternative: Proxmox-LXC direkt](INSTALLATION.md) · [Ersteinrichtung](docs/ERSTE-SCHRITTE.md)
 
-## Voraussetzungen
+Diese Anleitung läuft auf dem **Linux-Docker-Host**, z. B. einer Debian-VM unter Proxmox. Im App-Container werden weder der LXC-Installer noch der LXC-Updater ausgeführt.
 
-- Linux-Host oder Linux-VM mit Docker Engine und Docker Compose Plugin v2.20 oder neuer. Für Proxmox ist eine eigene Linux-VM mit Docker eine mögliche Alternative zum bisherigen LXC.
-- Zunächst etwa 2 CPU-Kerne, 4 GB RAM und 32 GB SSD plus Platz für Historie und Sicherungen.
-- Für die mitgelieferte lokale MongoDB 8.0: geeigneter amd64-Prozessor mit AVX und kompatibler Hostkernel. Docker beseitigt die MongoDB-CPU-/Kernelanforderungen nicht. Die geprüfte Zielarchitektur ist linux/amd64; andere Architekturen sind nicht Bestandteil der Freigabe.
-- Git und ausgehender HTTPS-Zugang zu GitHub, Docker Hub, npm und PyPI für den Image-Build.
-- Zugriff des Docker-Hosts auf ioBroker, MQTT-Broker bzw. Modbus-TCP-Geräte. In der Quellkonfiguration deren LAN-Adressen verwenden. `localhost` bezeichnet innerhalb des App-Containers den App-Container selbst. Dienste auf dem Docker-Host sind unter Linux ggf. über `host.docker.internal` erreichbar; dieser Name wird in Compose auf das Hostgateway abgebildet.
+## Inhalt
 
-Docker anhand der [offiziellen Anleitung](https://docs.docker.com/engine/install/) für das Hostsystem installieren. Versionsprüfung:
+1. [Host und Voraussetzungen](#1-host-und-voraussetzungen)
+2. [Docker auf einer neuen Debian-VM installieren](#2-docker-auf-einer-neuen-debian-vm-installieren)
+3. [Energieboard herunterladen und starten](#3-energieboard-herunterladen-und-starten)
+4. [Zugriff und Datenhaltung](#4-zugriff-und-datenhaltung)
+5. [Externe MongoDB](#5-externe-mongodb)
+6. [Nächste Schritte](#6-nächste-schritte)
+
+## 1. Host und Voraussetzungen
+
+| Bereich | Voraussetzung |
+|---|---|
+| Host | Linux amd64 mit Docker Engine und Compose-Plugin; für die mitgelieferten Befehle Debian 12 oder 13 |
+| Compose | Aktuelles Plugin mit `docker compose ...`, mindestens 2.20; kein altes `docker-compose` v1 |
+| Startgröße | 2 vCPU, 4 GB RAM, 32 GB SSD plus Historie und Sicherungen |
+| Datenbank lokal | MongoDB 8.0 mit geeigneter CPU/AVX und kompatiblem Kernel |
+| Netzwerk | GitHub, Docker Hub, npm, PyPI und eigene Messquellen erreichbar |
+| Rechte | Root oder berechtigter Docker-Administrator auf dem Host |
+
+Für Proxmox eine eigene Linux-VM erstellen, dort das Betriebssystem und Docker installieren. Bei lokaler MongoDB in den VM-CPU-Einstellungen sicherstellen, dass AVX im Gast tatsächlich sichtbar ist; für einen einzelnen kompatiblen Host ist CPU-Typ `host` eine Möglichkeit. Bei Cluster-/Migrationsbetrieb einen geeigneten gemeinsamen CPU-Typ wählen. Prüfung **im Gast**:
 
 ```bash
+uname -m
+grep -w avx /proc/cpuinfo
+uname -r
+```
+
+Zielarchitektur der bisherigen Prüfungen ist `linux/amd64`. Docker hebt CPU-/Kernelanforderungen der Datenbank nicht auf. Vor Installation die [MongoDB-Plattformhinweise](https://www.mongodb.com/docs/manual/administration/production-notes/) für den konkreten Patchstand prüfen.
+
+Docker in einem Proxmox-LXC benötigt zusätzliche Container-/Nesting-Konfiguration und ist nicht der hier beschriebene Installationsweg. Für diesen Fall stehen die [Proxmox-Dokumentation](https://pve.proxmox.com/pve-docs/chapter-pct.html) und die direkte [LXC-Installation](INSTALLATION.md) als Alternative bereit.
+
+## 2. Docker auf einer neuen Debian-VM installieren
+
+Wenn Docker bereits korrekt läuft, mit Abschnitt 3 fortfahren. Die folgenden Befehle als **root auf einer neuen Debian-VM** ausführen. Bei vorhandenen Docker-/Containerd-Installationen keine Pakete blind ersetzen, sondern die Konflikthinweise der [offiziellen Docker-Anleitung für Debian](https://docs.docker.com/engine/install/debian/) beachten.
+
+```bash
+apt-get update
+apt-get install -y ca-certificates curl git
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+. /etc/os-release
+cat > /etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/debian
+Suites: $VERSION_CODENAME
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+systemctl enable --now docker
 docker version
 docker compose version
 ```
 
-## Erstinstallation
+Erwartet: Docker-Client und erreichbarer Server sowie eine Compose-Plugin-Version. Die Installation auf einem anderen Hostsystem nach dessen offizieller Docker-Anleitung vornehmen. Zugriff auf den Docker-Daemon verleiht weitreichende Hostrechte; nicht beliebigen Benutzern geben.
 
-Auf dem Docker-Host:
+## 3. Energieboard herunterladen und starten
+
+**Auf dem Docker-Host**, als root oder Docker-Administrator. Für die Erstinstallation ein noch nicht belegtes Projektverzeichnis verwenden:
 
 ```bash
-git clone --branch v2.3.0 https://github.com/Chris87-ux/EnergieDashboard.git
-cd EnergieDashboard
+mkdir -p /opt
+cd /opt
+git clone --branch v2.3.0 https://github.com/Chris87-ux/EnergieDashboard.git energieboard-docker
+cd /opt/energieboard-docker
 cp docker.env.example .env
-docker compose up -d --build --wait --wait-timeout 180
 ```
 
-Der erste Build lädt die Abhängigkeiten und baut die Oberfläche. Er kann mehrere Minuten dauern. Öffnen:
+`.env` vor dem Start bei Bedarf bearbeiten:
+
+```dotenv
+ENERGIEBOARD_VERSION=2.3.0
+ENERGIEBOARD_PORT=8000
+ENERGIEBOARD_BIND=0.0.0.0
+```
+
+| Variable | Wirkung |
+|---|---|
+| `ENERGIEBOARD_VERSION` | Name des **lokal gebauten** Images; lädt allein kein neues Release herunter |
+| `ENERGIEBOARD_PORT` | Dashboard-Port auf dem Host, z. B. 8000 oder 8080 |
+| `ENERGIEBOARD_BIND` | `0.0.0.0` für Hostschnittstellen, `127.0.0.1` nur für lokalen Zugriff/Proxy |
+
+Dann:
+
+```bash
+docker compose config --quiet
+docker compose up -d --build --wait --wait-timeout 180
+docker compose ps
+docker compose logs --tail=60 energieboard
+curl -fsS http://127.0.0.1:8000/api/
+```
+
+Bei geändertem Hostport den `curl`-Befehl anpassen. Der erste Build lädt Pakete und baut die Oberfläche; dies kann mehrere Minuten dauern. `--wait-timeout` betrifft die anschließende Start-/Healthphase. Es gibt derzeit kein bereitgestelltes Projektimage in einer Registry; Compose baut es aus dem geklonten Code.
+
+Erwartet: App und MongoDB laufen, Healthchecks sind erfolgreich, die API zeigt Version `2.3.0`. Im Browser:
 
 ```text
 http://<DOCKER-HOST-IP>:8000/datenerfassung
 ```
 
-Die eingebettete Übersicht liegt unter `http://<DOCKER-HOST-IP>:8000/flow`.
-
-In `.env` können `ENERGIEBOARD_PORT`, `ENERGIEBOARD_BIND` und `ENERGIEBOARD_VERSION` angepasst werden. Der Standard veröffentlicht Port 8000 auf den Hostschnittstellen. Für einen ausschließlich lokalen Reverse-Proxy beispielsweise `ENERGIEBOARD_BIND=127.0.0.1` verwenden. Der Dienst hat keine eigene Anmeldung; Zugriff auf vertrauenswürdige Geräte begrenzen oder einen Zugriffsschutz vorsehen.
-
-Compose startet zwei Dienste:
+## 4. Zugriff und Datenhaltung
 
 | Dienst | Aufgabe |
 |---|---|
-| `energieboard` | Oberfläche, API und Recorder; läuft ohne Root-Rechte mit UID/GID 10001 |
-| `mongo` | MongoDB 8.0, nur im Docker-Netz erreichbar; kein veröffentlichter Datenbankport |
+| `energieboard` | Oberfläche, API, Recorder, UID/GID 10001, schreibgeschütztes App-Dateisystem |
+| `mongo` | MongoDB 8.0 mit Datenvolume; kein veröffentlichter Datenbankport |
 
-Das App-Dateisystem ist schreibgeschützt. Temporäre Dateien liegen im flüchtigen `/tmp`; Konfiguration, Historie und Filterzustände werden vollständig in MongoDB gespeichert. Compose verwendet den festen Projektnamen `energieboard`. Die Daten liegen im benannten Volume `energieboard_mongo_data` und überstehen Neustart, App-Neubau und Austausch des App-Containers.
+Der feste Compose-Projektname ist `energieboard`, das Standardvolume heißt **`energieboard_mongo_data`**. Konfiguration, Historie und Filterzustände liegen in MongoDB. Neustart und App-Neubau erhalten diese Daten. Eine zweite unabhängige Installation benötigt bewusst getrennte Projektnamen, Volumes und Hostports.
 
-Die Datenbank besitzt in dieser einfachen lokalen Compose-Konfiguration keine eigene Anmeldung und ist nicht auf einen Hostport veröffentlicht. Keine zusätzliche Portfreigabe für MongoDB einrichten. Für eine bestehende geschützte Datenbank die externe Variante verwenden.
+**`docker compose down --volumes` löscht die Datenbank.** Für normale Updates wird dieser Befehl nicht verwendet. Die lokale Compose-Datenbank hat keine eigene Anmeldung und bleibt im privaten Docker-Netz. Keine ungeschützte MongoDB-Portfreigabe ergänzen.
 
-Der Appstart wartet auf die gesunde Datenbank; anschließend prüft ein eigener Healthcheck die API. Grundlage ist die [Compose-Startreihenfolge mit Healthchecks](https://docs.docker.com/compose/how-tos/startup-order/). Das Image nutzt einen [mehrstufigen Build](https://docs.docker.com/build/building/multi-stage/): Node.js baut die Oberfläche, im Laufzeitimage wird nur Python benötigt.
+Die Anwendung besitzt keine eigene Anmeldung. Zugriff auf den veröffentlichten Port über Netz-/Hostregeln begrenzen oder einen geschützten Reverse-Proxy verwenden. Docker-Portfreigaben in der tatsächlichen Firewallkonfiguration berücksichtigen; siehe [Docker-Portveröffentlichung](https://docs.docker.com/engine/network/port-publishing/).
 
-## Status und Fehlersuche
+### Datenquellen erreichen
 
-```bash
-docker compose ps
-docker compose logs --tail=100 energieboard
-docker compose logs --tail=100 mongo
-curl -fsS http://127.0.0.1:8000/api/
+- Für ioBroker, MQTT und Modbus die **LAN-IP oder den erreichbaren DNS-Namen** des jeweiligen Servers verwenden.
+- `localhost` und `127.0.0.1` bezeichnen im App-Container den App-Container, nicht den Docker-Host.
+- `host.docker.internal` wird in der mitgelieferten Compose-Konfiguration auf das Hostgateway abgebildet. Der betreffende Hostdienst muss dort erreichbar sein und darf nicht ausschließlich auf dessen Loopback-Adresse lauschen.
+- Der Browser muss nur das Dashboard erreichen; die App selbst muss die Quellen erreichen.
+
+## 5. Externe MongoDB
+
+Statt des lokalen MongoDB-Dienstes lässt sich `compose.external.yaml` verwenden. Das ist eine **alternative Bereitstellung**, kein zusätzlicher Aufruf parallel zur Standarddatei.
+
+Vor dem ersten Start `.env` ergänzen:
+
+```dotenv
+MONGO_URL=mongodb://192.168.10.20:27017
+DB_NAME=energieboard
 ```
 
-Bei geändertem Hostport den curl-Befehl anpassen. Ein Datenbankfehler hält den Healthcheck auf fehlerhaft; in den Logs stehen Start-/Migrationsfehler. Bei Quellenproblemen außerdem im Board die Messpunktdiagnose prüfen.
-
-## Backup
-
-Für eine konsistente Sicherung die App kurz stoppen; MongoDB bleibt verfügbar. Auf dem Linux-Docker-Host im Projektverzeichnis:
+URI, Anmeldung/`authSource`, Rechte und Datenbanknamen anpassen; bei Sonderzeichen in Kennwörtern die URI-Kodierung beachten. `.env` mit Zugangsdaten nur für Administratoren lesbar halten, z. B. `chmod 600 .env`.
 
 ```bash
-docker compose stop energieboard
-mkdir -p backups
-backup_name="$(date -u +%Y%m%dT%H%M%S)"
-docker compose run --rm --no-deps --user "$(id -u):$(id -g)" \
-  -v "$PWD/backups:/backups" energieboard \
-  python /opt/energieboard/deploy/backup.py backup "/backups/$backup_name"
-docker compose start energieboard
-```
-
-Das Sicherungswerkzeug exportiert die Datenbank einschließlich BSON-Datentypen, Konfiguration, Messhistorie und Indizes. Die neue Sicherungs-Unterstruktur erhält private Verzeichnisrechte. Sie enthält Zugangsdaten; an einem geschützten Ort aufbewahren. Falls die Sicherung fehlschlägt, Fehler beheben und die App bei Bedarf mit `docker compose start energieboard` wieder starten.
-
-## Update ohne Neueinrichtung
-
-Vorher die oben beschriebene Datenbanksicherung erstellen und die bisherige Git-Version notieren:
-
-```bash
-git describe --tags --always
-git fetch --tags
-git checkout v2.3.0
-```
-
-Bei einem späteren Release statt `v2.3.0` dessen Tag auswählen. In `.env` `ENERGIEBOARD_VERSION` auf denselben neuen Versionsnamen setzen, damit das gebaute Image eindeutig benannt ist. Danach:
-
-```bash
-docker compose up -d --build --wait --wait-timeout 180
-docker compose ps
-```
-
-Das benannte MongoDB-Volume bleibt erhalten. Die Anwendung führt ihre kompatiblen Migrationen beim Start aus. Für Docker **nicht** `deploy/install.sh` oder `deploy/update.sh` benutzen; diese Skripte sind für die direkte LXC-/systemd-Installation vorgesehen.
-
-`docker compose down` entfernt Container und Netzwerk, erhält aber das Datenvolume. **`docker compose down --volumes` löscht auch die Datenbank** und gehört nicht zum normalen Updateablauf. Den Projektnamen und das Datenvolume beim Update beibehalten. Ein anderer Projektname erzeugt eine separate Datenbank und wirkt dadurch wie eine leere Neueinrichtung.
-
-Docker aktualisiert MongoDB nicht automatisch auf eine neue Hauptversion; die Compose-Datei bleibt zunächst bei MongoDB 8.0. Für ein späteres Hauptversionsupdate die MongoDB-Migrationsvorgaben gesondert beachten.
-
-## Wiederherstellen / Umzug aus dem LXC
-
-Für eine vollständige Übernahme aus dem LXC einschließlich Historie:
-
-1. Dort `energieboard.service` stoppen und mit `deploy/backup.py backup <NEUER-SICHERUNGSPFAD>` eine Sicherung erstellen. Das Werkzeug liest die bisherige Umgebungsdatei.
-2. Den gesamten entstandenen Sicherungsordner auf den Docker-Host unter `backups/` übertragen. Die vorhandene LXC-Installation zunächst erhalten.
-3. Docker-Anwendung und Datenbank zunächst starten, damit das neue Datenbankziel erreichbar ist; danach nur die App stoppen.
-4. Die Sicherung in die eigene neue Energieboard-Datenbank zurückspielen:
-
-```bash
-docker compose stop energieboard
-docker compose run --rm --no-deps --user 0:0 \
-  -v "$PWD/backups/DEINE-SICHERUNG:/backup:ro" energieboard \
-  python /opt/energieboard/deploy/backup.py restore /backup
-docker compose start energieboard
-```
-
-`DEINE-SICHERUNG` durch den tatsächlichen Ordner ersetzen. Der einmalige Restore-Prozess verwendet Root im Container, damit auch eine rootgeschützte LXC-Sicherung lesbar ist; der reguläre App-Dienst läuft weiterhin als UID 10001. Restore ersetzt den Inhalt der konfigurierten Zieldatenbank. Ausschließlich die eigene Energieboard-Datenbank verwenden und Host/DB-Namen vorher prüfen.
-
-Bei einem Rückgang auf eine ältere Anwendung muss ggf. auch die zugehörige ältere Datenbanksicherung wiederhergestellt werden. Alte Anwendung und neuere inkompatible Datenbank nicht kombinieren.
-
-Alternativ kann ausschließlich die Konfiguration über CSV übertragen werden; dabei fehlen Historie und Zugangsdaten neuer Verbindungen. Details in [CSV-IMPORT.md](CSV-IMPORT.md).
-
-## Externe MongoDB
-
-Die Datei `compose.external.yaml` startet ausschließlich die App. Sie ersetzt die normale Compose-Datei und wird separat ausgewählt:
-
-```bash
-cp docker.env.example .env
-editor .env
+docker compose -f compose.external.yaml config --quiet
 docker compose -f compose.external.yaml up -d --build --wait --wait-timeout 180
+docker compose -f compose.external.yaml ps
 ```
 
-In `.env` `MONGO_URL` und `DB_NAME` auf die vorhandene, vom Container erreichbare Datenbank setzen. Beispiele stehen in `docker.env.example`. Bei Bedarf eine URI mit Authentifizierung und TLS verwenden. Zugangsdaten-Datei schützen. Für Status, Logs und Updates dann ebenfalls immer `-f compose.external.yaml` verwenden. Die MongoDB muss mindestens Version 5.0 unterstützen; keine zusätzliche lokale MongoDB wird gestartet.
+Danach bei **jedem** Betriebs-, Backup- und Updatebefehl dieselbe `-f compose.external.yaml`-Auswahl verwenden. `MONGO_URL`/`DB_NAME` in der normalen `.env` schalten die Standard-Compose-Datei nicht automatisch auf extern um. Vorhandene lokale Daten werden nicht automatisch in die externe Datenbank kopiert; dafür [Backup und Umzug](docs/BETRIEB-UND-UPDATES.md) nutzen.
 
-## Automatisierter Docker-Test
+## 6. Nächste Schritte
 
-Der GitHub-Actions-Workflow **Docker build and persistence** baut das Image auf einem Linux-Runner, startet App und MongoDB mit Compose, führt die Backendtests im Laufzeitimage aus und prüft Konfigurationspersistenz nach einem App-Container-Austausch. Außerdem werden der Betrieb ohne Root-Rechte, die gebaute Oberfläche, API und der isolierte Updater-Test unter Linux geprüft. Ergebnis: [GitHub Actions](https://github.com/Chris87-ux/EnergieDashboard/actions/workflows/docker.yml).
+1. [Ersteinrichtung](docs/ERSTE-SCHRITTE.md) durchführen.
+2. Mindestens einen bekannten Messwert und die Netzrichtung prüfen.
+3. [Sicherung einrichten](docs/BETRIEB-UND-UPDATES.md#docker-sicherung).
+4. Für ein späteres Update den Abschnitt [Docker-Update](docs/BETRIEB-UND-UPDATES.md#docker-update) verwenden.
 
-Die lokale Entwicklung auf diesem Windows-Rechner benötigt dafür weder Docker Desktop noch WSL. Der Docker-Laufzeittest erfolgt im Linux-CI-System; reale Datenquellen und die Hardware des späteren Hosts müssen zusätzlich vor Ort geprüft werden.
+[Fehlersuche](docs/FEHLERSUCHE.md) · [Messquellen konfigurieren](docs/DATENERFASSUNG.md) · [Prüfbericht](PRUEFBERICHT.md).

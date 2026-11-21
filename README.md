@@ -1,77 +1,60 @@
-# Energieboard 2.2
+# Energieboard 2.3.0
 
-Selbst gehostetes Energiedashboard für Proxmox-LXC. FastAPI und React, MongoDB für Konfiguration und Aufzeichnung. Messwerterfassung über ioBroker simple-api, MQTT oder Modbus TCP. Kein Demo-Modus und keine vorgefüllten Geräte.
+Energieboard stellt Stromerzeugung, Verbrauch, Netzanschluss und Speicher im eigenen Netzwerk dar. Es läuft direkt in einem Proxmox-LXC oder mit Docker Compose. Messwerte kommen aus ioBroker simple-api, MQTT oder Modbus TCP. Konfiguration und Aufzeichnung liegen in MongoDB. Die Anwendung enthält keine Demodaten und steuert keine Geräte.
 
-- Verschachtelte AC-Knoten mit anklickbarer Diagrammnavigation und automatischer Restverrechnung.
-- Netzanschluss und Speicher als eigene Typen; Generator/BHKW mit optionalen Betriebswerten.
-- Persistenter Nullleistungsfilter: unter 1 W nach 60 Sekunden ausblenden, jederzeit wieder einblenden.
-- CSV-Import/-Export mit Vorschau und Sicherung; Bearbeitungsformulare direkt unter dem Eintrag.
-- Sensorgeräte und RUN-Signale mit fester Leistung und aufgezeichneter kWh-Schätzung.
-- WR, Hybrid-WR und separate DC-MPPTs.
-- Mehrere Speicher mit Kapazität, gewichtetem Gesamt-SOC, Leistungsbalken, Restenergie und geglätteter Restlaufzeit.
-- Drei Darstellungen, globale Farben, über 50 suchbare Symbole und eingebettete Ansicht unter `/flow`.
-- Update mit Sicherung, Konfigurationsmigration und Rückfall auf die vorherige Version.
+## Hier beginnen
 
-## Dokumentation
+| Dein Vorhaben | Anleitung |
+|---|---|
+| Noch keine Installation, Proxmox vorhanden | [Erstinstallation im Proxmox-LXC](INSTALLATION.md) |
+| Linux-Docker-Host oder Docker-VM vorhanden | [Erstinstallation mit Docker Compose](DOCKER.md) |
+| Dashboard läuft, aber noch keine Messwerte | [Erste Schritte und Abnahme](docs/ERSTE-SCHRITTE.md) |
+| Datenpunkte aus ioBroker, MQTT oder Modbus einrichten | [Datenerfassung](docs/DATENERFASSUNG.md) |
+| Verbraucher, Generator, Netz und verschachtelte Zähler anlegen | [Geräte und Knoten](docs/GERAETE-UND-KNOTEN.md) |
+| Batterie, DC-MPPT oder Hybrid-WR konfigurieren | [Speicher und Hybrid-WR](docs/SPEICHER-UND-HYBRID.md) |
+| Bestehende Anlage sichern oder aktualisieren | [Betrieb, Backup und Updates](docs/BETRIEB-UND-UPDATES.md) |
+| Fehler oder unplausible Bilanz | [Fehlersuche](docs/FEHLERSUCHE.md) |
 
-- [Docker Compose: Installation, Datenvolume, Backup und Update](DOCKER.md)
-- [Installation, Ersteinrichtung und Updates](INSTALLATION.md)
-- [CSV-Import, Export und Vorlagen](CSV-IMPORT.md)
-- [Messpunkte, Bilanzregeln und JSON-Beispiele](DATENMODELL.md)
-- [Prüfbericht und Grenzen der Prüfung](PRUEFBERICHT.md)
-- [Änderungen](CHANGELOG.md)
+**[Gesamte Dokumentation](docs/README.md) · [Änderungen](CHANGELOG.md) · [Prüfbericht](PRUEFBERICHT.md)**
 
-## Docker als zusätzliche Installation
+## Funktionen
 
-```bash
-git clone --branch v2.3.0 https://github.com/Chris87-ux/EnergieDashboard.git
-cd EnergieDashboard
-docker compose up -d --build --wait --wait-timeout 180
+- Netzbezug und Einspeisung gemeinsam in einer dauerhaft sichtbaren Netzkachel.
+- Verschachtelte AC-Knoten mit automatischem Restverbrauch bzw. Resterzeugung und anklickbarer Diagrammnavigation.
+- Geräte mit Leistungssensor oder RUN-Signal und fester geschätzter Leistung.
+- Generator/BHKW mit optionaler Motortemperatur, Effizienz, Kraftstoffverbrauch und Betriebsstunden.
+- DC-MPPT ohne Phasen, mit DC-Leistung und kumulativer Gesamtenergie.
+- Hybrid-WR mit AC-Netto oder AC-Out minus AC-In; Wirkungsgrad aus direkter DC-Messung oder bestätigter DC-Bilanz.
+- Separate Speicher mit kapazitätsgewichtetem Gesamt-SOC, Leistungsbalken, Restenergie und geglätteter Restlaufzeit.
+- CSV-Import/-Export mit Vorschau, stabilen IDs und Sicherung vor der Übernahme.
+- Drei Darstellungen, globale Farben, suchbare Symbole und Einbettung über `/flow`.
+- Nullleistungsfilter: standardmäßig erst nach 60 Sekunden strikt zwischen −1 W und +1 W ausblenden; Netz bleibt sichtbar.
+- Updates mit erhaltener Konfiguration und Historie; direkter LXC-Updater mit Sicherung und automatischem Rückfall.
+
+## Welche Installationsart?
+
+| | Proxmox-LXC direkt | Docker Compose |
+|---|---|---|
+| Betriebssystem | Debian 12 Bookworm amd64 mit systemd | Linux amd64, Docker Engine und aktuelles Compose-Plugin |
+| Anwendung | Python-Dienst im LXC | App-Container und optional MongoDB-Container |
+| Einstieg | [LXC-Anleitung](INSTALLATION.md) | [Docker-Anleitung](DOCKER.md) |
+| Update | `deploy/update.sh` | Git-Tag wechseln und Compose neu bauen |
+| Daten | MongoDB lokal oder extern | Benanntes MongoDB-Volume oder externe MongoDB |
+
+Startgröße für 30–50 Geräte: etwa 2 vCPU, 4 GB RAM, 32 GB SSD plus Platz für Historie und Sicherungen. Dies ist eine Planungsempfehlung, keine Speicherzusage. Lokale MongoDB 8.0 benötigt eine geeignete CPU mit AVX und einen kompatiblen Kernel; die jeweilige Installationsanleitung erläutert die Prüfung.
+
+## Zugriff nach der Installation
+
+```text
+http://<SERVER-IP>:8000/
 ```
 
-Die Konfiguration und Historie liegen im persistenten MongoDB-Volume. Voraussetzungen und Umzug vom LXC stehen in [DOCKER.md](DOCKER.md).
+Unter **Datenerfassung** Verbindungen und Messpunkte anlegen, anschließend unter **Konfiguration** zuerst den Netzanschluss. Die [Ersteinrichtung](docs/ERSTE-SCHRITTE.md) führt durch den gesamten Ablauf.
 
-## Voraussetzungen für die direkte LXC-Installation
+Energieboard besitzt keine eigene Anmeldung. Im vertrauenswürdigen LAN betreiben oder einen Reverse-Proxy mit Zugriffsschutz verwenden. Die Datenquellen müssen vom Server bzw. App-Container erreichbar sein.
 
-Unprivilegierter Debian-12-LXC, amd64, systemd, empfohlen 2 vCPU, 4 GB RAM und 32 GB SSD. Lokale MongoDB benötigt AVX und einen kompatiblen Hostkernel. Externe MongoDB ist möglich. Netzwerkzugriff auf die tatsächlichen Datenquellen und während Installation/Updates auf Paketquellen, PyPI und GitHub.
+## Version und Verlässlichkeit
 
-## Erstinstallation von GitHub
+Aktueller Anwendungsstand: **2.3.0**, Datenbankschema **5**, CSV-Format **1**. Dokumentation: **21. November 2026**. Für Installationen feste Tags wie `v2.3.0` verwenden; `main` kann bereits neuere Änderungen enthalten.
 
-Als root im LXC ausführen. Für bestehende Installationen den Updateweg verwenden.
-
-```bash
-(
-  set -e
-  apt-get update
-  apt-get install -y ca-certificates curl
-  cd /tmp
-  basis="https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/main/outputs"
-  curl -fL --retry 3 "$basis/Energieboard-LXC.tar.gz" -o Energieboard-LXC.tar.gz
-  curl -fL --retry 3 "$basis/SHA256SUMS" -o SHA256SUMS
-  sha256sum -c SHA256SUMS
-  mkdir -p /opt
-  tar -xzf Energieboard-LXC.tar.gz -C /opt
-  bash /opt/energieboard/deploy/install.sh
-)
-```
-
-Öffnen: `http://<LXC-IP>:8000/datenerfassung`. Zuerst Verbindungen und Messpunkte, anschließend unter Konfiguration den Netzanschluss einrichten.
-
-## Bestehende Installation aktualisieren
-
-Die erste alte Version enthält noch kein Updateskript. Den neuen Updater einmal herunterladen und starten:
-
-```bash
-curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/main/deploy/update.sh -o /tmp/energieboard-update.sh
-bash /tmp/energieboard-update.sh
-```
-
-Danach genügt:
-
-```bash
-bash /opt/energieboard/deploy/update.sh
-```
-
-Anwendung und Datenbank werden vor der Umstellung gesichert. Zugangsdaten in `/etc/energieboard/energieboard.env`, bestehende Messpunktzuordnungen und Historie bleiben erhalten. Für Sicherungsplatz, Ablauf und Rückkehr zur alten Version siehe Installationsanleitung. Kein gleichzeitiges zweites Update starten.
-
-Das Board hat keine eigene Anmeldung. Im vertrauenswürdigen LAN betreiben oder über einen Reverse-Proxy schützen.
+[Prüfbericht und bekannte Grenzen](PRUEFBERICHT.md): 60 Backendtests sowie Integrations-, Browser- und Linux-Dockerprüfungen. Physische Victron-Geräte und ein produktiver Proxmox-LXC wurden hier nicht angeschlossen. Energieboard ist eine Anzeige und Auswertung; Schätzwerte ersetzen keinen geeichten Zähler.
