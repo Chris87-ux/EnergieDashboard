@@ -58,12 +58,14 @@ Geprüft werden u. a. Inline-Formulare, CSV, Netz/Speichertypen, DC-MPPT ohne Ph
 ```bash
 bash -n deploy/install.sh
 bash -n deploy/update.sh
-shellcheck deploy/install.sh deploy/update.sh
+bash -n deploy/wait_ready.sh
+shellcheck deploy/install.sh deploy/update.sh deploy/wait_ready.sh
 python3 deploy/test_update.py
+python3 deploy/test_ready.py
 python3 deploy/package.py
 ```
 
-`test_update.py` benötigt Bash und simuliert Hostbefehle in einer isolierten Umgebung. Es prüft Austausch, Rückfall und falsche Prüfsumme. Auf Windows muss `BASH_BIN` auf eine passende Git-Bash zeigen. **Nicht im schreibgeschützten/noexec App-Container ausführen**; Linux-CI führt es auf dem Runner aus.
+`test_update.py` benötigt Bash und simuliert Hostbefehle in einer isolierten Umgebung. Es prüft Austausch, Rückfall und falsche Prüfsumme. `test_ready.py` simuliert anfängliche Nichterreichbarkeit mit späterem Erfolg sowie dauerhafte Startfehler. Auf Windows muss `BASH_BIN` auf eine passende Git-Bash zeigen. **Nicht im schreibgeschützten/noexec App-Container ausführen**; Linux-CI führt es auf dem Runner aus.
 
 `package.py` benötigt die gebaute Oberfläche. Es erzeugt `outputs/Energieboard-LXC.tar.gz`, prüft Inhalt, relative Pfade und Rechte und schreibt `outputs/SHA256SUMS`. Nach Dokumentationsänderungen mit Paketbezug auch die ausgelieferten Anleitungen konsistent halten.
 

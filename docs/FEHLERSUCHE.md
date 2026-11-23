@@ -135,6 +135,14 @@ Nicht sofort neu konfigurieren. Zuerst prüfen, ob dieselben `MONGO_URL`, `DB_NA
 
 ## GitHub-Dockerprüfung
 
-Im Workflow den **ersten fehlgeschlagenen Schritt** öffnen. Der historische Fehler „Bestehende Installation fehlt“ im Lauf 44885156398 stammte aus dem LXC-Updater-Test im eingeschränkten App-Container. Dieser Test läuft seit der Korrektur auf dem Linux-Runner. Der für 2.4.0 geprüfte Quellstand hat einen [erfolgreichen Dockerlauf](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/44906013502).
+Im Workflow den **ersten fehlgeschlagenen Schritt** öffnen. Der historische Fehler „Bestehende Installation fehlt“ im Lauf 44885156398 stammte aus dem LXC-Updater-Test im eingeschränkten App-Container. Dieser Test läuft seit der Korrektur auf dem Linux-Runner. Der für 2.5.0 geprüfte Quellstand hat einen [erfolgreichen Dockerlauf](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/45153089799).
 
 Ein alter roter Lauf ändert sich nach einer Korrektur nicht automatisch; neuen Lauf und Commit vergleichen. Keine sinnvollen Prüfungen entfernen, nur um einen grünen Status zu erhalten.
+
+## API liefert keine Werte
+
+Unter Datenerfassung Protokoll API / HTTP und die passende Vorlage prüfen. Host ohne Protokoll/Port, tatsächlichen Port separat angeben. Bei HTTP 401/403 Anmeldung, Token und Berechtigungen im Quellsystem prüfen; bei 3xx den endgültigen Endpunkt statt einer Weiterleitung konfigurieren. GET-Aufruf, Antwortbasis und Messpunktpfad anhand einer aktuellen Antwort vergleichen. Home Assistant liefert mitunter `unknown`/`unavailable`; evcc-Feldnamen können sich ändern. Solche Werte bleiben unbekannt und sind kein gemessener Nullverbrauch. [API-Anleitung mit Beispielen](DATENERFASSUNG.md).
+
+## Verbrauchergruppe fehlt oder zeigt unvollständige Werte
+
+Gruppe unter Konfiguration anlegen und bei jedem gewünschten Verbraucher zuordnen. Die Knotenzuordnung allein erstellt keine Gruppenmitgliedschaft. Deaktivierte Verbraucher und deaktivierte Knotenunterstrukturen zählen nicht. Fehlt ein Mitgliedswert oder seine Historie, ist die Summe unbekannt bzw. unvollständig. [Berechnung und Grenzen](VERBRAUCHERGRUPPEN.md).
