@@ -1,4 +1,4 @@
-# Datenerfassung: ioBroker, MQTT und Modbus TCP
+# Datenerfassung: API, MQTT und Modbus TCP
 
 [Dokumentationsübersicht](README.md) · [Erste Schritte](ERSTE-SCHRITTE.md) · [CSV für viele Messpunkte](../CSV-IMPORT.md)
 
@@ -29,26 +29,59 @@ Jeder Messpunkt besitzt eine stabile ID wie `point:werkstatt-leistung`. Das Ger�
 
 Skalierung nicht doppelt anwenden. `power_unit`/`energy_unit` im Gerät müssen der **normalisierten** Messpunkteinheit entsprechen. Bei der Auswahl erkennt der Editor unterstützte Leistungs-/Energieeinheiten; Ergebnis trotzdem kontrollieren.
 
-## ioBroker simple-api
+## API / HTTP: gemeinsamer Adapter
 
-### Voraussetzungen
+Unter **Verbindung hinzufügen → Protokoll API / HTTP** eine Vorlage wählen. Sie setzt Vorschlagswerte, die anschließend frei geändert werden können. Host/IP ohne `http://` und ohne Port eintragen; Port separat setzen. TLS aktiviert HTTPS, dessen Zertifikat vertrauenswürdig sein muss. Vorlagen erzeugen keine Demoverbindungen und ersetzen keine Zugangsfreigabe auf dem Quellsystem.
 
-ioBroker und sein **simple-api-Adapter** laufen bereits, der Adapter-Port ist vom Energieboard-Server erreichbar. Standard häufig 8087; nicht mit Admin-Port 8081 oder Web-Port 8082 verwechseln.
+| Vorlage | Portvorschlag | GET-Aufruf | Antwort-Basispfad | Antworttyp / Anmeldung |
+|---|---:|---|---|---|
+| Frei | 80 | `/{address}` | leer | Einzelwert / keine |
+| ioBroker | 8087 | `/getBulk/{addresses}` | `val` | ioBroker Bulk / keine |
+| Home Assistant | 8123 | `/api/states/{address}` | `state` | Einzelwert / Bearer |
+| evcc | 7070 | `/api/state` | `result` | Einzelwert / keine |
 
-### Konfiguration
+**GET-Aufruf** ist eine konfigurierbare Pfadvorlage, kein Shellbefehl. `{address}` wird durch die URL-kodierte Adresse eines Messpunkts ersetzt. `{addresses}` fügt bis zu 40 Adressen für einen Bulk-Aufruf zusammen. Auch eine feste URL wie `/api/state` oder `/metrics/latest` ist möglich; gleiche URLs werden pro Erfassungsdurchlauf nur einmal abgerufen. Der Aufruf beginnt mit `/`; Host, Fragmente, beliebige Variablen und Skriptausdrücke gehören nicht hinein. Nur lesende Endpunkte verwenden. POST/PUT/Schreibzugriffe werden nicht unterstützt. HTTP-Weiterleitungen werden nicht automatisch verfolgt; den endgültigen Endpunkt konfigurieren.
 
-1. Verbindung mit Protokoll `iobroker`, Host z. B. `192.168.10.20`, Port `8087` anlegen.
-2. „TLS / HTTPS“ nur bei einem tatsächlich per HTTPS bereitgestellten Adapter/Proxy aktivieren.
-3. Messpunkt: die vollständige **Datenpunkt-ID** des Wertes eintragen, nicht den Anzeigenamen oder die Browser-URL.
-4. Einheit und Faktor setzen, speichern, Wert mit ioBroker vergleichen.
+Zuerst wird der **Antwort-Basispfad** der Verbindung angewendet, danach der **JSON-Pfad** des Messpunkts. Unterstützt sind Punktnotation (`data.power`), Array-Indizes ab 0 (`channels.0.power`) und bei API auch JSON Pointer (`/data/power`). Leere Pfade verwenden den aktuellen Wert selbst. Der resultierende Wert muss eine Zahl, ein numerischer String oder ein Boolwert sein; `on`/`off` werden als 1/0 gelesen. `unknown`, `unavailable`, fehlende Felder und nicht endliche Werte bleiben unbekannt und werden nicht zu 0.
 
-Beispiel einer möglichen Objekt-ID: `alias.0.Energie.Netz.Leistung`. Die ID muss in deiner Installation existieren. Eine einheitliche Aliasstruktur in ioBroker kann spätere Quellenwechsel erleichtern.
+### ioBroker simple-api
 
-HTTP-Anmeldedaten für simple-api werden vom aktuellen Verbindungsmodell nicht unterstützt. Einen erforderlichen Zugangsschutz passend zur eigenen Netzwerk-/Proxy-Lösung bereitstellen; nicht durch Eintragen von `benutzer:passwort@host` umgehen.
+Voraussetzung ist ein erreichbarer simple-api-Adapter. Vorlage **ioBroker** wählen, Host und tatsächlichen Port setzen. Im Messpunkt unter Adresse die vollständige Datenpunkt-ID eintragen, etwa `alias.0.Energie.Netz.Leistung`. `json_path` bleibt bei der Standardvorlage leer.
 
-### Übernommene Altanlage
+Der bisher feste ioBroker-Befehl ist jetzt veränderbar:
 
-Alte direkte ioBroker-IDs mit globalem Host werden beim Start in eine Verbindung **„ioBroker (übernommen)“** und stabile Messpunkte überführt. Historische Schlüssel bleiben erhalten. Diese Verbindung danach unter Datenerfassung pflegen. Das globale ioBroker-Feld unter System bleibt für noch direkte Altzuordnungen relevant und ist keine zusätzliche Pflicht für neue Messpunkte.
+| GET-Aufruf | Antworttyp | Basispfad |
+|---|---|---|
+| `/getBulk/{addresses}` | ioBroker Bulk | `val` |
+| `/get/{address}` | Einzelwert | `val` |
+| `/getPlainValue/{address}` | Einzelwert | leer |
+
+Vorhandene ioBroker-Verbindungen werden beim Start mit unveränderten IDs auf API / HTTP und die ioBroker-Vorlage migriert. Auch direkte alte ioBroker-Zuordnungen behalten ihren historischen Bezug. Das globale ioBroker-Feld unter System bleibt nur für direkte Altzuordnungen relevant. Neue Quellen unter Datenerfassung pflegen.
+
+### Home Assistant
+
+1. Die REST-API muss vom Energieboard-Server erreichbar sein; Port des tatsächlichen HA-Servers oder Proxys prüfen.
+2. Einen langlebigen Zugriffstoken in deinem Home-Assistant-Profil erstellen.
+3. API-Vorlage **Home Assistant**, Host/Port und Token unter Bearer-Anmeldung eintragen. Den Wert ohne vorangestelltes `Bearer ` einfügen.
+4. Messpunktadresse ist die Entity-ID, beispielsweise `sensor.netzleistung`. Bei der Vorlage wird deren `state` ausgewertet; Einheit und Faktor passend zum Sensor setzen.
+5. Für ein numerisches Attribut statt `state` den Basispfad leeren und am Messpunkt z. B. `attributes.power` eintragen. Diesen Pfad gibt es nur, wenn die Entity ihn tatsächlich liefert.
+
+### evcc
+
+1. API-Vorlage **evcc** und tatsächlichen Host/Port setzen. Standardaufruf `/api/state`, Basispfad `result`.
+2. Pro Messpunkt unter Adresse den relativen Wertpfad eintragen, z. B. `grid.power`, `pvPower` oder `loadpoints.0.chargePower`. Ohne zusätzlichen JSON-Pfad verwendet die Vorlage diese Adresse zum Auslesen des gemeinsamen Zustands.
+3. Ein expliziter Messpunkt-JSON-Pfad hat Vorrang vor dem evcc-Adresspfad. Einheiten, Vorzeichen und vorhandene Felder anhand deiner API-Antwort prüfen.
+4. Falls deine Instanz Anmeldung verlangt, passende Bearer- oder Header-Anmeldung konfigurieren. Die Vorlage ohne Anmeldung ist keine Zusicherung, dass deine Installation anonym erreichbar ist.
+
+Die REST-Zustandsstruktur von evcc kann sich zwischen Versionen ändern; deshalb bleiben GET-Aufruf und Pfade frei bearbeitbar. Array-Indizes sind 0-basiert, unabhängig von der Nummerierung etwaiger MQTT-Topics.
+
+### Freie API und Anmeldung
+
+Beispiel: Der Server liefert unter `/meter/latest` `{"metrics":{"power":850.5}}`. Verbindung API / HTTP, Vorlage Frei, GET `/meter/latest`, Basispfad `metrics`; Messpunkt-JSON-Pfad `power`, Einheit W. Bei einer festen freien URL kann die Adresse leer bleiben. Bei Pfadvorlagen mit Variable ist sie erforderlich. Klartextantworten wie `850.5` funktionieren mit beiden Pfaden leer.
+
+Anmeldungen: keine, HTTP Basic mit Benutzername/Passwort, Bearer-Token oder eigener Token-Header, z. B. `X-API-Key`. Benutzerdefinierte Header erhalten den Token unverändert. Token und Passwörter werden in normalen API-Antworten und CSV nicht ausgegeben. Ein beim Bearbeiten leeres Geheimnisfeld erhält den gespeicherten Wert; **Gespeicherten API-Token entfernen** löscht ihn ausdrücklich. MongoDB und vollständige Sicherungen enthalten Zugangsdaten und sind entsprechend zu schützen.
+
+Offizielle Protokollreferenzen: [ioBroker simple-api](https://github.com/ioBroker/ioBroker.simple-api/blob/master/README.md), [Home Assistant REST API](https://developers.home-assistant.io/docs/api/rest/), [evcc REST API](https://docs.evcc.io/integrations/rest-api/), [evcc Zustandsstruktur](https://docs.evcc.io/en/reference/state/).
 
 ## MQTT
 
@@ -118,6 +151,6 @@ Pro Verbindung werden Register nacheinander gelesen. Viele langsame oder nicht a
 
 „Rohwert aufzeichnen“ speichert den **normalisierten** Messpunktwert bei aktivem Recorder lokal. Der Recorder muss zusätzlich unter System eingeschaltet sein. Abgeleitete RUN-, Knotenrest-, Netz-, Hybrid- und Speicherkanäle werden für ihre Energieauswertung ebenfalls aufgezeichnet.
 
-Für 30–50 Geräte zuerst Namen/IDs und Einheiten planen, danach [CSV exportieren, bearbeiten und mit Vorschau importieren](../CSV-IMPORT.md). Verbindungskennwörter werden nicht mit exportiert. Änderungen von Faktor/Quelle gelten für neue Daten und rechnen die bestehende Historie nicht rückwirkend um.
+Für 30–50 Geräte zuerst Namen/IDs und Einheiten planen, danach [CSV exportieren, bearbeiten und mit Vorschau importieren](../CSV-IMPORT.md). Verbindungskennwörter und API-Tokens werden nicht mit exportiert. Änderungen von Faktor/Quelle gelten für neue Daten und rechnen die bestehende Historie nicht rückwirkend um.
 
 [Weiter: Geräte und Knoten](GERAETE-UND-KNOTEN.md) · [Fehlersuche](FEHLERSUCHE.md).

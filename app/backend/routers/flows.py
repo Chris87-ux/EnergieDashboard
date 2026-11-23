@@ -11,6 +11,8 @@ topology_lock = config_lock
 
 
 async def validate_parent(flow: Flow) -> None:
+    if flow.group_id and not await db.consumer_groups.find_one({"id":flow.group_id}):
+        raise HTTPException(422,"Die ausgewählte Verbrauchergruppe existiert nicht.")
     if flow.kind == "device" and flow.category == "pv" and flow.pv_type == "mppt":
         if not flow.datapoints.get("power_total") or flow.run_power_w is not None or flow.datapoints.get("run"):
             raise HTTPException(422,"DC-MPPT benötigt einen DC-Leistungsdatenpunkt und unterstützt keine RUN-Schätzung.")

@@ -1,8 +1,8 @@
-# CSV-Konfiguration · Energieboard 2.4.0
+# CSV-Konfiguration · Energieboard 2.5.0
 
 [Dokumentationsübersicht](docs/README.md) · [Datenerfassung](docs/DATENERFASSUNG.md) · [Vollständige Sicherung](docs/BETRIEB-UND-UPDATES.md)
 
-Stand: 23. November 2026. CSV-Format **1**, unabhängig von Anwendung 2.4.0 und Datenbankschema 5.
+Stand: 23. November 2026. CSV-Format **1**, unabhängig von Anwendung 2.5.0 und Datenbankschema 6.
 
 ## Inhalt
 
@@ -19,7 +19,7 @@ Im Reiter **Datenerfassung** und unter **Konfiguration** den Abschnitt „Konfig
 
 ## Export und Vorlage
 
-- **Gesamtkonfiguration CSV** enthält Verbindungen, Messpunkte, Geräte, Knoten, Speicher und Systemeinstellungen einschließlich Darstellung.
+- **Gesamtkonfiguration CSV** enthält Verbindungen, Messpunkte, Verbrauchergruppen, Geräte, Knoten, Speicher und Systemeinstellungen einschließlich Darstellung.
 - **Messpunkte CSV** enthält nur die Messpunkte und deren benötigte Spalten. Diesen Export zum Bearbeiten vieler Register/Topics verwenden.
 - **Verbindungen CSV** enthält die Verbindungseinstellungen ohne Kennwörter.
 - **Messpunkt-Vorlage** enthält die Spaltenüberschriften für neue Messpunkte.
@@ -67,11 +67,12 @@ measurement;1;generator-hours;Generator Betriebsstunden;mqtt-haus;haus/bhkw/wert
 
 | Spalte / Bereich | Bedeutung |
 |---|---|
-| `record_type` | `connection`, `measurement`, `flow` oder `settings` |
+| `record_type` | `connection`, `measurement`, `consumer_group`, `flow` oder `settings` |
 | `csv_version` | Aktuell immer `1` |
 | `id` | Stabile ID; Systemeinstellungen verwenden `app` |
 | `connection_id` | Vorhandene/mitimportierte Verbindung eines Messpunkts |
 | `kind` | Bei Flüssen `device`, `node`, `grid` oder `storage` |
+| `group_id` | Optionale Verbrauchergruppen-ID, unabhängig vom Knoten |
 | `parent_id` | ID des übergeordneten Knotens, leer für Hauptebene |
 | `category` | Gerätekategorie, z. B. `pv`, `generator`, `consumer`; bei Netz/Speicher keine Typauswahl |
 | `datapoints.power_total` | Messpunktverweis, z. B. `point:victron-ac-power` |
@@ -108,7 +109,7 @@ CSV-Import verändert oder löscht keine Messhistorie. Namens-, Quellen- und Fak
 
 ## Zugangsdaten und Tabellenformeln
 
-Verbindungskennwörter und Influx-Passwörter/-Tokens werden nicht exportiert. Beim Import werden vorhandene Zugangsdaten anhand derselben ID beibehalten. Neue Verbindungen benötigen ihre Kennwörter anschließend im Board. Zugangsdatenfelder können nicht per CSV befüllt werden. Selbst in freie Zusatzmetadaten eingetragene Geheimnisse sind davon nicht automatisch erfasst.
+API-Tokens, Verbindungskennwörter und Influx-Passwörter/-Tokens werden nicht exportiert. Beim Import werden vorhandene Zugangsdaten anhand derselben ID beibehalten. Neue Verbindungen benötigen ihre Kennwörter anschließend im Board. Zugangsdatenfelder können nicht per CSV befüllt werden. Selbst in freie Zusatzmetadaten eingetragene Geheimnisse sind davon nicht automatisch erfasst.
 
 Der Export kennzeichnet Zeichenketten, die Tabellenkalkulationen als Formel interpretieren könnten, mit einem führenden Apostroph. Beim Wiedereinlesen entfernt Energieboard seine entsprechende Kennzeichnung. IDs sowie Messpunkt-/Gerätenamen bleiben dabei erhalten.
 
@@ -117,3 +118,9 @@ Der Export kennzeichnet Zeichenketten, die Tabellenkalkulationen als Formel inte
 CSV-Version bleibt 1. Einen neuen Gesamtexport verwenden, damit alle Spalten enthalten sind. `hybrid_ac_mode` (`net`/`terminals`), `dc_power_unit` (`W`/`kW`), `dc_invert`, `dc_balance_complete` und `hybrid_min_power_w` sind Konfigurationsfelder. In den exportierten Datenpunktspalten stehen `datapoints.ac_input`, `datapoints.dc_power` und `datapoints.dc_load_power`. Die vorhandenen `storage_ids`/`mppt_ids` verwenden die exportierte Listen-Schreibweise. Ein Hybrid benötigt mindestens einen DC-Speicher; AC-Speicher werden als Hybrid-Verknüpfung abgewiesen.
 
 Für MPPT `pv_type=mppt`, `category=pv`, `kind=device`, `datapoints.power_total` und optional `datapoints.energy_total` zuordnen. Phasen werden nicht verwendet. Die genaue Messgrenze und Wirkungsgradberechnung stehen in [DATENMODELL.md](DATENMODELL.md#dc-mppt-und-hybrid-wr-ab-23-schema-5). Alte CSV-Dateien ohne neue Spalten erhalten deren Standardwerte; daher bestehende Hybrid-Zeilen zum Bearbeiten frisch exportieren.
+
+## API-Verbindungen und Gruppen ab 2.5
+
+CSV-Version bleibt 1. API-Verbindungen verwenden `protocol=api`. Die Spalten `api_preset`, `api_path`, `api_json_path`, `api_response_format`, `api_auth` und `api_token_header` enthalten die in der [Datenerfassung](docs/DATENERFASSUNG.md) beschriebenen Einstellungen. Altes `protocol=iobroker` wird weiter eingelesen und auf die ioBroker-API-Vorlage normalisiert. API-Token und Kennwörter fehlen absichtlich im Export; bei gleicher ID bleiben vorhandene Geheimnisse erhalten, neue müssen im Board ergänzt werden.
+
+Gruppen zuerst unter Konfiguration anlegen und einen vollständigen Export bearbeiten. Ihre Zeilen haben `record_type=consumer_group`, `id`, `name`, `color` und `sort_order`. Bei Verbraucherzeilen verweist `group_id` auf diese ID. Eine nicht vorhandene oder unzulässige Gruppenzuordnung wird bereits in der Importvorschau abgewiesen. Ein Gesamtersatz benötigt auch die zu erhaltenden Gruppenzeilen. Eine alte ergänzende CSV ohne Gruppen entfernt keine vorhandenen Gruppen; fehlendes `group_id` in einer aktualisierten Gerätezeile setzt deren optionale Zuordnung zurück.

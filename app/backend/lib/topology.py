@@ -66,7 +66,7 @@ def history_flows(flows: list[Flow]) -> list[Flow]:
                         **({"power_"+p.lower():sample_id(flow,channel)+":"+p.lower() for p in ("L1","L2","L3")} if flow.kind=="node" and flow.power_phase_mode=="three" else {})}),
                 }))
             continue
-        if flow.kind != "storage" and flow.pv_type != "mppt" and flow.electrical_side == "dc" and flow.direction != "in":
+        if flow.kind != "storage" and flow.pv_type != "mppt" and flow.electrical_side == "dc" and flow.direction != "in" and not flow.group_id:
             continue
         if flow.kind == "storage":
             for channel, direction, suffix in (("charge", "out", "Laden"), ("discharge", "in", "Entladen")):

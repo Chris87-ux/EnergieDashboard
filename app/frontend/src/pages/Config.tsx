@@ -1,3 +1,4 @@
+import ConsumerGroupsConfig from "@/components/ConsumerGroupsConfig";
 import CsvConfiguration from "@/components/CsvConfiguration";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -128,6 +129,7 @@ export default function Config() {
       {flows.isError && <div className="text-sm text-[#F87171]">Konfiguration konnte nicht geladen werden.</div>}
 
       <CsvConfiguration />
+      <ConsumerGroupsConfig />
       <Input aria-label="Geräte und Knoten suchen" placeholder="Geräte, Knoten oder Speicher suchen" value={search} onChange={(e) => setSearch(e.target.value)} />
       {groups.map((g) => {
         const items = visible.filter((f) => f.kind === "device" && f.direction === g.dir);

@@ -5,7 +5,7 @@ from fastapi import APIRouter, HTTPException
 
 from lib.energy import compute_all, pick_step
 from lib.sources import LiveSource, iob_get_bulk, to_power_w
-from lib.store import all_datapoints, load_flows, load_settings
+from lib.store import all_datapoints, load_flows, load_settings, load_consumer_groups
 from lib.topology import history_flows
 from models.energy import EnergyReport, LiveFlow, LiveNode, LiveStorage, LiveReport, LiveSummary, RangePreset
 from models.flow import PHASES, Flow
@@ -73,7 +73,9 @@ async def energy(start: str | None = None, end: str | None = None, preset: str |
     src = LiveSource(s)
     results, totals = await compute_all(history_flows(flows), src, t0, t1, step, thr, configuration=flows)
     zone = ZoneInfo(tz)
-    return EnergyReport(
+    from lib.consumer_groups import group_summaries
+    groups=group_summaries(await load_consumer_groups(),flows,{r.flow_id:r.total.kwh for r in results},{r.flow_id:r.total.complete for r in results},energy=True)
+    return EnergyReport(consumer_groups=groups,
         start=a.astimezone(timezone.utc),
         end=b.astimezone(timezone.utc),
         effective_end=datetime.fromtimestamp(t1, timezone.utc),
@@ -180,7 +182,9 @@ async def live():
     summary.autarky_pct=b["autarky_pct"];summary.self_consumption_pct=b["self_consumption_pct"]
     summary.battery_charge_w=strict_sum(s.charge_w for s in storages)
     summary.battery_discharge_w=strict_sum(s.discharge_w for s in storages)
-    return LiveReport(ts=now, ok=grid and any(f.available for f in out), errors=errors,
+    from lib.consumer_groups import group_summaries
+    groups=group_summaries(await load_consumer_groups(),flows,readings)
+    return LiveReport(consumer_groups=groups,ts=now, ok=grid and any(f.available for f in out), errors=errors,
         site_name=s.site_name, poll_s=s.live_poll_s,
         frequency_hz=next((f.frequency_hz for f in out if f.category=="grid" and f.frequency_hz is not None), None),
         flows=out, nodes=nodes, storages=storages, storage_total=aggregate_storage(storages),

@@ -14,7 +14,7 @@
 | `docs` | Benutzeranleitungen |
 | `outputs` | Geprüftes LXC-Paket, Prüfsumme und kopierte Hauptanleitungen |
 
-Anwendungsversion: `VERSION`, Backend/API und Frontend-Paketversion. Datenbankschema 5 und CSV-Version 1 sind getrennte Versionsangaben. Eine reine Dokumentationsänderung erfordert keine Datenbankmigration.
+Anwendungsversion: `VERSION`, Backend/API und Frontend-Paketversion. Datenbankschema 6 und CSV-Version 1 sind getrennte Versionsangaben. Eine reine Dokumentationsänderung erfordert keine Datenbankmigration.
 
 ## Lokal vorbereiten
 
@@ -35,7 +35,7 @@ Der Build führt TypeScript-Prüfung und Produktionsbuild aus. Die Dockerdatei b
 PYTHONPATH=app/backend .venv/bin/python -m unittest discover -s app/backend/tests -v
 ```
 
-Stand 2.4.0: 80 Tests. Einige Tests öffnen lokale Test-Sockets. Testdaten und Protokollfixtures sind ausschließlich Testcode; die ausgelieferte Anwendung hat keinen Demo-Modus.
+Stand 2.5.0: 97 Tests. Einige Tests öffnen lokale Test-Sockets. Testdaten und Protokollfixtures sind ausschließlich Testcode; die ausgelieferte Anwendung hat keinen Demo-Modus.
 
 ## Integration mit echter MongoDB
 

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Gauge, Leaf, Sun } from "lucide-react";
 import {useState} from "react";
+import ConsumerGroupsOverview from "@/components/ConsumerGroupsOverview";
 import GridConnection from "@/components/GridConnection";
 import TopologyDiagram from "@/components/TopologyDiagram";
 import HybridOverview from "@/components/HybridOverview";
@@ -121,6 +122,7 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
       {data && !data.grid_configured && <p role="alert" className="rounded-lg border border-amber-500 p-4">Ein Netzanschluss ist erforderlich. Unter Konfiguration einen Netzanschluss anlegen und Messpunkte zuordnen.</p>}
 
       {data && <NodeOverview showInactive={showInactive} data={data} energy={todayReport?.flows.filter(f=>!f.storage_id&&f.electrical_side!=="dc") ?? []} />}
+      {data && <ConsumerGroupsOverview live={data.consumer_groups} energy={todayReport?.consumer_groups}/> }
       {data && <HybridOverview data={data} />}
       {data && <StorageOverview data={data} />}
     </>

@@ -96,8 +96,7 @@ systemctl reset-failed energieboard.service || true
 systemctl enable energieboard.service
 systemctl restart energieboard.service
 
-if ! curl --fail --silent --show-error --retry 15 --retry-all-errors --retry-delay 1 --max-time 2 \
-    http://127.0.0.1:8000/api/ >/dev/null || ! systemctl is-active --quiet energieboard.service; then
+if ! bash "$app_dir/deploy/wait_ready.sh"; then
   journalctl -u energieboard.service -n 30 --no-pager >&2
   fail "Energieboard ist noch nicht erreichbar. Details: journalctl -u energieboard -n 60 --no-pager"
 fi

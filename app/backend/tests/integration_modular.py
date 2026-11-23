@@ -50,6 +50,15 @@ values = {"hz":49.98, "legacy": 125, "grid": 500, "a": 1000, "b": 600, "motor": 
 
 class IoBroker(BaseHTTPRequestHandler):
     def do_GET(self):
+        if self.path.startswith("/api/states/"):
+            if self.headers.get("Authorization")!="Bearer fixture-ha-token":
+                self.send_response(401);self.end_headers();return
+            result={"state":"4321.5"}
+        elif self.path=="/api/state":result={"result":{"grid":{"power":-100},"loadpoints":[{"chargePower":11000}]}}
+        elif self.path=="/custom/read":result={"metrics":{"power":654}}
+        else:result=None
+        if result is not None:
+            self.send_response(200);self.send_header("Content-Type","application/json");self.end_headers();self.wfile.write(json.dumps(result).encode());return
         ids = unquote(self.path.split("/getBulk/")[-1]).split(",")
         payload = json.dumps([{"id": id, "val": values.get(id)} for id in ids]).encode()
         self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers()
@@ -140,6 +149,22 @@ def main():
                 assert db.measurements.find_one({"history_key":"legacy"})
                 assert not get("/live")["grid_configured"]
                 connection = get("/connections")[0]
+                assert connection["protocol"]=="api" and connection["api_preset"]=="iobroker"
+                api_port=connection["port"]
+                put("/connections/ha",{"name":"HA Fixture","protocol":"api","api_preset":"homeassistant","host":"127.0.0.1","port":api_port,"token":"fixture-ha-token"})
+                put("/measurements/ha-power",{"name":"HA Power","connection_id":"ha","address":"sensor.power","unit":"W"})
+                put("/connections/evcc",{"name":"evcc Fixture","protocol":"api","api_preset":"evcc","host":"127.0.0.1","port":api_port})
+                put("/measurements/evcc-grid",{"name":"evcc Grid","connection_id":"evcc","address":"grid.power","unit":"W"})
+                put("/measurements/evcc-charge",{"name":"evcc Charge","connection_id":"evcc","address":"loadpoints.0.chargePower","unit":"W"})
+                put("/connections/custom",{"name":"Custom Fixture","protocol":"api","host":"127.0.0.1","port":api_port,"api_path":"/custom/read","api_json_path":"metrics"})
+                put("/measurements/custom-power",{"name":"Custom Power","connection_id":"custom","json_path":"power","unit":"W"})
+                raw=get("/measurements/live")
+                assert raw["states"]["ha-power"]["value"]==4321.5
+                assert raw["states"]["evcc-grid"]["value"]==-100
+                assert raw["states"]["evcc-charge"]["value"]==11000
+                assert raw["states"]["custom-power"]["value"]==654
+                assert all(not c["token"] for c in get("/connections"))
+                group=put("/consumer-groups/pumps",{"name":"Pumpen und Motoren","color":"#38BDF8"})
                 def point(id,address,unit="W",**fields):
                     return put("/measurements/"+id,{"name":id,"connection_id":connection["id"],"address":address,"unit":unit,**fields})
                 for key in values: point(key,key,"Hz" if key=="hz" else "Wh" if key=="mppt_energy" else "%" if key.startswith("soc") else "W")
@@ -149,9 +174,9 @@ def main():
                 idle=create(name="Nullgerät",datapoints={"power_total":"point:idle"})
                 a = create(name="Haus",kind="node",datapoints={"power_total":"point:a"})
                 b = create(name="Werkstatt",kind="node",parent_id=a["id"],datapoints={"power_total":"point:b"})
-                create(name="Motor",parent_id=b["id"],datapoints={"power_total":"point:motor"})
+                motor=create(name="Motor",group_id=group["id"],parent_id=b["id"],datapoints={"power_total":"point:motor"})
                 create(name="Dach PV",category="pv",direction="in",parent_id=b["id"],datapoints={"power_total":"point:pv"})
-                create(name="RUN-Pumpe",run_power_w=200,datapoints={"run":"point:run"})
+                pump=create(name="RUN-Pumpe",group_id=group["id"],run_power_w=200,datapoints={"run":"point:run"})
                 bat1 = create(name="Speicher A",kind="storage",electrical_side="dc",capacity_kwh=10,reserve_soc_pct=20,parent_id=b["id"],datapoints={"power_total":"point:bat1","soc":"point:soc1"})
                 bat2 = create(name="Speicher B",kind="storage",electrical_side="dc",capacity_kwh=5,datapoints={"power_total":"point:bat2","soc":"point:soc2"})
                 mppt = create(name="MPPT Garten",category="pv",pv_type="mppt",electrical_side="dc",energy_unit="Wh",power_phase_mode="three",energy_phase_mode="three",datapoints={"power_total":"point:mppt","energy_total":"point:mppt_energy"})
@@ -181,6 +206,10 @@ def main():
                 assert live["storage_total"]["remaining_kwh"]==9
                 assert live["storages"][0]["runtime_h"]==6
                 assert not any(f["storage_id"] or f["flow_id"]==mppt["id"] for f in live["flows"])
+                assert live["consumer_groups"][0]["power_w"]==500
+                assert set(live["consumer_groups"][0]["member_ids"])=={motor["id"],pump["id"]}
+                assert http.delete("/consumer-groups/pumps").status_code==409
+                assert http.put("/flows/"+motor["id"],json={**motor,"group_id":"missing"}).status_code==422
                 assert live["summary"]["production_w"]==1900
                 assert live["summary"]["consumption_w"]==1650
                 assert live["frequency_hz"]==49.98
@@ -251,6 +280,7 @@ def main():
                     docs.extend(derived_samples(configs,measured,stamp))
                 db.samples.insert_many(docs)
                 period=get("/energy?preset=today")
+                assert period["consumer_groups"][0]["energy_kwh"]>0
                 assert period["totals"]["production_kwh"]>0
                 assert period["totals"]["consumption_kwh"]>0
                 assert period["totals"]["autarky_pct"] is not None
@@ -267,6 +297,7 @@ def main():
                 assert not get("/measurements/live")["states"]["mqtt"]["available"]
                 put("/flows/"+a["id"],{**a,"enabled":False})
                 active=get("/live")
+                assert active["consumer_groups"][0]["power_w"]==200
                 assert all(n["id"] not in (a["id"],b["id"]) for n in active["nodes"])
                 assert all(f["parent_id"] not in (a["id"],b["id"]) for f in active["flows"])
                 put("/flows/"+a["id"],a)
@@ -290,13 +321,17 @@ def main():
                 assert db.measurements.count_documents({})==count
                 migrated=db.flows.find_one({"id":mppt["id"]})
                 assert migrated["electrical_side"]=="dc" and migrated["power_phase_mode"]==migrated["energy_phase_mode"]=="single"
-                assert migrated["datapoints"]==mppt["datapoints"] and db.metadata.find_one({"id":"schema"})["version"]==5
+                assert db.consumer_groups.find_one({"id":"pumps"})
+                assert db.connections.find_one({"id":"ha"})["token"]=="fixture-ha-token"
+                assert migrated["datapoints"]==mppt["datapoints"] and db.metadata.find_one({"id":"schema"})["version"]==6
                 print("Backup/restore including history and repeated configuration migration OK",flush=True)
         finally:
             if api is not None:
                 try:httpx.post(f"http://127.0.0.1:{api_port}/__test_stop",headers={"X-Test-Token":token},timeout=3)
                 except Exception:api.terminate()
-                api.wait(timeout=15)
+                try:api.wait(timeout=15)
+                except subprocess.TimeoutExpired:
+                    api.kill();api.wait(timeout=5)
             for fixture in fixtures:fixture.shutdown();fixture.server_close()
             try: client.admin.command("shutdown",force=True)
             except Exception: pass

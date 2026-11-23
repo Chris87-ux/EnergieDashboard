@@ -12,11 +12,11 @@ Produktion, Verbrauch, Netzbezug/-lieferung und Speicherbewegungen sind getrennt
 
 **System** öffnen, Anlagenname und Zeitzone setzen, z. B. `Europe/Berlin`. Zeitzone beeinflusst „Heute“ und Tagesgrenzen. Live-Aktualisierung zunächst auf **5 Sekunden**, Recorder auf **15 Sekunden** lassen und **Einstellungen speichern**.
 
-Die Live-Aktualisierung und das Recorder-Intervall erfüllen unterschiedliche Aufgaben. Ein schnelleres Browser-Polling ersetzt keine feinere Aufzeichnung. Der Recorder erfasst auch MQTT und Modbus, obwohl einzelne ältere Oberflächenhinweise noch ioBroker nennen.
+Die Live-Aktualisierung und das Recorder-Intervall erfüllen unterschiedliche Aufgaben. Ein schnelleres Browser-Polling ersetzt keine feinere Aufzeichnung. Der Recorder erfasst alle eingerichteten Protokolle.
 
 ## 2. Eine Verbindung anlegen
 
-Unter **Datenerfassung → Verbindung hinzufügen** Protokoll, Host/IP und Port eintragen. Beispiel: ioBroker mit Host `192.168.10.20` und simple-api-Port `8087`. Host ohne `http://`, Port separat. Verbindung aktivieren und speichern.
+Unter **Datenerfassung → Verbindung hinzufügen** Protokoll, Host/IP und Port eintragen. Beispiel: Protokoll API / HTTP, Vorlage ioBroker mit Host `192.168.10.20` und simple-api-Port `8087`. Host ohne `http://`, Port separat. Verbindung aktivieren und speichern.
 
 Nicht das alte globale ioBroker-Feld unter System als Ersatz für neue Messpunktverbindungen verwenden. Es bleibt für direkte Altzuordnungen verfügbar. [Protokollanleitungen](DATENERFASSUNG.md).
 
@@ -93,3 +93,7 @@ Eine **Gesamtkonfiguration CSV** herunterladen. Sie erhält Zuordnungen, enthäl
 | Sicherung | Vollständiges Backup vorhanden; Rückweg bekannt |
 
 Erst danach die Anlage schrittweise auf 30–50 Geräte erweitern. Für Serienänderungen [CSV](../CSV-IMPORT.md) verwenden.
+
+## Verbraucher zusätzlich gruppieren
+
+Unter Konfiguration zuerst [Verbrauchergruppen](VERBRAUCHERGRUPPEN.md) anlegen und anschließend bei den gewünschten Verbrauchern auswählen. Die Knotenzuordnung bleibt bestehen.

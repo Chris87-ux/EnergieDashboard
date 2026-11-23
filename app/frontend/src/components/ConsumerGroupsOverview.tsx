@@ -1,0 +1,6 @@
+import type {ConsumerGroupSummary} from "@/lib/types";
+import {fmtW,fmtKwh} from "@/lib/format";
+export default function ConsumerGroupsOverview({live=[],energy=[],period="Heute",energyOnly=false}:{live?:ConsumerGroupSummary[];energy?:ConsumerGroupSummary[];period?:string;energyOnly?:boolean}){
+ const groups=energyOnly?energy:live;if(!groups.length)return null;
+ return <section className="space-y-3" data-testid="consumer-groups-overview"><h2 className="text-lg font-bold">Verbrauchergruppen</h2><p className="text-xs text-muted-foreground">Zusätzliche Gruppierung der aktiven Verbraucher, ohne doppelte Anlagenzählung.</p><div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{groups.map(g=>{const e=energy.find(e=>e.id===g.id);return <article key={g.id} data-testid={`consumer-group-${g.id}`} className="space-y-2 rounded-xl border border-border bg-card p-4" style={{borderLeftColor:g.color,borderLeftWidth:4}}><h3 className="break-words font-bold">{g.name}</h3><p className="text-xs text-muted-foreground">{g.member_ids.length} aktive Verbraucher</p>{!energyOnly&&<p className="font-mono text-xl font-bold">{fmtW(g.power_w)}</p>}<p>{period}: <span className="font-mono">{fmtKwh(e?.energy_kwh)}</span></p>{(!g.complete||e&&!e.complete)&&<p className="text-xs text-amber-300">Unvollständige Messwerte / Zeitabdeckung</p>}</article>;})}</div></section>;
+}

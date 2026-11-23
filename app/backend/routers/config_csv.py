@@ -11,14 +11,15 @@ from pydantic import BaseModel, Field
 from lib.db import db
 from lib.config_lock import locked
 from models.flow import Flow
-from models.acquisition import Connection, Measurement
+from models.acquisition import Connection, Measurement, validate_measurement
+from models.consumer_group import ConsumerGroup
 from models.settings import AppSettings
 
 router = APIRouter(tags=["CSV-Konfiguration"])
-MODELS = {"connection":Connection,"measurement":Measurement,"flow":Flow,"settings":AppSettings}
-COLLECTIONS = {"connection":"connections","measurement":"measurements","flow":"flows","settings":"settings"}
+MODELS = {"connection":Connection,"measurement":Measurement,"flow":Flow,"settings":AppSettings,"consumer_group":ConsumerGroup}
+COLLECTIONS = {"connection":"connections","measurement":"measurements","flow":"flows","settings":"settings","consumer_group":"consumer_groups"}
 SECRETS = {"password","token"}
-OPTIONAL = {"parent_id","hybrid_id","capacity_kwh","run_power_w","legacy_until"}
+OPTIONAL = {"parent_id","hybrid_id","capacity_kwh","run_power_w","legacy_until","group_id"}
 
 
 def flatten(data, prefix=""):
@@ -46,7 +47,7 @@ def safe_cell(value):
 def render_csv(state, selected=None):
     rows=[]
     defaults = {"connection":Connection(name="Vorlage",protocol="mqtt",host="localhost",port=1883),
-        "measurement":Measurement(name="Vorlage",connection_id=""),"flow":Flow(name="Vorlage"),"settings":AppSettings()}
+        "measurement":Measurement(name="Vorlage",connection_id=""),"flow":Flow(name="Vorlage"),"settings":AppSettings(),"consumer_group":ConsumerGroup(name="Vorlage")}
     headers={"record_type","csv_version","id"}
     for kind,model in defaults.items():
         if selected is None or kind in selected:headers.update(flatten(model.model_dump()))
@@ -115,22 +116,23 @@ def parse_csv(text):
 def prepare(state, text, mode):
     incoming=parse_csv(text);candidate={};changes=[]
     for kind,model in MODELS.items():
-        old={d["id"]:d for d in state[kind]}
+        old={d["id"]:d for d in state.get(kind,[])}
         merged=dict(old) if mode=="merge" else {}
         for data in incoming[kind]:
             id=data["id"];previous=old.get(id,{})
             # Imported rows are complete records; blank optional cells clear a mapping.
             if kind=="flow":
-                for key in OPTIONAL-{"legacy_until"}:data.setdefault(key,None)
+                for key in OPTIONAL-{"legacy_until","group_id"}:data.setdefault(key,None)
             if kind=="measurement":
                 for key in ("history_key","legacy_until"):
                     if previous:data[key]=previous.get(key)
-            if kind=="connection":data["password"]=previous.get("password","")
+            if kind=="connection":
+                for key in ("password","token"):data[key]=previous.get(key,"")
             if kind=="settings":
                 data.setdefault("influx",{})
                 for key in ("password","token"):data["influx"][key]=previous.get("influx",{}).get(key,"")
             if kind=="flow":
-                data["schema_version"]=5
+                data["schema_version"]=6
                 if previous:data["created_at"]=previous.get("created_at",datetime.now(timezone.utc))
             try:parsed=model.model_validate(data).model_dump()
             except ValueError as exc:raise ValueError(f"{kind} {id}: {exc}") from exc
@@ -151,10 +153,12 @@ def validate_graph(state):
     flows={f["id"]:f for f in state["flow"]}
     for p in points.values():
         if p["connection_id"] not in connections:raise ValueError(f"{p['name']}: Verbindung fehlt.")
-        protocol=connections[p["connection_id"]]["protocol"]
-        if protocol!="modbus" and (not p["address"] or "+" in p["address"] or "#" in p["address"]):raise ValueError(f"{p['name']}: konkrete Adresse/Topic fehlt.")
+        try:validate_measurement(Connection(**connections[p["connection_id"]]),Measurement(**p))
+        except ValueError as exc:raise ValueError(f"{p['name']}: {exc}") from exc
     owners=set();grids=[]
+    group_ids={g["id"] for g in state.get("consumer_group",[])}
     for f in flows.values():
+        if f.get("group_id") and f["group_id"] not in group_ids:raise ValueError(f"{f['name']}: Verbrauchergruppe fehlt.")
         seen={f["id"]};parent=f.get("parent_id")
         while parent:
             if parent in seen:raise ValueError(f"{f['name']}: Kreis in der Knotenzuordnung.")
@@ -230,7 +234,7 @@ async def apply_csv(body:ImportRequest):
     async def write(configuration):
         for kind,collection in COLLECTIONS.items():
             await db[collection].delete_many({})
-            if configuration[kind]:await db[collection].insert_many(configuration[kind])
+            if configuration.get(kind):await db[collection].insert_many(configuration[kind])
     try:await write(candidate)
     except Exception as exc:
         try:await write(state)

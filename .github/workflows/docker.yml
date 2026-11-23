@@ -30,6 +30,8 @@ jobs:
           docker compose exec -T energieboard python - create < deploy/docker_smoke.py
           docker compose up -d --no-deps --force-recreate --wait --wait-timeout 120 energieboard
           docker compose exec -T energieboard python - verify < deploy/docker_smoke.py
+      - name: Startup readiness tests on Linux
+        run: python3 deploy/test_ready.py
       - name: Updater failure recovery tests on Linux
         run: python3 deploy/test_update.py
       - name: Logs

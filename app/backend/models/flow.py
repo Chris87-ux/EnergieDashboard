@@ -12,7 +12,7 @@ Direction = Literal["in", "out"]
 Category = Literal["pv", "generator", "grid", "battery", "heatpump", "ev", "consumer", "custom"]
 
 PHASES: tuple[Phase, ...] = ("L1", "L2", "L3")
-SCHEMA_VERSION = 5
+SCHEMA_VERSION = 6
 
 
 class Datapoints(BaseModel):
@@ -53,6 +53,7 @@ class FlowBase(BaseModel):
     name: str = Field(min_length=1, max_length=60)
     kind: Literal["device", "node", "storage", "grid"] = "device"
     parent_id: str | None = None
+    group_id: str | None = None
     run_power_w: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     charge_sign: Literal["negative", "positive"] = "negative"
     capacity_kwh: float | None = Field(default=None, gt=0, allow_inf_nan=False)
@@ -129,6 +130,8 @@ class FlowBase(BaseModel):
             raise ValueError("Ein Speicher benötigt einen Leistungs- und einen SOC-Datenpunkt.")
         if self.kind == "device" and bool(self.datapoints.get("run")) != (self.run_power_w is not None):
             raise ValueError("Für RUN sind ein Datenpunkt und eine feste Leistung in Watt erforderlich.")
+        if self.group_id and (self.kind!="device" or self.direction!="out" or self.category=="pv" and self.pv_type=="hybrid"):
+            raise ValueError("Verbrauchergruppen sind nur für einzelne Verbrauchsgeräte vorgesehen.")
         return self
 
 

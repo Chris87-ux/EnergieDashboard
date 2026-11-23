@@ -1,6 +1,6 @@
-# Energieboard 2.4.0
+# Energieboard 2.5.0
 
-Energieboard stellt Stromerzeugung, Verbrauch, Netzanschluss und Speicher im eigenen Netzwerk dar. Es läuft direkt in einem Proxmox-LXC oder mit Docker Compose. Messwerte kommen aus ioBroker simple-api, MQTT oder Modbus TCP. Konfiguration und Aufzeichnung liegen in MongoDB. Die Anwendung enthält keine Demodaten und steuert keine Geräte.
+Energieboard stellt Stromerzeugung, Verbrauch, Netzanschluss und Speicher im eigenen Netzwerk dar. Es läuft direkt in einem Proxmox-LXC oder mit Docker Compose. Messwerte kommen über konfigurierbare HTTP-APIs (Vorlagen für ioBroker, Home Assistant und evcc), MQTT oder Modbus TCP. Konfiguration und Aufzeichnung liegen in MongoDB. Die Anwendung enthält keine Demodaten und steuert keine Geräte.
 
 ## Hier beginnen
 
@@ -9,8 +9,9 @@ Energieboard stellt Stromerzeugung, Verbrauch, Netzanschluss und Speicher im eig
 | Noch keine Installation, Proxmox vorhanden | [Erstinstallation im Proxmox-LXC](INSTALLATION.md) |
 | Linux-Docker-Host oder Docker-VM vorhanden | [Erstinstallation mit Docker Compose](DOCKER.md) |
 | Dashboard läuft, aber noch keine Messwerte | [Erste Schritte und Abnahme](docs/ERSTE-SCHRITTE.md) |
-| Datenpunkte aus ioBroker, MQTT oder Modbus einrichten | [Datenerfassung](docs/DATENERFASSUNG.md) |
+| Datenpunkte aus APIs, MQTT oder Modbus einrichten | [Datenerfassung](docs/DATENERFASSUNG.md) |
 | Verbraucher, Generator, Netz und verschachtelte Zähler anlegen | [Geräte und Knoten](docs/GERAETE-UND-KNOTEN.md) |
+| Verbraucher zusätzlich zusammenfassen | [Verbrauchergruppen](docs/VERBRAUCHERGRUPPEN.md) |
 | Batterie, DC-MPPT oder Hybrid-WR konfigurieren | [Speicher und Hybrid-WR](docs/SPEICHER-UND-HYBRID.md) |
 | Bestehende Anlage sichern oder aktualisieren | [Betrieb, Backup und Updates](docs/BETRIEB-UND-UPDATES.md) |
 | Fehler oder unplausible Bilanz | [Fehlersuche](docs/FEHLERSUCHE.md) |
@@ -26,6 +27,7 @@ Energieboard stellt Stromerzeugung, Verbrauch, Netzanschluss und Speicher im eig
 - DC-MPPT ohne Phasen, mit DC-Leistung und kumulativer Gesamtenergie.
 - Hybrid-WR mit AC-Netto oder AC-Out minus AC-In; Wirkungsgrad aus direkter DC-Messung oder bestätigter DC-Bilanz.
 - Separate Speicher mit kapazitätsgewichtetem Gesamt-SOC, Leistungsbalken, Restenergie und geglätteter Restlaufzeit.
+- Optionale Verbrauchergruppen mit gemeinsamer Liveleistung und Zeitraumenergie, unabhängig von der Knotenhierarchie.
 - CSV-Import/-Export mit Vorschau, stabilen IDs und Sicherung vor der Übernahme.
 - Drei Darstellungen, globale Farben, suchbare Symbole und Einbettung über `/flow`.
 - Nullleistungsfilter: standardmäßig erst nach 60 Sekunden strikt zwischen −1 W und +1 W ausblenden; Netz bleibt sichtbar.
@@ -55,6 +57,6 @@ Energieboard besitzt keine eigene Anmeldung. Im vertrauenswürdigen LAN betreibe
 
 ## Version und Verlässlichkeit
 
-Aktueller Anwendungsstand: **2.4.0**, Datenbankschema **5**, CSV-Format **1**. Dokumentation: **23. November 2026**. Für Installationen feste Tags wie `v2.4.0` verwenden; `main` kann bereits neuere Änderungen enthalten.
+Aktueller Anwendungsstand: **2.5.0**, Datenbankschema **6**, CSV-Format **1**. Dokumentation: **23. November 2026**. Für Installationen feste Tags wie `v2.5.0` verwenden; `main` kann bereits neuere Änderungen enthalten.
 
-[Prüfbericht und bekannte Grenzen](PRUEFBERICHT.md): 80 Backendtests sowie Integrations-, Browser- und Linux-Dockerprüfungen. Physische Victron-Geräte und ein produktiver Proxmox-LXC wurden hier nicht angeschlossen. Energieboard ist eine Anzeige und Auswertung; Schätzwerte ersetzen keinen geeichten Zähler.
+[Prüfbericht und bekannte Grenzen](PRUEFBERICHT.md): 97 Backendtests sowie Integrations-, Browser- und Linux-Dockerprüfungen. Physische Victron-Geräte und ein produktiver Proxmox-LXC wurden hier nicht angeschlossen. Energieboard ist eine Anzeige und Auswertung; Schätzwerte ersetzen keinen geeichten Zähler.

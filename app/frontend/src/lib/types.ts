@@ -25,6 +25,7 @@ export interface Datapoints {
 export interface FlowInput {
   kind: "device" | "node" | "storage" | "grid";
   parent_id: string | null;
+  group_id: string | null;
   run_power_w: number | null;
   charge_sign: "negative" | "positive";
   capacity_kwh: number | null;
@@ -177,6 +178,7 @@ export interface EnergyTotals {
 }
 
 export interface EnergyReport {
+  consumer_groups: ConsumerGroupSummary[];
   start: string;
   end: string;
   effective_end: string;
@@ -239,6 +241,7 @@ export interface LiveSummary {
 }
 
 export interface LiveReport {
+  consumer_groups: ConsumerGroupSummary[];
   nodes: LiveNode[];
   storages: LiveStorage[];
   ts: string;
@@ -295,7 +298,7 @@ export interface LiveStorage {
 }
 
 export interface Appearance { zero_threshold_w?: number; zero_delay_s?: number; layout: "square" | "rounded" | "flow"; background: string; surface: string; accent: string; }
-export interface Connection { id: string; name: string; protocol: "iobroker" | "mqtt" | "modbus"; host: string; port: number; enabled: boolean; username: string; password: string; password_set?: boolean; tls: boolean; timeout_s: number; }
+export interface Connection { id: string; name: string; protocol: "api" | "mqtt" | "modbus"; api_preset:"custom"|"iobroker"|"homeassistant"|"evcc"; api_path:string; api_json_path:string; api_response_format:"value"|"iobroker_bulk"; api_auth:"none"|"bearer"|"basic"|"header"; api_token_header:string; token:string; token_set?:boolean; clear_token?:boolean; host: string; port: number; enabled: boolean; username: string; password: string; password_set?: boolean; tls: boolean; timeout_s: number; }
 export interface Measurement { id: string; name: string; connection_id: string; enabled: boolean; record: boolean; unit: string; address: string; json_path: string; scale: number; offset: number; stale_s: number; unit_id: number; register: number; function: 3 | 4; datatype: string; byte_order: "big" | "little"; word_order: "big" | "little"; history_key: string; }
 
 export interface LiveHybrid {
@@ -305,3 +308,6 @@ export interface LiveHybrid {
  dc_load_w:number|null; dc_net_w:number|null; dc_source:string;
  efficiency_pct:number|null; loss_w:number|null; mode:string; note:string;
 }
+
+export interface ConsumerGroup {id:string;name:string;color:string;sort_order:number;}
+export interface ConsumerGroupSummary {id:string;name:string;color:string;member_ids:string[];complete:boolean;power_w:number|null;energy_kwh:number|null;}

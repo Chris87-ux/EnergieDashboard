@@ -13,7 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiError, apiGet, apiPost, apiPut } from "@/lib/api";
 import { CATEGORY_LABELS } from "@/lib/format";
 import { ICONS } from "@/lib/icons";
-import { PHASES, type Category, type Datapoints, type Flow, type FlowInput, type Measurement, type Phase, type PhaseMode } from "@/lib/types";
+import { PHASES, type Category, type Datapoints, type Flow, type FlowInput, type Measurement, type ConsumerGroup, type Phase, type PhaseMode } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const COLORS = ["#EAB308", "#EF4444", "#10B981", "#0EA5E9", "#38BDF8", "#F97316", "#8B5CF6", "#06B6D4", "#6366F1", "#EC4899", "#84CC16", "#F0F4F8"];
@@ -30,7 +30,7 @@ export function emptyFlow(): FlowInput {
     capacity_kwh: null, reserve_soc_pct: 0, max_power_w: 5000, electrical_side: "ac",
     hybrid_ac_mode: "net", dc_power_unit: "W", dc_invert: false, dc_balance_complete: false, hybrid_min_power_w: 100,
     pv_type: "wr", hybrid_id: null, storage_ids: [], mppt_ids: [], grid_mode: "directional",
-    kind: "device", parent_id: null, run_power_w: null, charge_sign: "negative",
+    kind: "device", parent_id: null, group_id:null, run_power_w: null, charge_sign: "negative",
     power_phase_mode: "single", power_phase: "L1", energy_phase_mode: "single", energy_phase: "L1",
     power_unit: "W", energy_unit: "kWh", invert: false, datapoints: { ...EMPTY_DP }, extra: {},
   };
@@ -141,6 +141,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
   const dcOnly = isMppt || form.kind === "storage" && form.electrical_side === "dc";
   const singlePower = dcOnly || form.power_phase_mode === "single";
   const singleEnergy = dcOnly || form.energy_phase_mode === "single";
+  const groups=useQuery({queryKey:["consumer-groups"],queryFn:()=>apiGet<ConsumerGroup[]>("/consumer-groups")});
   const nodes = flows.filter((flow) => flow.kind === "node" && flow.id !== editing?.id);
 
   return (
@@ -162,7 +163,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Typ">
                 <Select value={form.kind} onValueChange={(kind: FlowInput["kind"]) => setForm((f) => ({
-                  ...f, kind, parent_id: kind === "grid" ? null : f.parent_id, grid_mode: kind === "grid" ? "signed" : f.grid_mode, pv_type: "wr", storage_ids: [], mppt_ids: [],
+                  ...f, kind, group_id:kind==="device"?f.group_id:null, parent_id: kind === "grid" ? null : f.parent_id, grid_mode: kind === "grid" ? "signed" : f.grid_mode, pv_type: "wr", storage_ids: [], mppt_ids: [],
                   run_power_w: null, datapoints: { ...f.datapoints, run: "" },
                   category: ["grid","storage","node"].includes(kind) ? "custom" : ["grid","battery"].includes(f.category) ? "consumer" : f.category,
                   electrical_side: kind === "storage" ? "dc" : "ac",
@@ -204,7 +205,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
               {(form.kind === "device" && !isMppt && !isHybrid || form.kind === "grid" && form.grid_mode === "directional") && <Field label="Richtung" hint="Geräte: Produktion oder Verbrauch. Netzbezug und Lieferung werden separat bilanziert.">
                 <Segmented
                   value={form.direction}
-                  onChange={(v) => set("direction", v)}
+                  onChange={(v) => setForm(f=>({...f,direction:v,group_id:v==="out"?f.group_id:null}))}
                   testid="flow-editor-direction"
                   options={[{ value: "in", label: form.kind === "grid" ? "Bezug" : "Produktion" }, { value: "out", label: form.kind === "grid" ? "Lieferung" : "Verbrauch" }]}
                 />
@@ -236,7 +237,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
               <Segmented value={form.grid_mode} onChange={v => set("grid_mode", v)} testid="grid-mode" options={[{value:"signed", label:"Ein Wert: Bezug + / Einspeisung −"},{value:"directional",label:"Getrennter Richtungswert"}]} />
             </Field>}
             {form.kind === "device" && form.category === "pv" && <>
-              <Field label="Photovoltaik-Typ"><Segmented value={form.pv_type} onChange={v => setForm(f => ({...f, pv_type:v, electrical_side:v === "mppt" ? "dc" : "ac", run_power_w:null, datapoints:{...f.datapoints,run:""}, power_phase_mode:v === "mppt" ? "single" : f.power_phase_mode, energy_phase_mode:v === "mppt" ? "single" : f.energy_phase_mode, direction:"in", storage_ids:v === "hybrid" ? f.storage_ids : [], mppt_ids:v === "hybrid" ? f.mppt_ids : []}))} testid="pv-type" options={[{value:"wr",label:"WR"},{value:"hybrid",label:"Hybrid-WR"},{value:"mppt",label:"DC-MPPT"}]} /></Field>
+              <Field label="Photovoltaik-Typ"><Segmented value={form.pv_type} onChange={v => setForm(f => ({...f, pv_type:v, group_id:null, electrical_side:v === "mppt" ? "dc" : "ac", run_power_w:null, datapoints:{...f.datapoints,run:""}, power_phase_mode:v === "mppt" ? "single" : f.power_phase_mode, energy_phase_mode:v === "mppt" ? "single" : f.energy_phase_mode, direction:"in", storage_ids:v === "hybrid" ? f.storage_ids : [], mppt_ids:v === "hybrid" ? f.mppt_ids : []}))} testid="pv-type" options={[{value:"wr",label:"WR"},{value:"hybrid",label:"Hybrid-WR"},{value:"mppt",label:"DC-MPPT"}]} /></Field>
               {form.pv_type === "hybrid" && <div className="space-y-3 rounded-lg border border-border p-3">
                 <p className="text-xs text-muted-foreground">AC-Leistung des Hybrid-WR oben zuordnen. Speicher und MPPT zuerst anlegen und hier auswählen. DC-Werte bleiben separat.</p>
                 {(["storage", "mppt"] as const).map(kind => <Field key={kind} label={kind === "storage" ? "DC-Speicher" : "DC-MPPTs"}>
@@ -253,6 +254,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
               </div>}
             </>}
             {!isMppt && !isHybrid && <Field label="Messebene"><Segmented value={form.electrical_side} onChange={v => setForm(f=>({...f,electrical_side:v,power_phase_mode:v === "dc" ? "single" : f.power_phase_mode}))} testid="electrical-side" options={[{value:"ac",label:"AC"},{value:"dc",label:"DC (separate Anzeige)"}]} /></Field>}
+            {form.kind==="device"&&form.direction==="out"&&!isHybrid&&<Field label="Zusätzliche Verbrauchergruppe (optional)"><select className="w-full rounded-md border border-border bg-background p-2 text-sm" data-testid="flow-editor-consumer-group" value={form.group_id??""} onChange={e=>set("group_id",e.target.value||null)}><option value="">Keine Gruppe</option>{groups.data?.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}</select><p className="text-xs text-muted-foreground">Gruppen vorher unter Konfiguration anlegen. Der Knotenanschluss bleibt unabhängig.</p></Field>}
             <Field label="Symbol">
               <Input placeholder="Symbole suchen" value={iconSearch} onChange={e => setIconSearch(e.target.value)} />
               <div className="grid grid-cols-7 gap-1.5 sm:grid-cols-9" data-testid="flow-editor-icon-grid">

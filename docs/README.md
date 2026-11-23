@@ -1,6 +1,6 @@
 # Dokumentation
 
-Anwendungsstand **2.4.0**, Schema **5**, CSV **1** · Stand **23. November 2026**.
+Anwendungsstand **2.5.0**, Schema **6**, CSV **1** · Stand **23. November 2026**.
 
 Die Dateien im Repository bilden die vollständige versionierte Dokumentation. Historische Tags behalten ihre damalige Fassung. Die Anleitungen lassen sich zusätzlich ins [GitHub-Wiki](https://github.com/Chris87-ux/EnergieDashboard/wiki) übernehmen; bei dieser Aktualisierung war dessen Git-Endpunkt trotz aktiviertem Wiki noch nicht erreichbar.
 
@@ -12,11 +12,13 @@ Die Dateien im Repository bilden die vollständige versionierte Dokumentation. H
 
 ## 2. Konfigurieren
 
-4. [Datenerfassung: ioBroker, MQTT und Modbus TCP](DATENERFASSUNG.md)
+4. [Datenerfassung: API mit ioBroker/Home Assistant/evcc, MQTT und Modbus TCP](DATENERFASSUNG.md)
 5. [Geräte und Knoten: Netz, Sensoren, RUN, Generator und Restbilanz](GERAETE-UND-KNOTEN.md)
 6. [Speicher und Hybrid-WR: SOC, DC-MPPT, Messgrenzen und Wirkungsgrad](SPEICHER-UND-HYBRID.md)
 7. [CSV: viele Messpunkte bearbeiten und Konfiguration übertragen](../CSV-IMPORT.md)
 8. [Darstellung: Farben, Nullfilter, Diagramm und Einbettung](DARSTELLUNG-UND-EINBETTUNG.md)
+
+Zusätzlich: [Verbrauchergruppen unabhängig von den Knoten](VERBRAUCHERGRUPPEN.md).
 
 ## 3. Betreiben
 
@@ -44,7 +46,7 @@ Die Dateien im Repository bilden die vollständige versionierte Dokumentation. H
 | Information | Beispiel / Zweck |
 |---|---|
 | Installationsart und Server-IP | LXC oder Docker, Browserzugriff |
-| Quellen | ioBroker-Host, MQTT-Broker, Modbus-Geräte und Ports |
+| Quellen | API-Host und Zugangsdaten, MQTT-Broker, Modbus-Geräte und Ports |
 | Messpunktverzeichnis | IDs/Topics/Register, Datentyp, Faktor, Einheit |
 | Messgrenzen | Netz, AC-Abschnitt, AC-In/Out, DC-Bus, Batterie |
 | Vorzeichen | Bezug/Einspeisung, Ladung/Entladung, Wandlerleistung |

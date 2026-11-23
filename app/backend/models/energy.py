@@ -52,7 +52,18 @@ class EnergyTotals(BaseModel):
     incomplete: bool
 
 
+class ConsumerGroupSummary(BaseModel):
+    id: str
+    name: str
+    color: str
+    member_ids: list[str]
+    complete: bool
+    power_w: float | None = None
+    energy_kwh: float | None = None
+
+
 class EnergyReport(BaseModel):
+    consumer_groups: list[ConsumerGroupSummary] = Field(default_factory=list)
     start: datetime
     end: datetime
     effective_end: datetime
@@ -171,6 +182,7 @@ class LiveHybrid(BaseModel):
 
 
 class LiveReport(BaseModel):
+    consumer_groups: list[ConsumerGroupSummary] = Field(default_factory=list)
     ts: datetime
     mode: Literal["live"] = "live"
     ok: bool

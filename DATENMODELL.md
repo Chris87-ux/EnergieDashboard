@@ -1,8 +1,8 @@
-# Datenmodell und Erweiterungen · Version 2.4.0
+# Datenmodell und Erweiterungen · Version 2.5.0
 
 [Dokumentationsübersicht](docs/README.md) · [Schritt-für-Schritt-Konfiguration](docs/ERSTE-SCHRITTE.md) · [Hybrid-Anleitung](docs/SPEICHER-UND-HYBRID.md)
 
-Diese Seite ist die technische Referenz. Für die Bedienung zuerst die Benutzeranleitungen lesen. Stand: 23. November 2026, Anwendung 2.4.0, Schema 5, CSV 1.
+Diese Seite ist die technische Referenz. Für die Bedienung zuerst die Benutzeranleitungen lesen. Stand: 23. November 2026, Anwendung 2.5.0, Schema 6, CSV 1.
 
 ## Bilanz und Phasen ab 2.4
 
@@ -107,9 +107,11 @@ API `GET /api/connections`, `PUT /api/connections/<id>`, `DELETE /api/connection
 }
 ```
 
-`protocol` ist `iobroker`, `mqtt` oder `modbus`. MQTT unterstützt `username`, `password` und `tls`. Standardports sind 8087, 1883 und 502; bei MQTT/TLS den tatsächlichen TLS-Port, häufig 8883, einstellen. Der MQTT-Broker muss bereits vorhanden sein. Für HTTPS verwendet ioBroker `tls: true`. Direkte ioBroker-simple-api-Verbindungen unterstützen in dieser Version keine HTTP-Anmeldedaten. Host enthält ausschließlich IP/Hostname, ohne Protokoll und Port.
+`protocol` ist `api`, `mqtt` oder `modbus`. Altes `iobroker` wird als API mit Vorlage ioBroker übernommen. Host enthält nur IP/Hostname, Port separat. TLS steht für HTTPS bzw. MQTT/TLS.
 
-Passwörter werden serverseitig gespeichert und in Antworten leer zurückgegeben. `password_set` zeigt ein hinterlegtes Passwort an. Ein leeres Passwort beim Speichern erhält das vorhandene Passwort. Zum vollständigen Entfernen einer Verbindung zunächst ihre Messpunkte verschieben oder löschen. Die Datenbank und Sicherungen enthalten Zugangsdaten; den Zugriff entsprechend begrenzen.
+API-Felder: `api_preset` (`custom`, `iobroker`, `homeassistant`, `evcc`), `api_path` (relativer GET-Pfad mit optional `{address}`/`{addresses}`), `api_json_path` (Antwortbasis), `api_response_format` (`value` oder `iobroker_bulk`), `api_auth` (`none`, `basic`, `bearer`, `header`), `api_token_header` (Standard Authorization), `token`, `username`, `password`. Vorlagen siehe `GET /api/api-presets`. Sie liefern nur Standardwerte; explizite Felder bleiben maßgeblich. Der JSON-Pfad eines Messpunkts wird nach der Antwortbasis ausgewertet; bei evcc wird ohne expliziten JSON-Pfad dessen Adresse als Wertpfad verwendet. [Vollständige API-Anleitung](docs/DATENERFASSUNG.md).
+
+Passwörter und Tokens bleiben in normalen Antworten leer; `password_set`/`token_set` zeigen gespeicherte Geheimnisse an. Leere Werte beim Speichern erhalten vorhandene Geheimnisse. `clear_token: true` entfernt den Token. Verbindung und Messpunkte mit stabilen IDs pflegen. Die Datenbank und vollständige Sicherungen enthalten Zugangsdaten.
 
 ## Messpunkte
 
@@ -325,4 +327,10 @@ Die Lückenschwelle gibt keine unbegrenzte Gültigkeit für RUN-/Rest-/Speicherk
 
 ## Versionierung
 
-Anwendungsversion in `VERSION`; Datenbankschema aktuell Version 5; CSV-Format Version 1. Additive Migrationen laufen beim Start und dürfen mehrfach ausgeführt werden. Ein neueres Datenbankschema wird von dieser Version abgewiesen. Ein Downgrade erfolgt zusammen mit der dazugehörigen Datenbanksicherung. Messpunkt- und Geräte-IDs bleiben bei Updates erhalten.
+Anwendungsversion in `VERSION`; Datenbankschema aktuell Version 6; CSV-Format Version 1. Additive Migrationen laufen beim Start und dürfen mehrfach ausgeführt werden. Ein neueres Datenbankschema wird von dieser Version abgewiesen. Ein Downgrade erfolgt zusammen mit der dazugehörigen Datenbanksicherung. Messpunkt- und Geräte-IDs bleiben bei Updates erhalten.
+
+## Verbrauchergruppen ab 2.5 (Schema 6)
+
+Verwaltung: `GET /api/consumer-groups`, `PUT /api/consumer-groups/<id>`, `DELETE /api/consumer-groups/<id>`. Felder: `id`, `name` (1–80 Zeichen), `color` (#RRGGBB), `sort_order`. Geräte verwenden optional `group_id: "<id>"` bzw. `null`, unabhängig von `parent_id`. Nur normale Verbraucher sind zulässig. Fehlende Gruppenreferenz ergibt 422, Löschen einer noch verwendeten Gruppe 409.
+
+Live- und Energieantworten ergänzen `consumer_groups` mit `id`, `name`, `color`, `member_ids`, `complete` und `power_w` bzw. `energy_kwh`. Diese Auswertungen sind zusätzliche Ansichten und verändern keine Gesamtsumme. Aktive Mitgliedschaft, Vollständigkeit und historische Grenzen siehe [Verbrauchergruppen](docs/VERBRAUCHERGRUPPEN.md). Migration auf Schema 6 normalisiert API-Verbindungen und ergänzt optionale Gruppenzuordnungen, ohne IDs oder Historie zu ersetzen.

@@ -1,7 +1,7 @@
 name: energieboard
 services:
   energieboard:
-    image: energieboard:${ENERGIEBOARD_VERSION:-2.4.0}
+    image: energieboard:${ENERGIEBOARD_VERSION:-2.5.0}
     build:
       context: .
     restart: unless-stopped

@@ -64,3 +64,8 @@ def all_datapoints(flows: list[Flow]) -> list[str]:
             keys = {key: "" for key in ("run", "engine_temperature", "efficiency", "fuel_consumption", "operating_hours")}
         ids.update(flow.datapoints.get(key) for key in keys if flow.datapoints.get(key))
     return sorted(ids)
+
+
+async def load_consumer_groups():
+    from models.consumer_group import ConsumerGroup
+    return [ConsumerGroup(**doc) for doc in await db.consumer_groups.find({}, {"_id":0}).to_list()]

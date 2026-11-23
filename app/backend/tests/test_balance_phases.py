@@ -123,7 +123,7 @@ class BalancePhaseTests(unittest.IsolatedAsyncioTestCase):
     async def test_frequency_comes_only_from_grid(self):
         from routers.energy import live
         f=pv();f.datapoints.frequency="bad"
-        with patch("routers.energy.load_settings",AsyncMock(return_value=AppSettings())),patch("routers.energy.load_flows",AsyncMock(return_value=[f,grid()])),patch("lib.acquisition.read_values",AsyncMock(return_value=({"g":100,"p":100,"hz":49.98,"bad":60},[]))),patch("lib.visibility.update_visibility",AsyncMock()):
+        with patch("routers.energy.load_consumer_groups",AsyncMock(return_value=[])),patch("routers.energy.load_settings",AsyncMock(return_value=AppSettings())),patch("routers.energy.load_flows",AsyncMock(return_value=[f,grid()])),patch("lib.acquisition.read_values",AsyncMock(return_value=({"g":100,"p":100,"hz":49.98,"bad":60},[]))),patch("lib.visibility.update_visibility",AsyncMock()):
             report=await live()
         self.assertEqual(report.frequency_hz,49.98)
         self.assertEqual(report.summary.production_w,100)

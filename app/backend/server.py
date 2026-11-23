@@ -16,7 +16,7 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection
 from lib.db import client, db, ensure_indexes  # noqa: E402
 from lib.recorder import recorder_loop  # noqa: E402
-from routers import energy, flows, settings, acquisition, config_csv  # noqa: E402
+from routers import energy, flows, settings, acquisition, config_csv, consumer_groups  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
         await client.close()
 
 
-app = FastAPI(lifespan=lifespan, title="Energieboard", version="2.4.0")
+app = FastAPI(lifespan=lifespan, title="Energieboard", version="2.5.0")
 
 api_router = APIRouter(prefix="/api")
 
@@ -55,7 +55,7 @@ async def root():
         await db.command("ping")
     except PyMongoError as exc:
         raise HTTPException(status_code=503, detail="MongoDB ist derzeit nicht erreichbar.") from exc
-    return {"message": "Energieboard API", "status": "ok", "version": "2.4.0", "schema_version": 5}
+    return {"message": "Energieboard API", "status": "ok", "version": "2.5.0", "schema_version": 6}
 
 
 api_router.include_router(flows.router)
@@ -63,6 +63,7 @@ api_router.include_router(settings.router)
 api_router.include_router(energy.router)
 api_router.include_router(acquisition.router)
 api_router.include_router(config_csv.router)
+api_router.include_router(consumer_groups.router)
 
 logging.basicConfig(
     level=logging.INFO,

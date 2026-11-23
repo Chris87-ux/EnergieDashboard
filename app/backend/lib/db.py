@@ -20,6 +20,7 @@ async def ensure_indexes() -> None:
     ])
     await db.visibility.create_index("id", unique=True)
     await db.config_backups.create_index("id", unique=True)
+    await db.consumer_groups.create_index("id", unique=True)
     await db.connections.create_index("id", unique=True)
     await db.measurements.create_index("id", unique=True)
     await db.metadata.create_index("id", unique=True)

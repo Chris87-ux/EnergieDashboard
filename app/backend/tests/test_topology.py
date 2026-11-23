@@ -39,6 +39,7 @@ class TopologyTests(unittest.IsolatedAsyncioTestCase):
                   "run": 1, "bat": -200, "soc": 72}
         with patch.object(energy, "load_settings", AsyncMock(return_value=AppSettings(iobroker={"host": "test"}))), \
              patch.object(energy, "load_flows", AsyncMock(return_value=flows)), \
+             patch.object(energy, "load_consumer_groups", AsyncMock(return_value=[])), \
              patch("lib.acquisition.read_values", AsyncMock(return_value=(values, []))), \
              patch("lib.visibility.update_visibility", AsyncMock()):
             report = await energy.live()

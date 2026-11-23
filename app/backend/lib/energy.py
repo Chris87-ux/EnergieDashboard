@@ -268,7 +268,7 @@ async def compute_all(flows: list[Flow], src, start: float, end: float, step: in
     if configuration is not None:
         from lib.balance import balance
         inferred_storage={id for f in configuration if f.category=="pv" and f.pv_type=="hybrid" and not f.mppt_ids for id in f.storage_ids}
-        incomplete=any(not r.total.complete for r in results if not r.storage_id or r.electrical_side=="ac" or r.storage_id in inferred_storage)
+        incomplete=any(not r.total.complete for r in results if r.electrical_side=="ac" or not r.storage_id and r.direction=="in" or r.storage_id in inferred_storage)
         readings={r.flow_id:r.total.kwh for r in results}
         batteries={f.id:(readings.get(f.id+":charge"),readings.get(f.id+":discharge")) for f in configuration if f.kind=="storage"}
         b=balance(configuration,readings,batteries)

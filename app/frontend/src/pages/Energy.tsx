@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
+import ConsumerGroupsOverview from "@/components/ConsumerGroupsOverview";
 import GridConnection from "@/components/GridConnection";
 import EnergyTable from "@/components/EnergyTable";
 import MethodBadge from "@/components/MethodBadge";
@@ -110,6 +111,7 @@ export default function Energy() {
         </div>
       )}
 
+      <ConsumerGroupsOverview energy={report?.consumer_groups} period="Zeitraum" energyOnly/>
       {energy.isFetching && !report && <div className="text-sm text-[#8EA8C3]">Berechne Energiewerte…</div>}
       {report && [{ id: null, name: "Hauptebene" }, ...(configuration.data ?? []).filter((flow) => flow.kind === "node").map((node) => ({ id: node.id, name: node.name }))].map((group) => {
         const flows = report.flows.filter((flow) => flow.parent_id === group.id);

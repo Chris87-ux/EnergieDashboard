@@ -17,8 +17,8 @@ _last_result = ({}, [], {})
 
 
 def numeric(value):
-    if isinstance(value, str) and value.lower() in ("true", "false"):
-        return float(value.lower() == "true")
+    if isinstance(value, str) and value.lower() in ("true", "false", "on", "off"):
+        return float(value.lower() in ("true", "on"))
     try:
         result = float(value)
         return result if math.isfinite(result) else None
@@ -156,12 +156,9 @@ async def read_measurements(settings, force=False):
                 elif connection.protocol == "modbus":
                     raw = await read_modbus(connection, group)
                 else:
-                    s = settings.model_copy(deep=True)
-                    s.iobroker.host, s.iobroker.port = connection.host, connection.port
-                    s.iobroker.protocol = "https" if connection.tls else "http"
-                    s.iobroker.timeout_s = connection.timeout_s
-                    data = await iob_get_bulk(s, [p.address for p in group])
-                    raw = {p.id: data.get(p.address) for p in group}
+                    from lib.http_api import read_api
+                    raw,api_errors=await read_api(connection,group)
+                    failures.extend(api_errors)
             except Exception as exc:
                 failures.append(f"{connection.name}: {type(exc).__name__}: {exc}")
             return group, raw, statuses, failures

@@ -1,5 +1,17 @@
 # Änderungen
 
+## 2.5.0 · 23. November 2026
+
+- Datenerfassung als allgemeine HTTP-GET-API mit veränderbarer Aufrufvorlage, JSON-/Klartextauswertung und Vorlagen für ioBroker, Home Assistant und evcc.
+- Bearer-, Basic- und benutzerdefinierte Token-Header-Anmeldung; maskierte Geheimnisse, Erhalt beim Bearbeiten/CSV und ausdrückliches Token-Löschen.
+- Bestehende ioBroker-Verbindungen werden bei unveränderten IDs und erhaltener Historie übernommen.
+- Optionale Verbrauchergruppen unabhängig von Knoten: Liveleistung, Tages- und Zeitraumenergie, CSV und Backup/Restore. Gruppen beeinflussen keine Gesamtbilanz.
+- Schema 6; CSV-Format unverändert 1.
+- LXC-Startprüfung puffert erwartete anfängliche curl-Verbindungsfehler; echte Startfehler bleiben sichtbar und lösen einen fehlgeschlagenen Updateablauf aus.
+- Formularwechsel während des Speicherns und Absenden des Gruppenformulars korrigiert.
+- 97 Backendtests, Integration mit echter MongoDB und HTTP/MQTT/Modbus-Testquellen, Chromium und Produktionsbuild erfolgreich. Neue API-/Gruppen-Anleitungen ergänzt.
+
+
 ## 2.4.0 · 23. November 2026
 
 - Gemeinsame Berechnung für Live-/Energiebilanz; Netzbezug, Lieferung und Speicherbewegungen nicht als zusätzliche Produktion/Verbrauch summiert.

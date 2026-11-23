@@ -1,6 +1,16 @@
-# Prüfbericht · Energieboard 2.4.0
+# Prüfbericht · Energieboard 2.5.0
 
 Stand: 23. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokolladapter, Konfigurationsübernahme, Sicherung und Updateablauf. Das ausgelieferte Programm enthält keinen Demo-Modus; Messwerte der Tests stammen ausschließlich aus isolierten Testprozessen.
+
+## Prüfungen für 2.5
+
+97 unterschiedliche Backendtests erfolgreich: 80 bestehende Regressionen und 17 neue Tests für API-Vorlagen, Legacy-Konvertierung, Pfadvariablen, JSON Pointer, Home-Assistant-Bearer, evcc-Sammelantwort, Klartext, Bulk-Teilmengen, isolierte HTTP-Fehler, Basic/Token-Header, Token-Erhalt/-Löschen sowie Gruppenberechnung, Fehlwerte, Zeitraumvollständigkeit und CSV-Referenzen.
+
+Integration mit echter isolierter MongoDB und HTTP-API erfolgreich. Lokale HTTP-Quellen liefern ioBroker-, Home-Assistant-, evcc- und freie API-Antworten. Gruppen werden gespeichert, quer über Knoten summiert, bei Knotendeaktivierung reduziert und einschließlich Historie gesichert/wiederhergestellt. Bestehende 50-Geräte-, MQTT-, Modbus-, Migration-, CSV- und Energiebilanzprüfungen bleiben erfolgreich. Chromium prüft API-Vorlagen, Verbindung/Messpunkt-Formulare, Gruppenanlage und -zuordnung sowie Darstellung in Übersicht und Energiebilanz; Desktop/Mobil ohne JavaScript-Fehler. TypeScript/Vite-Build erfolgreich.
+
+LXC-Readiness-Harness bestätigt stille anfängliche curl-Fehler mit anschließendem Erfolg sowie sichtbaren finalen Fehler bei dauerhafter Nichterreichbarkeit. Updater-Harness prüft Erfolg und Rücknahme nach Fehler; ShellCheck und Bash-Syntaxprüfung erfolgreich. Linux-Docker-CI wird vor der Release-Markierung geprüft.
+
+Prüfgrenzen: keine echten Home-Assistant-/evcc-/Victron-Produktionsgeräte, kein tatsächlicher Proxmox-LXC-Boot und keine Fremdserver-TLS-/Proxy-Konfiguration. Die Protokolltests verwenden isolierte lokale Server. Zugangsdaten, Messgrenzen, Einheiten und API-Feldpfade müssen in der Zielanlage geprüft werden. Die nachfolgenden Abschnitte dokumentieren frühere Prüfstände.
 
 ## Prüfungen für 2.4
 
