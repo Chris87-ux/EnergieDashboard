@@ -1,8 +1,25 @@
-# Datenmodell und Erweiterungen · Version 2.3.0
+# Datenmodell und Erweiterungen · Version 2.4.0
 
 [Dokumentationsübersicht](docs/README.md) · [Schritt-für-Schritt-Konfiguration](docs/ERSTE-SCHRITTE.md) · [Hybrid-Anleitung](docs/SPEICHER-UND-HYBRID.md)
 
-Diese Seite ist die technische Referenz. Für die Bedienung zuerst die Benutzeranleitungen lesen. Stand: 21. November 2026, Anwendung 2.3.0, Schema 5, CSV 1.
+Diese Seite ist die technische Referenz. Für die Bedienung zuerst die Benutzeranleitungen lesen. Stand: 23. November 2026, Anwendung 2.4.0, Schema 5, CSV 1.
+
+## Bilanz und Phasen ab 2.4
+
+**Produktion** umfasst konfigurierte lokale AC-Erzeuger/Generatoren, Resterzeugung und separat gemessene DC-Produktion. Netzbezug und Speicherentladung sind keine Produktion. Bei Hybrid-WR mit zugeordneten MPPTs zählen die MPPTs; die AC-Wandlerabgabe wird nicht zusätzlich als PV gezählt. Ohne MPPT-Zuordnung wird die Produktion aus AC-Netto und Batterieladung/-entladung geschätzt und ausdrücklich markiert; dies ist kein unabhängiger PV-Ertragszähler und berücksichtigt nicht die DC/AC-Verluste. Für gemessene Produktion MPPTs zuordnen.
+
+Der **AC-Verbrauch** wird aus den AC-Messgrenzen bilanziert: Netzbezug − Netzlieferung + normale AC-Produktion + Hybrid-AC-Abgabe − Hybrid-AC-Aufnahme + AC-Speicherentladung − AC-Speicherladung. Damit zählen Netzlieferung und Batterieladung nicht als Hausverbrauch. Die Differenz zur erfassten Gerätesumme ist nicht zugeordneter Verbrauch. Bekannte DC-Quellen und Speicher stehen weiter separat; Rohproduktion an DC und Nutzverbrauch an AC haben verschiedene Messgrenzen. Die Produktionssumme ist daher kein verlustbereinigter AC-Ertrag.
+
+**Autarkie und Eigenverbrauch in der Übersicht beziehen sich auf Heute**, nicht auf den sekündlichen Leistungsschnappschuss. In der Energiebilanz gilt derselbe Rechenweg für den gewählten Zeitraum: Autarkie = (1 − Netzbezug / Verbrauch) × 100; bilanzieller Eigenverbrauch = (1 − Netzlieferung / Produktion) × 100. Werte werden auf 0–100 % begrenzt. Bei gemessener Nullproduktion/Nullverbrauch steht 0 %, fehlende benötigte Daten bleiben unbekannt. Datenlücken werden gekennzeichnet. Mit Netzladung oder Batterieexport ist dies eine bilanzielle Kennzahl, keine Herkunftsverfolgung einzelner Energieanteile.
+
+Netzfrequenz stammt ausschließlich aus dem Netzanschluss. Aktueller Bezug/Lieferung sowie heutige bzw. zeitraumbezogene Bezug-/Lieferenergie stehen gemeinsam in der **Netzanschluss-Kachel**. Energie aus getrennten kumulativen Netzzählern hat Vorrang; ohne Zähler wird aufgezeichnete Netzleistung ausgewertet.
+
+**Dreiphasig bedeutet drei Phasen des ganzen Geräts.** Eine Gesamtleistung von 900 W ohne Phasenmessung ergibt 300 W auf jeder Phase, nicht 2.700 W Gesamtleistung. Eine einzelne gemessene Phase von 300 W ohne Gesamtleistung wird symmetrisch auf 900 W Gesamtleistung hochgerechnet. Reale Phasenwerte bleiben vorrangig; fehlende Phasen werden gleichmäßig aus der restlichen Gesamtleistung bzw. symmetrisch ergänzt und als berechnet markiert. Bei Energie gilt dieselbe Aufteilung, auch für dreiphasige RUN-Geräte. Knoten zeigen Zähler, Kindersumme und Rest je Phase; neue dreiphasige Restkanäle werden zusätzlich aufgezeichnet. Bereits vorhandene tatsächliche asymmetrische Messungen bleiben erhalten.
+
+AC-Speicher werden bei der AC-Knotenrestbildung mit ihrer Lade-/Entladerichtung berücksichtigt; DC-Speicher wirken über den Hybrid-WR und werden nicht zusätzlich vom AC-Knoten abgezogen. Die allgemeine Speicher-Vorzeichenumkehr wird vor dem gewählten Lade-Vorzeichen angewendet.
+
+Bestehende IDs, Einstellungen und Gesamtenergiehistorie bleiben erhalten; Schema bleibt 5. Neue Phasenrestkanäle beginnen mit der neuen Aufzeichnung, alte fehlerhafte abgeleitete Historie wird nicht rückwirkend rekonstruiert. Die API ergänzt `production_w` bzw. `production_kwh`, `consumption_kwh`, `grid_import_kwh`, `grid_export_kwh`, Kennzahlen und Bilanzhinweise. Die bisherigen Summenfelder `in_w/out_w` und `in_kwh/out_kwh` entsprechen in der API-Zusammenfassung jetzt Produktion/Verbrauch; interne Richtungskennungen `in/out` und historische Kanal-IDs bleiben erhalten.
+
 
 ## Inhalt
 
@@ -30,7 +47,7 @@ Für die **AC-Messgrenze** stehen zwei Modi zur Verfügung:
 | `hybrid_ac_mode: "net"` | Standard, bisheriges Verhalten: `power_total` oder die Summe dreier Phasen ist bereits die bidirektionale Nettoleistung des Wandlers. Positiv = DC → AC, negativ = AC → DC. |
 | `hybrid_ac_mode: "terminals"` | `power_total`/Phasen sind AC-Out; `datapoints.ac_input` ist die Gesamtleistung am AC-In desselben WR. Netto = AC-Out − AC-In. Beide Messgrenzen in derselben Einheit `power_unit`. Positiv an AC-In = in den WR, positiv an AC-Out = aus dem WR; Rückflusswerte bleiben negativ. `invert` kehrt beide AC-Messwerte um. |
 
-Beispiel Durchleitung: AC-Out 2.950 W und AC-In 2.000 W ergeben **950 W Wandlerabgabe**, nicht 2.950 W PV-Erzeugung. Ein Haus-Netzzähler an anderer Messgrenze ersetzt AC-In nicht. Der Wandler muss bei Netzladung negative Nettoleistung liefern. AC-Netto wird in getrennten Abgabe-/Aufnahmekanälen aufgezeichnet. Aus einem gesamten AC-In lässt sich keine zuverlässige Nettoleistung je Phase ableiten; abgeleitete Energiekanäle zeigen daher Gesamtenergie ohne erfundene Phasenzuordnung. Netzbezug und Hybridaufnahme sind unterschiedliche Messgrenzen; wie bisher sind die tabellarischen Zufluss-/Abflusssummen keine deduplizierte Haus-PV-Ertragsmessung.
+Beispiel Durchleitung: AC-Out 2.950 W und AC-In 2.000 W ergeben **950 W Wandlerabgabe**, nicht 2.950 W PV-Erzeugung. Ein Haus-Netzzähler an anderer Messgrenze ersetzt AC-In nicht. Der Wandler muss bei Netzladung negative Nettoleistung liefern. AC-Netto wird in getrennten Abgabe-/Aufnahmekanälen aufgezeichnet. Aus einem gesamten AC-In lässt sich keine gemessene Nettoleistung je Phase ableiten. Dreiphasige Livewerte werden entsprechend der konfigurierten Symmetrieannahme berechnet; historische Hybrid-Abgabe/Aufnahme bleiben Gesamtkanäle. Netzbezug und Hybridaufnahme sind unterschiedliche Messgrenzen; wie bisher sind die tabellarischen Produktion-/Verbrauchsummen keine deduplizierte Haus-PV-Ertragsmessung.
 
 Für den **WR-Wirkungsgrad** bestehen zwei Möglichkeiten:
 
@@ -47,7 +64,7 @@ Bestehende IDs, Messpunkte, Historie und Einstellungen bleiben beim Update erhal
 
 ## Vorzeichen und Anzeige
 
-Normale Geräte bewahren das Messvorzeichen in der Anzeige, einschließlich negativer PV-/Generatorwerte und nichtnulliger Werte unter 1 W. Für die Bilanz bestimmt die konfigurierte Richtung die Rolle: Verbrauch nutzt den Betrag als Abfluss, Erzeugung den Betrag als Zufluss. `invert` ändert das dargestellte Quellvorzeichen, nicht diese feste Rolle. Die Leistungsintegration normaler Geräte nutzt ebenfalls den Betrag. Echte bidirektionale Messstellen weiterhin als Netzanschluss oder Hybrid-WR einrichten. Ein normaler Erzeuger ist kein bidirektionaler Wechselrichter.
+Normale Geräte bewahren das Messvorzeichen in der Anzeige, einschließlich negativer PV-/Generatorwerte und nichtnulliger Werte unter 1 W. Für die Bilanz bestimmt die konfigurierte Richtung die Rolle: Verbrauch nutzt den Betrag als Verbrauch, Erzeugung den Betrag als Produktion. `invert` ändert das dargestellte Quellvorzeichen, nicht diese feste Rolle. Die Leistungsintegration normaler Geräte nutzt ebenfalls den Betrag. Echte bidirektionale Messstellen weiterhin als Netzanschluss oder Hybrid-WR einrichten. Ein normaler Erzeuger ist kein bidirektionaler Wechselrichter.
 
 Die Standardschwelle blendet nur Werte **größer als -1 W und kleiner als +1 W** nach 60 Sekunden aus. Genau -1 W/+1 W und größere Beträge bleiben sichtbar. Netzkanäle sind ausdrücklich vom Filter ausgenommen. Bezug und Lieferung stehen gemeinsam in einer permanenten Netzkachel oben mittig; doppelte Netz-Gerätekarten entfallen. Bereits mit der alten falschen Nullbegrenzung aufgezeichnete abgeleitete Knotenreste werden nicht rückwirkend neu berechnet. Erhaltene rohe negative Leistungshistorie normaler Geräte kann dagegen jetzt korrekt als Erzeugungsbetrag integriert werden.
 
@@ -185,9 +202,9 @@ Knoten können andere Knoten enthalten. Kreiszuordnungen werden abgewiesen. AC-A
 Rest = Abschnittszähler − direkte Verbraucher + direkte Erzeuger − Unterabschnitte netto
 ```
 
-Ein gemessener Unterknoten geht mit seinem Zählerwert ein. Bei einem ungemessenen Unterknoten wird die Summe seines Abschnitts verwendet. Jeder gemessene Knoten erzeugt zwei stabile historische Restkanäle für Verbrauch und Erzeugung. Live ist jeweils der zum Vorzeichen passende Kanal aktiv; der andere ist null. Ohne Kinder entspricht der Rest dem gesamten Zählerwert. Fehlende Kinder-/Zählerwerte ergeben einen nicht verfügbaren Rest. Speicher und DC-MPPTs werden dabei nicht abgezogen.
+Ein gemessener Unterknoten geht mit seinem Zählerwert ein. Bei einem ungemessenen Unterknoten wird die Summe seines Abschnitts verwendet. Jeder gemessene Knoten erzeugt zwei stabile historische Restkanäle für Verbrauch und Erzeugung. Live ist jeweils der zum Vorzeichen passende Kanal aktiv; der andere ist null. Ohne Kinder entspricht der Rest dem gesamten Zählerwert. Fehlende Kinder-/Zählerwerte ergeben einen nicht verfügbaren Rest. AC-Speicher werden mit ihrer Lade-/Entladerichtung abgezogen; DC-Speicher und DC-MPPTs bleiben separat.
 
-Der Rest enthält ungemessene Geräte, zeitliche Messabweichungen und Verluste. Es ist keine automatische Fehlerkorrektur. Phasen des Abschnittszählers sind separat sichtbar. Die automatische Restenergie wird als Gesamtwert aus aufgezeichneter Restleistung integriert; sie ist keine vollständig phasenaufgelöste Differenzbilanz.
+Der Rest enthält ungemessene Geräte, zeitliche Messabweichungen und Verluste. Es ist keine automatische Fehlerkorrektur. Phasen des Abschnittszählers sind separat sichtbar. Die automatische Restenergie wird integriert; bei dreiphasigen Knoten werden neue Restphasen ebenfalls aufgezeichnet und berechnete Phasen gekennzeichnet.
 
 Deaktivierte Knoten deaktivieren ihre gesamte Unterstruktur für Anzeige und Aufzeichnung. Vor dem Löschen müssen Kinder verschoben werden. Änderungen der Zuordnung ändern den aktuellen Aufbau; eine historische Rekonstruktion früherer Topologien ist noch nicht enthalten. Bereits aufgezeichnete Restkanäle werden dabei nicht neu berechnet.
 
@@ -216,7 +233,7 @@ Restenergie = Kapazität × SOC / 100. Nutzbare Energie = Kapazität × max(SOC 
 
 Die Restlaufzeit nutzt ein zeitabhängiges exponentielles 5-Minuten-Mittel der vorzeichenbehafteten Leistung und die bis Reserve nutzbare Energie. Sie erscheint nur bei aktueller und geglätteter Entladung über 50 W. Nach Datenlücken über 120 s oder einem Serverneustart beginnt die Glättung neu. Der erste Wert basiert auf der ersten verfügbaren Leistung. Der Gesamtspeicher verwendet seine saldierte geglättete Leistung. Laufzeit und Energieinhalt sind rechnerische Schätzungen ohne Alterungs-, Temperatur- oder Verlustmodell.
 
-AC-Leistung eines Hybrid-WR enthält ggf. Batterieentladung. Deshalb zeigt Energieboard bei aktiven Hybrid-WR keinen daraus abgeleiteten PV-Erzeugungs-/Eigenverbrauchswert. MPPT-Leistungen erscheinen separat als DC-Werte. Netzbezug und Einspeisung bleiben direkt messbar; Autarkie bezieht sich auf den erfassten AC-Verbrauch. Ohne vollständige Verbraucher-/Restmessung sind diese Kennzahlen entsprechend nur auf den erfassten Umfang bezogen.
+AC-Leistung eines Hybrid-WR enthält ggf. Batterieentladung. Deshalb werden zugeordnete MPPT-Messungen verwendet; ohne sie ist die Produktionsbilanz ausdrücklich als Schätzung markiert. MPPT-Leistungen erscheinen separat als DC-Werte. Netzbezug und Einspeisung bleiben direkt messbar; Autarkie bezieht sich auf den erfassten AC-Verbrauch. Ohne vollständige Verbraucher-/Restmessung sind diese Kennzahlen entsprechend nur auf den erfassten Umfang bezogen.
 
 Speicher-Lade-/Entladeenergie wird separat aufgezeichnet und in der Energietabelle gezeigt; sie wird nicht zu AC-Gesamtsummen addiert.
 

@@ -8,23 +8,16 @@ _averages = {}
 
 def evaluate(flows, values, now):
     out, nodes, storages, meters = [], [], [], {}
+    from lib.phases import measured_power, complete_phases
+    phase_estimates = {}
     def measured(flow):
-        factor = (1000 if flow.power_unit == "kW" else 1) * (-1 if flow.invert else 1)
-        def value(key):
-            raw = values.get(flow.datapoints.get(key))
-            return None if raw is None else raw * factor
-        phases = {p: value("power_" + p.lower()) for p in PHASES}
-        total = value("power_total")
-        if flow.power_phase_mode == "three":
-            if total is None and all(v is not None for v in phases.values()):
-                total = sum(phases.values())
-        else:
-            phases = {p: total if p == flow.power_phase else None for p in PHASES}
+        total, phases, inferred = measured_power(flow, values)
+        phase_estimates[flow.id] = inferred
         return total, phases
     def row(flow, power, phases=None, id=None, name=None, direction=None, category=None):
         return LiveFlow(flow_id=id or flow.id, name=name or flow.name, category=category or flow.category,
             direction=direction or flow.direction, color=flow.color, icon=flow.icon,
-            power_phase_mode=flow.power_phase_mode, power_phase=flow.power_phase,
+            power_phase_mode=flow.power_phase_mode, power_phase=flow.power_phase, estimated_phases=phase_estimates.get(flow.id, []),
             power_w=power,
             phases=phases or {p: None for p in PHASES}, frequency_hz=values.get(flow.datapoints.get("frequency")),
             available=power is not None, parent_id=flow.parent_id, estimated=flow.run_power_w is not None,
@@ -34,10 +27,10 @@ def evaluate(flows, values, now):
         if flow.kind == "device" and flow.category == "pv" and flow.pv_type == "hybrid":
             from lib.hybrid import hybrid_ac
             total, phases, _, _ = hybrid_ac(flow, values)
+            if flow.hybrid_ac_mode == "terminals" and flow.power_phase_mode == "three" and total is not None:
+                phase_estimates[flow.id] = list(PHASES)
         if flow.kind == "storage":
-            factor = (1000 if flow.power_unit == "kW" else 1) * (-1 if flow.invert else 1)
-            raw = None if total is None else total / factor
-            power = None if raw is None else raw * (1000 if flow.power_unit == "kW" else 1) * (1 if flow.charge_sign == "positive" else -1)
+            power = None if total is None else total * (1 if flow.charge_sign == "positive" else -1)
             soc = values.get(flow.datapoints.get("soc"))
             soc = soc if soc is not None and 0 <= soc <= 100 else None
             remaining = None if soc is None or flow.capacity_kwh is None else flow.capacity_kwh * soc / 100
@@ -57,7 +50,7 @@ def evaluate(flows, values, now):
             runtime = None
             if power is not None and power < -50 and average is not None and average < -50 and usable is not None:
                 runtime = round(usable * 1000 / -average, 2)
-            storages.append(LiveStorage(id=flow.id, name=flow.name, parent_id=flow.parent_id, soc_pct=soc,
+            storages.append(LiveStorage(estimated_phases=phase_estimates.get(flow.id,[]),id=flow.id, name=flow.name, parent_id=flow.parent_id, soc_pct=soc,
                 hybrid_name=next((h.name for h in flows if flow.id in h.storage_ids), None),
                 charge_w=None if power is None else max(power, 0), discharge_w=None if power is None else max(-power, 0),
                 capacity_kwh=flow.capacity_kwh, remaining_kwh=remaining, usable_kwh=usable,
@@ -77,7 +70,9 @@ def evaluate(flows, values, now):
         elif flow.run_power_w is not None:
             run = values.get(flow.datapoints.get("run"))
             power = None if run is None else flow.run_power_w if run else 0
-            out.append(row(flow, power, {p: power if p == flow.power_phase else None for p in PHASES}))
+            _, run_phases, inferred = complete_phases(power, {p:None for p in PHASES}, flow.power_phase_mode == "three", flow.power_phase)
+            phase_estimates[flow.id] = inferred
+            out.append(row(flow, power, run_phases))
         else:
             # Preserve source polarity. Configured direction determines the accounting role.
             out.append(row(flow, total, phases, category="grid" if flow.kind == "grid" else flow.category))
@@ -87,8 +82,11 @@ def evaluate(flows, values, now):
     def contribution(flow, seen):
         if flow.id in seen:
             return None
-        if flow.kind == "storage" or flow.electrical_side == "dc" or flow.pv_type == "mppt":
+        if flow.electrical_side == "dc" or flow.pv_type == "mppt":
             return 0
+        if flow.kind == "storage":
+            storage = next(s for s in storages if s.id == flow.id)
+            return None if storage.charge_w is None else storage.charge_w-storage.discharge_w
         if flow.kind == "node":
             if any(flow.datapoints.get(k) for k in ("power_total", "power_l1", "power_l2", "power_l3")):
                 return meters[flow.id][0]
@@ -96,6 +94,29 @@ def evaluate(flows, values, now):
             return None if any(v is None for v in children) else sum(children)
         rows = [r for r in out if r.flow_id == flow.id or r.flow_id in (flow.id + ":import", flow.id + ":export", flow.id + ":ac_production", flow.id + ":ac_consumption")]
         return None if any(r.power_w is None for r in rows) else sum(abs(r.power_w) * (1 if r.direction == "out" else -1) for r in rows)
+    def phase_contribution(flow, phase, seen):
+        if flow.id in seen: return None
+        if flow.electrical_side == "dc" or flow.pv_type == "mppt": return 0
+        if flow.kind == "node":
+            if any(flow.datapoints.get(k) for k in ("power_total","power_l1","power_l2","power_l3")):
+                if flow.power_phase_mode == "single" and phase != flow.power_phase: return 0
+                return meters[flow.id][1][phase]
+            parts = [phase_contribution(c,phase,seen|{flow.id}) for c in by_parent.get(flow.id,[])]
+            return None if any(v is None for v in parts) else sum(parts)
+        if flow.power_phase_mode == "single" and phase != flow.power_phase: return 0
+        if flow.kind == "storage":
+            total, phases = measured(flow)
+            value = phases[phase]
+            return None if value is None else value*(1 if flow.charge_sign=="positive" else -1)
+        rows = [r for r in out if r.flow_id==flow.id or r.flow_id.startswith(flow.id+":ac_")]
+        parts = [None if r.phases[phase] is None else abs(r.phases[phase])*(1 if r.direction=="out" else -1) for r in rows]
+        return None if any(v is None for v in parts) else sum(parts)
+    def branch_estimates(flow, seen=None):
+        seen=set() if seen is None else seen
+        if flow.id in seen:return []
+        result=set(phase_estimates.get(flow.id,[]))
+        for child in by_parent.get(flow.id,[]):result.update(branch_estimates(child,seen|{flow.id}))
+        return sorted(result)
     for flow in flows:
         if flow.kind != "node":
             continue
@@ -103,7 +124,13 @@ def evaluate(flows, values, now):
         children = [contribution(c, {flow.id}) for c in by_parent.get(flow.id, [])]
         child_total = None if any(v is None for v in children) else sum(children)
         rest = None if total is None or child_total is None else total - child_total
-        nodes.append(LiveNode(id=flow.id, name=flow.name, parent_id=flow.parent_id, icon=flow.icon, color=flow.color, sort_order=flow.sort_order,
+        child_phases = {}
+        for p in PHASES:
+            parts = [phase_contribution(c,p,{flow.id}) for c in by_parent.get(flow.id,[])]
+            child_phases[p] = None if any(v is None for v in parts) else sum(parts)
+        rest_phases = {p:None if phases[p] is None or child_phases[p] is None else phases[p]-child_phases[p] for p in PHASES}
+        nodes.append(LiveNode(children_phases=child_phases, difference_phases=rest_phases,
+            estimated_phases=branch_estimates(flow),id=flow.id, name=flow.name, parent_id=flow.parent_id, icon=flow.icon, color=flow.color, sort_order=flow.sort_order,
             phase_mode=flow.power_phase_mode, phase=flow.power_phase, phases=phases,
             meter_w=total, children_w=child_total, difference_w=rest))
         if any(flow.datapoints.get(k) for k in ("power_total", "power_l1", "power_l2", "power_l3")):
@@ -111,6 +138,8 @@ def evaluate(flows, values, now):
             for direction, suffix, sign in (("out", "rest_consumption", 1), ("in", "rest_production", -1)):
                 item = row(flow, None if rest is None else max(0, rest * sign), id=flow.id + ":" + suffix,
                     name=flow.name + (" · Restverbrauch" if sign == 1 else " · Resterzeugung"), direction=direction, category="custom")
+                item.phases = {p:None if v is None or rest is None else v*sign if rest*sign>0 else 0 for p,v in rest_phases.items()}
+                item.estimated_phases = branch_estimates(flow)
                 item.parent_id = flow.id
                 out.append(item)
     return out, nodes, storages

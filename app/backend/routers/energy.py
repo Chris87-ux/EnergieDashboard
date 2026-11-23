@@ -71,7 +71,7 @@ async def energy(start: str | None = None, end: str | None = None, preset: str |
     step = pick_step(t0, t1)
     thr = max(s.gap_threshold_min * 60, 2.5 * step)
     src = LiveSource(s)
-    results, totals = await compute_all(history_flows(flows), src, t0, t1, step, thr)
+    results, totals = await compute_all(history_flows(flows), src, t0, t1, step, thr, configuration=flows)
     zone = ZoneInfo(tz)
     return EnergyReport(
         start=a.astimezone(timezone.utc),
@@ -159,10 +159,6 @@ async def live():
     from lib.visibility import update_visibility
     await update_visibility(out, now.timestamp(), s)
     summary = _summary(out)
-    if any(f.pv_type == "hybrid" for f in flows):
-        # AC inverter output includes battery discharge; PV self-consumption cannot be inferred.
-        summary.self_consumption_pct = None
-        summary.pv_w = None
     from lib.hybrid import hybrid_reports
     hybrids = hybrid_reports(flows, values, storages)
     dc = [{"id": f.id, "name": f.name, "hybrid_id": next((h.id for h in flows if f.id in h.mppt_ids), None),
@@ -171,8 +167,21 @@ async def live():
            "power_w": None if values.get(f.datapoints.get("power_total")) is None else
            values[f.datapoints.get("power_total")] * (1000 if f.power_unit == "kW" else 1) * (-1 if f.invert else 1)}
           for f in flows if f.kind == "device" and (f.electrical_side == "dc" or f.pv_type == "mppt")]
+    from lib.balance import balance, strict_sum
+    readings={r.flow_id:None if r.power_w is None else abs(r.power_w) for r in out}
+    readings.update({r["id"]:None if r["power_w"] is None else abs(r["power_w"]) for r in dc})
+    b=balance(flows,readings,{s.id:(s.charge_w,s.discharge_w) for s in storages})
+    summary.production_w=summary.pv_w=b["production"]
+    summary.production_estimated=b["production_estimated"]
+    summary.consumption_w=b["consumption"]
+    summary.in_w=b["production"];summary.out_w=b["consumption"]
+    summary.grid_import_w=b["grid_import"];summary.grid_export_w=b["grid_export"]
+    summary.house_rest_w=b["rest"];summary.notes=b["notes"]
+    summary.autarky_pct=b["autarky_pct"];summary.self_consumption_pct=b["self_consumption_pct"]
+    summary.battery_charge_w=strict_sum(s.charge_w for s in storages)
+    summary.battery_discharge_w=strict_sum(s.discharge_w for s in storages)
     return LiveReport(ts=now, ok=grid and any(f.available for f in out), errors=errors,
         site_name=s.site_name, poll_s=s.live_poll_s,
-        frequency_hz=next((f.frequency_hz for f in out if f.frequency_hz is not None), None),
+        frequency_hz=next((f.frequency_hz for f in out if f.category=="grid" and f.frequency_hz is not None), None),
         flows=out, nodes=nodes, storages=storages, storage_total=aggregate_storage(storages),
         dc_values=dc, hybrids=hybrids, grid_configured=grid, summary=summary)

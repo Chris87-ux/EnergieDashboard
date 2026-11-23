@@ -5,7 +5,7 @@ import httpx
 
 with httpx.Client(base_url="http://127.0.0.1:8000/api", timeout=10) as client:
     health=client.get("/").raise_for_status().json()
-    assert health["status"]=="ok" and health["version"]=="2.3.0"
+    assert health["status"]=="ok" and health["version"]=="2.4.0"
     assert os.getuid()!=0, "Runtime must not run as root"
     settings=client.get("/settings").raise_for_status().json()
     if sys.argv[1]=="create":

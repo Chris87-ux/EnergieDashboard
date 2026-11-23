@@ -201,12 +201,12 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
               <Field label="Anzeigename">
                 <Input value={form.name} onChange={(e) => set("name", e.target.value)} placeholder="z. B. Wärmepumpe" data-testid="flow-editor-name-input" />
               </Field>
-              {(form.kind === "device" && !isMppt && !isHybrid || form.kind === "grid" && form.grid_mode === "directional") && <Field label="Richtung" hint="Zufluss = Energie ins Haus (PV, Netzbezug, Entladung)">
+              {(form.kind === "device" && !isMppt && !isHybrid || form.kind === "grid" && form.grid_mode === "directional") && <Field label="Richtung" hint="Geräte: Produktion oder Verbrauch. Netzbezug und Lieferung werden separat bilanziert.">
                 <Segmented
                   value={form.direction}
                   onChange={(v) => set("direction", v)}
                   testid="flow-editor-direction"
-                  options={[{ value: "in", label: "Zufluss" }, { value: "out", label: "Abfluss" }]}
+                  options={[{ value: "in", label: form.kind === "grid" ? "Bezug" : "Produktion" }, { value: "out", label: form.kind === "grid" ? "Lieferung" : "Verbrauch" }]}
                 />
               </Field>
               }
@@ -303,10 +303,10 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
 
           <TabsContent value="phases" className="mt-4 space-y-5">
             <div className="space-y-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
-              <div className="font-heading text-sm font-semibold">Last / Wirkleistung</div>
+              <div className="font-heading text-sm font-semibold">Last / Wirkleistung</div><p className="text-xs text-muted-foreground">Dreiphasig: Gesamtleistung zählt für das ganze Gerät. Fehlende Phasen werden symmetrisch berechnet und als berechnet markiert. Einzelne Phasenmessung ohne Gesamtwert wird auf drei Phasen hochgerechnet.</p>
               {!dcOnly && <>
               <div className="flex flex-wrap items-center gap-3">
-                <Segmented value={form.power_phase_mode} onChange={(v) => set("power_phase_mode", v)} testid="flow-editor-power-mode" options={form.run_power_w !== null ? PHASE_MODE_OPTS.slice(0, 1) : PHASE_MODE_OPTS} />
+                <Segmented value={form.power_phase_mode} onChange={(v) => set("power_phase_mode", v)} testid="flow-editor-power-mode" options={PHASE_MODE_OPTS} />
                 {singlePower && (
                   <Segmented value={form.power_phase} onChange={(v) => set("power_phase", v)} testid="flow-editor-power-phase" options={PHASE_OPTS} />
                 )}
@@ -345,7 +345,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
                 <Checkbox checked={form.run_power_w !== null} data-testid="flow-editor-run-mode"
                   onCheckedChange={(enabled) => setForm((f) => ({
                     ...f, run_power_w: enabled === true ? 100 : null,
-                    power_phase_mode: enabled === true ? "single" : f.power_phase_mode,
+                    power_phase_mode: f.power_phase_mode,
                     energy_phase_mode: enabled === true ? "single" : f.energy_phase_mode,
                     datapoints: { ...f.datapoints, run: enabled === true ? f.datapoints.run ?? "" : "" },
                   }))} />
@@ -382,7 +382,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
             <datalist id="measurement-options">{(points.data ?? []).filter(p => p.enabled).map(p => <option key={p.id} value={"point:" + p.id}>{p.name} · {p.unit}</option>)}</datalist>
             <p className="text-xs text-[#8EA8C3]">Messpunkt aus Datenerfassung auswählen oder bestehende ioBroker-ID eingeben, z. B. <span className="font-mono text-[#93C5FD]">smartmeter.0.1-0:1_7_0__255.value</span>. Leere Felder werden ignoriert.</p>
             {form.run_power_w === null && <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={isMppt ? "DC-Leistung (MPPT-Ausgang / DC-Bus)" : isHybrid && form.hybrid_ac_mode === "terminals" ? "AC-Out Gesamtleistung" : form.kind === "storage" ? "Speicherleistung mit Vorzeichen" : singlePower ? `Wirkleistung (${form.power_phase})` : "Gesamtleistung (optional, sonst Summe L1–L3)"}>
+              <Field label={isMppt ? "DC-Leistung (MPPT-Ausgang / DC-Bus)" : isHybrid && form.hybrid_ac_mode === "terminals" ? "AC-Out Gesamtleistung" : form.kind === "storage" ? "Speicherleistung mit Vorzeichen" : singlePower ? `Wirkleistung (${form.power_phase})` : "Gesamtleistung (ganzes Gerät; ohne Phasenwerte symmetrisch / 3)"}>
                 <Input list="measurement-options" className="font-mono text-xs" value={form.datapoints.power_total} onChange={(e) => setDp("power_total", e.target.value)} data-testid="flow-editor-dp-power_total" />
               </Field>
               {!singlePower &&

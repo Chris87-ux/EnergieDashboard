@@ -3,21 +3,15 @@ from models.flow import PHASES
 
 
 def hybrid_ac(flow, values):
+    from lib.phases import measured_power, complete_phases
+    output, phases, _ = measured_power(flow,values)
     factor=(1000 if flow.power_unit=="kW" else 1)*(-1 if flow.invert else 1)
-    def power(key):
-        value=values.get(flow.datapoints.get(key))
-        return None if value is None else value*factor
-    phases={p:power("power_"+p.lower()) for p in PHASES}
-    output=power("power_total")
-    if output is None and flow.power_phase_mode=="three" and all(v is not None for v in phases.values()):
-        output=sum(phases.values())
     if flow.hybrid_ac_mode=="terminals":
-        input=power("ac_input")
+        raw=values.get(flow.datapoints.get("ac_input"))
+        input=None if raw is None else raw*factor
         net=None if output is None or input is None else output-input
-        # An input total cannot be distributed over the output phases.
-        return net,{p:None for p in PHASES},output,input
-    if flow.power_phase_mode=="single":
-        phases={p:output if p==flow.power_phase else None for p in PHASES}
+        _, phases, _ = complete_phases(net,{p:None for p in PHASES},flow.power_phase_mode=="three",flow.power_phase)
+        return net,phases if flow.power_phase_mode=="three" else {p:None for p in PHASES},output,input
     return output,phases,None,None
 
 

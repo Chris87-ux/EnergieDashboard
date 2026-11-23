@@ -33,7 +33,7 @@ http://<LXC-IP>:8000/datenerfassung`,
   {
     title: "5. Aktualisieren",
     text: "Das Update sichert Anwendung, Datenbank und Konfiguration. Messpunkt-IDs und Historie bleiben erhalten. Bei einem Fehler wird die Sicherung zurückgespielt. Nur für die direkte LXC-Installation. Docker wird über Git-Tag und Compose aktualisiert. Bei späteren Releases den gewünschten festen Tag einsetzen.",
-    code: `bash /opt/energieboard/deploy/update.sh v2.3.0`,
+    code: `bash /opt/energieboard/deploy/update.sh v2.4.0`,
   },
 ];
 

@@ -1,6 +1,14 @@
-# Prüfbericht · Energieboard 2.3.0
+# Prüfbericht · Energieboard 2.4.0
 
-Stand: 21. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokolladapter, Konfigurationsübernahme, Sicherung und Updateablauf. Das ausgelieferte Programm enthält keinen Demo-Modus; Messwerte der Tests stammen ausschließlich aus isolierten Testprozessen.
+Stand: 23. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokolladapter, Konfigurationsübernahme, Sicherung und Updateablauf. Das ausgelieferte Programm enthält keinen Demo-Modus; Messwerte der Tests stammen ausschließlich aus isolierten Testprozessen.
+
+## Prüfungen für 2.4
+
+80 Backendtests erfolgreich, einschließlich neuer Fälle für Netztransfer, Export, Nullproduktion, unbekannte Werte, Hybrid mit/ohne MPPT, AC-Speicher, falsche Vorzeichen, ganze dreiphasige Gesamtleistung, einzelne/echte asymmetrische Phasen, RUN, Phasenreste, historische Gesamt-/Teilphasenzähler, identische Live-/Zeitraumbilanz und getrennte Netzzähler. Die Netzfrequenz wird gegenüber einer abweichenden Generatorfrequenz getestet.
+
+Integration mit echter Test-MongoDB, HTTP/MQTT/Modbus, 50 Geräten und Chromium erfolgreich: gemeinsame Netzkachel mit Frequenz und Tagesenergie, Hybridproduktion verfügbar, berechnete RUN-Phasen, Zeitraumkennzahlen, geänderte Bezeichnungen, CSV, Migration, Backup/Restore sowie Desktop-/Mobilansichten ohne JavaScript-Fehler. TypeScript/Vite-Build erfolgreich. Physische Geräte und tatsächlicher Proxmox-LXC sind weiterhin nicht Teil dieser Prüfung.
+
+Dockerprüfung des neuen Quellstands folgt vor Freigabe. Die nachfolgenden Abschnitte dokumentieren die älteren Prüfstände und deren Grenzen.
 
 ## Dokumentationsstand
 

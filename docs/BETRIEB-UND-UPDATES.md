@@ -55,7 +55,7 @@ Als root **im LXC**. Nicht parallel ausführen. Ausreichend freien Platz für al
 Auf den dokumentierten Release-Stand aktualisieren:
 
 ```bash
-bash /opt/energieboard/deploy/update.sh v2.3.0
+bash /opt/energieboard/deploy/update.sh v2.4.0
 ```
 
 Für ein späteres Release den passenden bestehenden Tag einsetzen. Ohne Argument verwendet der Updater `main`; für einen bewusst reproduzierbaren Stand ist ein fester Tag vorzuziehen.
@@ -63,8 +63,8 @@ Für ein späteres Release den passenden bestehenden Tag einsetzen. Ohne Argumen
 Wenn eine sehr alte Installation noch keinen Updater besitzt, diesen einmalig laden:
 
 ```bash
-curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/v2.3.0/deploy/update.sh -o /tmp/energieboard-update.sh
-bash /tmp/energieboard-update.sh v2.3.0
+curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/v2.4.0/deploy/update.sh -o /tmp/energieboard-update.sh
+bash /tmp/energieboard-update.sh v2.4.0
 ```
 
 ### Ablauf
@@ -128,12 +128,12 @@ Die Datenbank selbst braucht dafür keinen veröffentlichten Hostport. Nicht das
 git status --short
 git describe --tags --always
 git fetch --tags
-git checkout v2.3.0
+git checkout v2.4.0
 ```
 
-`v2.3.0` ist der aktuelle dokumentierte Stand; bei späterem Update dessen neuen Tag verwenden. Eigene Änderungen vor dem Checkout prüfen und sichern, nicht mit `reset --hard` verwerfen. Detached HEAD nach Tag-Checkout ist für diesen Betrieb normal.
+`v2.4.0` ist der aktuelle dokumentierte Stand; bei späterem Update dessen neuen Tag verwenden. Eigene Änderungen vor dem Checkout prüfen und sichern, nicht mit `reset --hard` verwerfen. Detached HEAD nach Tag-Checkout ist für diesen Betrieb normal.
 
-4. In `.env` `ENERGIEBOARD_VERSION=2.3.0` passend zum gewählten Tag setzen. Die Variable benennt nur das lokale Image; der Git-Stand bestimmt den Inhalt.
+4. In `.env` `ENERGIEBOARD_VERSION=2.4.0` passend zum gewählten Tag setzen. Die Variable benennt nur das lokale Image; der Git-Stand bestimmt den Inhalt.
 5. **Denselben Projektnamen und dieselbe Datenbank/Volume-Zuordnung beibehalten.**
 6. Neubau und Prüfung:
 

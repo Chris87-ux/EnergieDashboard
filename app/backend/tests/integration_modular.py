@@ -44,7 +44,7 @@ def exact(sock, n):
     return out
 
 
-values = {"legacy": 125, "grid": 500, "a": 1000, "b": 600, "motor": 300, "pv": -200,
+values = {"hz":49.98, "legacy": 125, "grid": 500, "a": 1000, "b": 600, "motor": 300, "pv": -200,
           "bat1": 1000, "soc1": 80, "bat2": 500, "soc2": 20, "mppt": 1500, "mppt_energy": 12340, "hybrid": 750, "run": 1,"idle":0,"engine_temperature":86,"efficiency":80,"fuel_consumption":2.3,"operating_hours":1234,"reserve":30}
 
 
@@ -142,8 +142,8 @@ def main():
                 connection = get("/connections")[0]
                 def point(id,address,unit="W",**fields):
                     return put("/measurements/"+id,{"name":id,"connection_id":connection["id"],"address":address,"unit":unit,**fields})
-                for key in values: point(key,key,"Wh" if key=="mppt_energy" else "%" if key.startswith("soc") else "W")
-                grid = create(name="Netzanschluss",category="grid",grid_mode="signed",datapoints={"power_total":"point:grid"})
+                for key in values: point(key,key,"Hz" if key=="hz" else "Wh" if key=="mppt_energy" else "%" if key.startswith("soc") else "W")
+                grid = create(name="Netzanschluss",category="grid",grid_mode="signed",datapoints={"power_total":"point:grid","frequency":"point:hz"})
                 assert grid["kind"]=="grid"
                 create(name="BHKW",category="generator",direction="in",icon="generator",datapoints={"power_total":"point:pv","engine_temperature":"point:engine_temperature","efficiency":"point:efficiency","fuel_consumption":"point:fuel_consumption","operating_hours":"point:operating_hours"})
                 idle=create(name="Nullgerät",datapoints={"power_total":"point:idle"})
@@ -181,7 +181,9 @@ def main():
                 assert live["storage_total"]["remaining_kwh"]==9
                 assert live["storages"][0]["runtime_h"]==6
                 assert not any(f["storage_id"] or f["flow_id"]==mppt["id"] for f in live["flows"])
-                assert live["summary"]["pv_w"] is None
+                assert live["summary"]["production_w"]==1900
+                assert live["summary"]["consumption_w"]==1650
+                assert live["frequency_hz"]==49.98
                 assert live["hybrids"][0]["efficiency_pct"]==25
                 assert live["hybrids"][0]["dc_net_w"]==3000
                 assert next(v for v in live["dc_values"] if v["id"]==mppt["id"])["energy_total_kwh"]==12.34
@@ -236,6 +238,25 @@ def main():
                 assert db.samples.count_documents({"dp":"point:mqtt"})>0
                 assert db.samples.count_documents({"dp":f"energieboard:{a['id']}:rest_consumption"})>0
                 print("Real HTTP API, MongoDB, MQTT, Modbus TCP, 50 devices, registry, nodes, storage and recorder OK",flush=True)
+                # Known 30-minute fixture history: verify period ratios really resolve,
+                # instead of letting the browser pass with every KPI unavailable.
+                sys.path.insert(0,str(BACKEND))
+                from models.flow import Flow
+                from lib.topology import derived_samples
+                configs=[Flow(**doc) for doc in db.flows.find({}, {"_id":0}) if doc.get("enabled",True)]
+                measured={"point:"+k:v for k,v in values.items()}
+                docs=[]
+                for stamp in range(int(time.time())-1800,int(time.time())-60,15):
+                    docs.extend({"dp":dp,"ts":stamp,"v":v,"valid_until":stamp+37.5} for dp,v in measured.items())
+                    docs.extend(derived_samples(configs,measured,stamp))
+                db.samples.insert_many(docs)
+                period=get("/energy?preset=today")
+                assert period["totals"]["production_kwh"]>0
+                assert period["totals"]["consumption_kwh"]>0
+                assert period["totals"]["autarky_pct"] is not None
+                assert period["totals"]["self_consumption_pct"] is not None
+                assert period["totals"]["grid_import_kwh"] is not None
+                print("Period production/consumption, grid energy, autonomy and self-consumption resolve with recorded fixture history OK",flush=True)
                 if os.environ.get("BROWSER_TEST"):
                     stamp=time.time()
                     db.visibility.update_one({"id":idle["id"]},{"$set":{"last_seen":stamp,"zero_since":stamp-61}},upsert=True)

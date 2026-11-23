@@ -1,6 +1,6 @@
 # Dokumentation
 
-Anwendungsstand **2.3.0**, Schema **5**, CSV **1** · Stand **21. November 2026**.
+Anwendungsstand **2.4.0**, Schema **5**, CSV **1** · Stand **23. November 2026**.
 
 Die Dateien im Repository bilden die vollständige versionierte Dokumentation. Historische Tags behalten ihre damalige Fassung. Die Anleitungen lassen sich zusätzlich ins [GitHub-Wiki](https://github.com/Chris87-ux/EnergieDashboard/wiki) übernehmen; bei dieser Aktualisierung war dessen Git-Endpunkt trotz aktiviertem Wiki noch nicht erreichbar.
 

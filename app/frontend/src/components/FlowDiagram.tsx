@@ -134,10 +134,10 @@ export default function FlowDiagram({ flows, summary, onSelectNode, hubName, hub
   return (
     <div className="diagram-bg relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] panel-shadow" data-testid="flow-diagram">
       <div className="pointer-events-none absolute left-4 top-3 flex gap-4 text-[11px] font-medium uppercase tracking-wider text-[#8EA8C3]">
-        <span>{vertical ? "↓ Zuflüsse" : "← Zuflüsse"}</span>
+        <span>{vertical ? "↓ Produktion" : "← Produktion"}</span>
       </div>
       <div className="pointer-events-none absolute right-4 top-3 text-[11px] font-medium uppercase tracking-wider text-[#8EA8C3]">
-        {vertical ? "" : "Abflüsse →"}
+        {vertical ? "" : "Verbrauch →"}
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label="Energieflussdiagramm">
         <defs>

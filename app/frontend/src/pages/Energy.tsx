@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, RotateCcw } from "lucide-react";
+import GridConnection from "@/components/GridConnection";
 import EnergyTable from "@/components/EnergyTable";
 import MethodBadge from "@/components/MethodBadge";
 import RangePicker from "@/components/RangePicker";
 import { ApiError } from "@/lib/api";
-import { fmtDuration, fmtKwh, fmtLocal } from "@/lib/format";
-import { usePresets, useEnergy, useFlows, type Range } from "@/lib/queries";
+import { fmtDuration, fmtKwh, fmtLocal, fmtPct } from "@/lib/format";
+import { usePresets, useEnergy, useFlows, useLive, type Range } from "@/lib/queries";
 
 export default function Energy() {
   const presets = usePresets();
+  const live = useLive();
   const configuration = useFlows();
   const [range, setRange] = useState<Range | null>(null);
   const [preset, setPreset] = useState<string | undefined>("today");
@@ -36,7 +38,7 @@ export default function Energy() {
         <p className="text-sm font-medium text-[var(--primary)]">Energie-Bilanz</p>
         <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="energy-title">Gesamt- und Phasenenergie in kWh</h1>
         <p className="max-w-3xl text-sm text-[#8EA8C3]">
-          DC-MPPT und Speicher stehen separat und gehen nicht in die AC-Gesamtsummen ein. Zählerdeltas mit Reset-Erkennung, Summe vollständiger Phasen oder Integration historischer Wirkleistung – fehlende Daten werden als Lücke bzw. „Nicht verfügbar“ markiert.
+          Produktion ohne Netzbezug und Verbrauch ohne Lieferung oder Speicherladung. AC/DC-Messgrenzen und unvollständige Werte sind gekennzeichnet. Zählerdeltas mit Reset-Erkennung, Summe vollständiger Phasen oder Integration historischer Wirkleistung – fehlende Daten werden als Lücke bzw. „Nicht verfügbar“ markiert.
         </p>
       </section>
 
@@ -58,14 +60,15 @@ export default function Energy() {
         </div>
       )}
 
+      <GridConnection data={live.data} period={report?.totals} periodLabel="Zeitraum" energyOnly />
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-testid="energy-summary">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 panel-shadow">
-          <div className="text-xs text-[#8EA8C3]">Zufluss gesamt</div>
-          <div className="mt-1 font-mono text-xl font-extrabold sm:text-2xl" data-testid="energy-sum-in">{report ? fmtKwh(report.totals.in_kwh) : "—"}</div>
+          <div className="text-xs text-[#8EA8C3]">Produktion gesamt</div>
+          <div className="mt-1 font-mono text-xl font-extrabold sm:text-2xl" data-testid="energy-sum-in">{report ? fmtKwh(report.totals.production_kwh) : "—"}</div>
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 panel-shadow">
-          <div className="text-xs text-[#8EA8C3]">Abfluss gesamt</div>
-          <div className="mt-1 font-mono text-xl font-extrabold sm:text-2xl" data-testid="energy-sum-out">{report ? fmtKwh(report.totals.out_kwh) : "—"}</div>
+          <div className="text-xs text-[#8EA8C3]">Verbrauch gesamt</div>
+          <div className="mt-1 font-mono text-xl font-extrabold sm:text-2xl" data-testid="energy-sum-out">{report ? fmtKwh(report.totals.consumption_kwh) : "—"}</div>
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 panel-shadow">
           <div className="text-xs text-[#8EA8C3]">Zeitraum ({report?.timezone ?? "—"})</div>
@@ -86,6 +89,8 @@ export default function Energy() {
         </div>
       </section>
 
+      <section className="grid grid-cols-2 gap-3"><div className="rounded-xl border border-border bg-card p-4">Autarkiegrad · Zeitraum<p className="font-mono text-xl" data-testid="energy-autarky">{fmtPct(report?.totals.autarky_pct)}</p></div><div className="rounded-xl border border-border bg-card p-4">Eigenverbrauch · Zeitraum<p className="font-mono text-xl" data-testid="energy-self-consumption">{fmtPct(report?.totals.self_consumption_pct)}</p></div></section>
+      {report && <details className="text-xs text-muted-foreground"><summary>Bilanzhinweise{report.totals.production_estimated ? " · Produktion geschätzt" : ""}</summary>{report.totals.notes.map(n=><p key={n}>{n}</p>)}</details>}
       <section className="flex flex-wrap items-center gap-3 text-xs text-[#8EA8C3]" data-testid="energy-legend">
         <span className="font-medium text-[#F0F4F8]">Berechnungsmethode:</span>
         <MethodBadge method="counter_delta" />

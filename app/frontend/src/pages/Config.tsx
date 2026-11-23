@@ -108,8 +108,8 @@ export default function Config() {
   const [search, setSearch] = useState("");
   const visible = list.filter((flow) => flow.name.toLocaleLowerCase().includes(search.toLocaleLowerCase()));
   const groups = [
-    { dir: "in" as const, title: "Zuflüsse", desc: "Energie, die ins Haus fließt – PV, Netzbezug, Batterieentladung", icon: ArrowDownLeft },
-    { dir: "out" as const, title: "Abflüsse", desc: "Verbraucher, Einspeisung, Batterieladung", icon: ArrowUpRight },
+    { dir: "in" as const, title: "Produktion", desc: "Lokale Erzeuger und Produktionsgeräte; Netz und Speicher separat", icon: ArrowDownLeft },
+    { dir: "out" as const, title: "Verbrauch", desc: "Verbrauchsgeräte; Netzlieferung und Speicher separat", icon: ArrowUpRight },
   ];
 
   return (
@@ -117,7 +117,7 @@ export default function Config() {
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
           <p className="text-sm font-medium text-[var(--primary)]">Fluss-Konfiguration</p>
-          <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="config-title">Zu- und Abflüsse</h1>
+          <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="config-title">Zu- und Verbrauch</h1>
           <p className="max-w-2xl text-sm text-[#8EA8C3]">Beliebig viele Flüsse mit eigenen ioBroker-Datenpunkten, Name, Symbol, Farbe, Kategorie und Phasen-Zuordnung.</p>
         </div>
         <Button onClick={() => openEditor(null)} data-testid="add-flow-button">

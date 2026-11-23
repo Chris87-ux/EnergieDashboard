@@ -4,6 +4,10 @@
 
 Nach der Installation fehlen zunächst Messquellen und Geräte. Einrichtungshinweise und „Nicht verfügbar“ sind in diesem Zustand normal. Alle folgenden Schritte finden im Browser unter `http://<SERVER-IP>:8000` statt.
 
+## Bilanz und Phasen ab 2.4
+
+Produktion, Verbrauch, Netzbezug/-lieferung und Speicherbewegungen sind getrennt. Autarkie und Eigenverbrauch gelten in der Übersicht für Heute, in der Energiebilanz für den gewählten Zeitraum. Produktion eines Hybrid-WR kommt aus zugeordneten MPPTs; ohne MPPT ist eine AC-/Batteriebilanz-Schätzung gekennzeichnet. Bei dreiphasiger Gesamtleistung werden fehlende Phasen symmetrisch berechnet, reale Messwerte bleiben vorrangig. Knoten zeigen ihre Restwerte auch je Phase. Alle Formeln, Messgrenzen und Grenzen der Herkunftszuordnung stehen in der [technischen Referenz](../DATENMODELL.md#bilanz-und-phasen-ab-24).
+
 ## 1. System festlegen
 
 **System** öffnen, Anlagenname und Zeitzone setzen, z. B. `Europe/Berlin`. Zeitzone beeinflusst „Heute“ und Tagesgrenzen. Live-Aktualisierung zunächst auf **5 Sekunden**, Recorder auf **15 Sekunden** lassen und **Einstellungen speichern**.
@@ -51,8 +55,8 @@ Weitere Abschnitte erst nach diesem Vergleich ergänzen. [Bilanzbeispiele](GERAE
 
 ## 6. PV, Generator und RUN-Geräte ergänzen
 
-- Normaler PV-WR: Gerät, Kategorie Photovoltaik, Typ WR, Richtung Erzeugung/Zufluss.
-- Generator/BHKW: Gerät, Kategorie Generator/BHKW, Richtung Zufluss; optionale Betriebswerte zuordnen.
+- Normaler PV-WR: Gerät, Kategorie Photovoltaik, Typ WR, Richtung Erzeugung/Produktion.
+- Generator/BHKW: Gerät, Kategorie Generator/BHKW, Richtung Produktion; optionale Betriebswerte zuordnen.
 - RUN-Gerät: festen Wattwert und RUN-Datenpunkt hinterlegen; nur sinnvoll, wenn die feste Leistung den Betrieb ausreichend beschreibt.
 - Hybrid-WR mit Batterie: zuerst Speicher und DC-MPPTs anlegen, danach den Hybrid verknüpfen. [Eigene Anleitung](SPEICHER-UND-HYBRID.md).
 

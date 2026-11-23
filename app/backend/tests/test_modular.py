@@ -17,7 +17,7 @@ class ModularTests(unittest.IsolatedAsyncioTestCase):
         flows=[node("a"),node("b","a"),Flow(id="motor",name="Motor",parent_id="b",datapoints={"power_total":"motor"}),
             Flow(id="pv",name="PV",direction="in",parent_id="b",datapoints={"power_total":"pv"}),
             Flow(id="mppt",name="MPPT",pv_type="mppt",electrical_side="dc",parent_id="b",datapoints={"power_total":"mppt"}),
-            Flow(id="bat",name="Akku",kind="storage",parent_id="b",capacity_kwh=10,datapoints={"power_total":"bat","soc":"soc"})]
+            Flow(id="bat",name="Akku",kind="storage",electrical_side="dc",parent_id="b",capacity_kwh=10,datapoints={"power_total":"bat","soc":"soc"})]
         live,nodes,storage=evaluate(flows,{"a":1000,"b":600,"motor":300,"pv":200,"mppt":900,"bat":-800,"soc":80},100)
         self.assertEqual([(n.children_w,n.difference_w) for n in nodes],[(600,400),(100,500)])
         signed=sum(f.power_w*(1 if f.direction=="out" else -1) for f in live)

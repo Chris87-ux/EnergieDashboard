@@ -1,5 +1,15 @@
 # Änderungen
 
+## 2.4.0 · 23. November 2026
+
+- Gemeinsame Berechnung für Live-/Energiebilanz; Netzbezug, Lieferung und Speicherbewegungen nicht als zusätzliche Produktion/Verbrauch summiert.
+- Hybridproduktion aus MPPT-Messung statt pauschal n. v.; ohne MPPT ausdrücklich markierte AC-/Batteriebilanz-Schätzung.
+- Autarkie/Eigenverbrauch im Dashboard aus dem heutigen Energiezeitraum; Energiebilanz mit denselben Formeln für ihren Zeitraum.
+- Netzfrequenz ausschließlich aus dem Netzanschluss; heutige/zeitraumbezogene Bezug- und Lieferenergie gemeinsam in der Netzkachel.
+- Bezeichnungen Produktion/Verbrauch in der Oberfläche. Bestehende Richtungskennungen und IDs bleiben erhalten.
+- Symmetrische Ergänzung dreiphasiger Gesamt-/Teilphasenwerte, auch RUN und Historie, mit sichtbarer Kennzeichnung. Reale Messwerte haben Vorrang.
+- Phasenbezogene Knotenreste und neue historische Restphasendaten; AC-Speicher werden vorzeichenrichtig im Knoten berücksichtigt, Speicher-Invertierung korrigiert.
+
 ## Dokumentation nach 2.3.0 · 21. November 2026
 
 - Zentraler Dokumentationsindex mit Lesereihenfolge und getrennten Anleitungen für Proxmox-LXC und Docker-Erstinstallation.

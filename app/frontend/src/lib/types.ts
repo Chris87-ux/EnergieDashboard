@@ -146,6 +146,7 @@ export interface EnergyValue {
 }
 
 export interface FlowEnergy {
+  estimated_phases?: string[];
   electrical_side: "ac" | "dc";
   parent_id: string | null;
   storage_id: string | null;
@@ -162,6 +163,14 @@ export interface FlowEnergy {
 }
 
 export interface EnergyTotals {
+  production_kwh: number | null;
+  consumption_kwh: number | null;
+  grid_import_kwh: number | null;
+  grid_export_kwh: number | null;
+  autarky_pct: number | null;
+  self_consumption_pct: number | null;
+  production_estimated: boolean;
+  notes: string[];
   in_kwh: number | null;
   out_kwh: number | null;
   incomplete: boolean;
@@ -190,6 +199,7 @@ export interface RangePreset {
 }
 
 export interface LiveFlow {
+  estimated_phases?: string[];
   node_id?: string;
   hidden: boolean;
   zero_since: number | null;
@@ -212,6 +222,9 @@ export interface LiveFlow {
 }
 
 export interface LiveSummary {
+  production_w: number | null;
+  production_estimated: boolean;
+  notes: string[];
   in_w: number | null;
   out_w: number | null;
   pv_w: number | null;
@@ -244,6 +257,9 @@ export interface LiveReport {
 }
 
 export interface LiveNode {
+  children_phases: Record<string, number | null>;
+  difference_phases: Record<string, number | null>;
+  estimated_phases?: string[];
   icon: string;
   color: string;
   sort_order: number;
@@ -259,6 +275,7 @@ export interface LiveNode {
 }
 
 export interface LiveStorage {
+  estimated_phases?: string[];
   electrical_side: "ac" | "dc" | "mixed";
   phases: Record<string,number|null>;
   reserve_soc_pct: number|null;

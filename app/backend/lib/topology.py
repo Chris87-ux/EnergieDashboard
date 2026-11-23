@@ -16,6 +16,12 @@ def derived_samples(flows: list[Flow], values: dict[str, float | None], now: flo
             if storage.charge_w is None:
                 continue
             channels = {"charge": storage.charge_w, "discharge": storage.discharge_w}
+            if flow.electrical_side=="ac" and flow.power_phase_mode=="three":
+                for p,value in storage.phases.items():
+                    if value is not None:
+                        signed=value*(1 if flow.charge_sign=="positive" else -1)
+                        channels["charge:"+p.lower()]=signed if storage.charge_w>0 else 0
+                        channels["discharge:"+p.lower()]=-signed if storage.discharge_w>0 else 0
         elif flow.kind == "device" and flow.run_power_w is not None:
             value = values.get(flow.datapoints.get("run"))
             if value is None:
@@ -30,6 +36,9 @@ def derived_samples(flows: list[Flow], values: dict[str, float | None], now: flo
                 owner, channel = item.flow_id.rsplit(":", 1)
                 samples.append({"dp": f"energieboard:{owner}:{channel}", "ts": now,
                     "v": item.power_w, "valid_until": now + interval_s * 2.5})
+                if ":rest_" in item.flow_id and item.power_phase_mode == "three":
+                    samples.extend({"dp":f"energieboard:{owner}:{channel}:"+p.lower(),"ts":now,"v":v,"valid_until":now+interval_s*2.5}
+                        for p,v in item.phases.items() if v is not None)
     return samples
 
 
@@ -47,32 +56,36 @@ def history_flows(flows: list[Flow]) -> list[Flow]:
                     "id": flow.id + ":" + channel, "name": flow.name + " · " + suffix,
                     "kind": "device", "category": "custom" if flow.kind == "node" else "grid" if flow.kind == "grid" else flow.category,
                     "direction": direction, "parent_id": flow.id if flow.kind == "node" else flow.parent_id,
-                    "power_unit": "W", "invert": False, "power_phase_mode": "single", "energy_phase_mode": "single",
-                    "extra": {**flow.extra, "total_only": True},
+                    "power_unit": "W", "invert": False,
+                    "power_phase_mode": flow.power_phase_mode if flow.kind=="node" else "single",
+                    "energy_phase_mode": flow.power_phase_mode if flow.kind=="node" else "single",
+                    "extra": {**flow.extra, "total_only": flow.kind != "node" or flow.power_phase_mode != "three"},
                     "datapoints": flow.datapoints.model_copy(update={
                         **{key: "" for key in flow.datapoints.model_dump()}, "power_total": sample_id(flow, channel),
-                        "energy_total": flow.datapoints.get("energy_" + channel) if flow.kind == "grid" else ""}),
+                        "energy_total": flow.datapoints.get("energy_" + channel) if flow.kind == "grid" else "",
+                        **({"power_"+p.lower():sample_id(flow,channel)+":"+p.lower() for p in ("L1","L2","L3")} if flow.kind=="node" and flow.power_phase_mode=="three" else {})}),
                 }))
             continue
-        if flow.kind != "storage" and flow.pv_type != "mppt" and flow.electrical_side == "dc":
+        if flow.kind != "storage" and flow.pv_type != "mppt" and flow.electrical_side == "dc" and flow.direction != "in":
             continue
         if flow.kind == "storage":
             for channel, direction, suffix in (("charge", "out", "Laden"), ("discharge", "in", "Entladen")):
                 out.append(flow.model_copy(update={
                     "id": f"{flow.id}:{channel}", "name": f"{flow.name} · {suffix}",
                     "category": "battery", "direction": direction, "power_unit": "W",
-                    "power_phase_mode": "single", "energy_phase_mode": "single",
+                    "power_phase_mode": flow.power_phase_mode, "energy_phase_mode": flow.power_phase_mode,
                     "energy_phase": flow.power_phase, "invert": False,
-                    "extra": {**flow.extra, "total_only": flow.power_phase_mode == "three"},
+                    "extra": {**flow.extra, "total_only": False},
                     "datapoints": flow.datapoints.model_copy(update={
                         **{key: "" for key in flow.datapoints.model_dump()},
                         "power_total": sample_id(flow, channel),
+                        **({"power_"+p.lower():sample_id(flow,channel)+":"+p.lower() for p in ("L1","L2","L3")} if flow.electrical_side=="ac" and flow.power_phase_mode=="three" else {}),
                     }),
                 }))
         elif flow.run_power_w is not None:
             out.append(flow.model_copy(update={
-                "power_unit": "W", "invert": False, "power_phase_mode": "single",
-                "energy_phase_mode": "single", "energy_phase": flow.power_phase,
+                "power_unit": "W", "invert": False, "power_phase_mode": flow.power_phase_mode,
+                "energy_phase_mode": flow.power_phase_mode, "energy_phase": flow.power_phase,
                 "datapoints": flow.datapoints.model_copy(update={
                     **{key: "" for key in flow.datapoints.model_dump()},
                     "power_total": sample_id(flow, "run"),

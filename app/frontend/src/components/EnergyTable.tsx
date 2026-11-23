@@ -78,7 +78,7 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
                       <div>
                         <div className="font-medium">{f.name}</div>
                         <div className="text-[11px] text-[#8EA8C3]">
-                          {f.direction === "in" ? "Zufluss" : "Abfluss"} · {f.electrical_side === "dc" ? "DC · separat" : PHASES.every(p=>f.phases[p].method === "not_applicable") ? "AC · Gesamtwert" : f.energy_phase_mode === "three" ? "3-phasig" : `AC · ${f.energy_phase}`}
+                          {f.direction === "in" ? "Produktion" : "Verbrauch"} · {f.electrical_side === "dc" ? "DC · separat" : PHASES.every(p=>f.phases[p].method === "not_applicable") ? "AC · Gesamtwert" : f.energy_phase_mode === "three" ? "3-phasig" : `AC · ${f.energy_phase}`}
                         </div>
                       </div>
                     </div>
@@ -93,7 +93,7 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
                   </TableCell>
                   {PHASES.map((p) => (
                     <TableCell key={p}>
-                      <Cell v={f.phases[p]} testid={`energy-phase-${f.flow_id}-${p}`} />
+                      <Cell v={f.phases[p]} testid={`energy-phase-${f.flow_id}-${p}`} />{f.estimated_phases?.includes(p)&&<span className="text-xs text-amber-300">Symmetrisch berechnet</span>}
                     </TableCell>
                   ))}
                   <TableCell>

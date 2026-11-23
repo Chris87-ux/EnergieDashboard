@@ -10,7 +10,7 @@
 | AC / DC | Wechselstrom-/Gleichstrom-Messseite. DC besitzt keine L1–L3-Zuordnung. |
 | Messgrenze | Stelle, über die Energie gemessen wird, z. B. Netzanschluss, WR-Port oder Batterie. |
 | Netzbezug / Lieferung | Energie aus dem öffentlichen Netz bzw. in dieses Netz; signed Leistung positiv/negativ. |
-| Zufluss / Abfluss | Konfigurierte Bilanzrolle, kein universelles Quellvorzeichen. |
+| Produktion / Verbrauch | Konfigurierte Bilanzrolle, kein universelles Quellvorzeichen. |
 | Knoten | Abschnitt/Gruppe mit Kindern und optionalem Nettozähler. |
 | Restverbrauch / Resterzeugung | Differenz zwischen Abschnittszähler und bekannten Kindbeiträgen. Enthält auch Verluste/Messabweichungen. |
 | RUN | Betriebssignal; zusammen mit fester Wattzahl eine Leistungsschätzung. |

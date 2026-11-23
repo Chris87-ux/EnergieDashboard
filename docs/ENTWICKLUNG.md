@@ -35,7 +35,7 @@ Der Build führt TypeScript-Prüfung und Produktionsbuild aus. Die Dockerdatei b
 PYTHONPATH=app/backend .venv/bin/python -m unittest discover -s app/backend/tests -v
 ```
 
-Stand 2.3.0: 60 Tests. Einige Tests öffnen lokale Test-Sockets. Testdaten und Protokollfixtures sind ausschließlich Testcode; die ausgelieferte Anwendung hat keinen Demo-Modus.
+Stand 2.4.0: 80 Tests. Einige Tests öffnen lokale Test-Sockets. Testdaten und Protokollfixtures sind ausschließlich Testcode; die ausgelieferte Anwendung hat keinen Demo-Modus.
 
 ## Integration mit echter MongoDB
 

@@ -38,7 +38,7 @@ export default function FlowCard({ flow, energy }: Props) {
           data-testid={`flow-card-direction-${flow.flow_id}`}
         >
           {flow.direction === "in" ? <ArrowDownLeft className="size-3" /> : <ArrowUpRight className="size-3" />}
-          {flow.direction === "in" ? "Zufluss" : "Abfluss"}
+          {flow.direction === "in" ? "Produktion" : "Verbrauch"}
         </span>
       </div>
       <div className="mt-3 flex items-end justify-between">
@@ -72,7 +72,7 @@ export default function FlowCard({ flow, energy }: Props) {
                   />
                 )}
               </div>
-              <span className="w-20 text-right font-mono text-[#F0F4F8]">{used ? fmtW(v) : "—"}</span>
+              <span className="w-20 text-right font-mono text-[#F0F4F8]">{used ? fmtW(v) : "—"}{flow.estimated_phases?.includes(p) ? " (ber.)" : ""}</span>
             </div>
           );
         })}

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { ArrowRight, Gauge, Leaf, Sun, Waves } from "lucide-react";
+import { ArrowRight, Gauge, Leaf, Sun } from "lucide-react";
 import {useState} from "react";
 import GridConnection from "@/components/GridConnection";
 import TopologyDiagram from "@/components/TopologyDiagram";
@@ -8,7 +8,7 @@ import StorageOverview from "@/components/StorageOverview";
 import NodeOverview from "@/components/NodeOverview";
 import MethodBadge from "@/components/MethodBadge";
 import { buttonVariants } from "@/components/ui/button";
-import { fmtHz, fmtKwh, fmtPct, fmtTime, fmtW } from "@/lib/format";
+import { fmtKwh, fmtPct, fmtTime, fmtW } from "@/lib/format";
 import { useEnergyToday, useLive } from "@/lib/queries";
 import type { LucideIcon } from "lucide-react";
 
@@ -34,6 +34,8 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
   const [showInactive,setShowInactive]=useState(false);
   const todayReport = today.isError ? undefined : today.data;
 
+  const visualData = data ? {...data, summary:{...data.summary, autarky_pct:todayReport?.totals.autarky_pct??null, self_consumption_pct:todayReport?.totals.self_consumption_pct??null}} : undefined;
+
   return (
     <>
       <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -44,11 +46,6 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-[#8EA8C3]">
-          {data?.frequency_hz != null && (
-            <span className="flex items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 font-mono text-[#93C5FD]" data-testid="dashboard-frequency">
-              <Waves className="size-3.5" /> {fmtHz(data.frequency_hz)}
-            </span>
-          )}
           <span data-testid="dashboard-updated">{data ? `Aktualisiert ${fmtTime(data.ts)}` : live.isError ? "Backend nicht erreichbar" : "Lade Livedaten…"}</span>
         </div>
       </section>
@@ -61,18 +58,19 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
         </div>
       )}
 
-      <GridConnection data={data} />
+      <GridConnection data={data} period={todayReport?.totals} />
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="kpi-strip">
-        <Kpi label="Erzeugung" value={fmtW(s?.pv_w)} icon={Sun} color="#EAB308" testid="kpi-production" />
+        <Kpi label={s?.production_estimated ? "Produktion · geschätzt" : "Produktion"} value={fmtW(s?.production_w)} icon={Sun} color="#EAB308" testid="kpi-production" />
         <Kpi label="Verbrauch" value={fmtW(s?.consumption_w)} icon={Gauge} color="#38BDF8" testid="kpi-consumption" />
-        <Kpi label="Autarkiegrad" value={fmtPct(s?.autarky_pct)} icon={Leaf} color="#34D399" testid="kpi-autarky" />
-        <Kpi label="Eigenverbrauch" value={fmtPct(s?.self_consumption_pct)} icon={Sun} color="#FBBF24" testid="kpi-self-consumption" />
+        <Kpi label="Autarkiegrad · Heute" value={fmtPct(todayReport?.totals.autarky_pct)} icon={Leaf} color="#34D399" testid="kpi-autarky" />
+        <Kpi label="Eigenverbrauch · Heute" value={fmtPct(todayReport?.totals.self_consumption_pct)} icon={Sun} color="#FBBF24" testid="kpi-self-consumption" />
       </section>
 
+      {s && s.notes.length>0 && <details className="text-xs text-muted-foreground"><summary>Bilanzhinweise</summary>{s.notes.map(n=><p key={n}>{n}</p>)}<p>Produktion kombiniert die jeweils gemessenen AC-/DC-Erzeugungsgrenzen. Autarkie und Eigenverbrauch beziehen sich auf den aufgezeichneten heutigen Zeitraum.</p></details>}
       <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showInactive} onChange={e=>setShowInactive(e.target.checked)}/>Inaktive anzeigen{data ? ` (${data.flows.filter(f=>f.hidden&&f.category!=="grid").length} ausgeblendet)` : ""}</label>
       <section className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         <div className="flow-visual lg:col-span-8">
-          {data && <TopologyDiagram data={data} showInactive={showInactive} />}
+          {visualData && <TopologyDiagram data={visualData} showInactive={showInactive} />}
         </div>
         <aside className="today-aside space-y-4 lg:col-span-4">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 panel-shadow" data-testid="today-panel">
@@ -84,11 +82,11 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div className="rounded-lg bg-muted p-3">
-                <div className="text-xs text-[#8EA8C3]">Zufluss</div>
+                <div className="text-xs text-[#8EA8C3]">Produktion</div>
                 <div className="font-mono text-lg font-bold" data-testid="today-in-kwh">{fmtKwh(todayReport?.totals.in_kwh)}</div>
               </div>
               <div className="rounded-lg bg-muted p-3">
-                <div className="text-xs text-[#8EA8C3]">Abfluss</div>
+                <div className="text-xs text-[#8EA8C3]">Verbrauch</div>
                 <div className="font-mono text-lg font-bold" data-testid="today-out-kwh">{fmtKwh(todayReport?.totals.out_kwh)}</div>
               </div>
             </div>
@@ -113,7 +111,7 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
             </details>
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 panel-shadow text-sm">
-            <div className="text-xs text-[#8EA8C3]">Hausbilanz (Zufluss − gemessene Abflüsse)</div>
+            <div className="text-xs text-[#8EA8C3]">Nicht zugeordneter Verbrauch (Netzbilanz − Geräte)</div>
             <div className="mt-1 font-mono text-xl font-bold" data-testid="house-rest-power">{fmtW(s?.house_rest_w)}</div>
             <p className="mt-1 text-xs text-[#8EA8C3]">Nicht separat gemessener Restverbrauch bzw. Messabweichung.</p>
           </div>

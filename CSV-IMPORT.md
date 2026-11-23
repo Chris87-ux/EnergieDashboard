@@ -1,8 +1,8 @@
-# CSV-Konfiguration · Energieboard 2.3.0
+# CSV-Konfiguration · Energieboard 2.4.0
 
 [Dokumentationsübersicht](docs/README.md) · [Datenerfassung](docs/DATENERFASSUNG.md) · [Vollständige Sicherung](docs/BETRIEB-UND-UPDATES.md)
 
-Stand: 21. November 2026. CSV-Format **1**, unabhängig von Anwendung 2.3.0 und Datenbankschema 5.
+Stand: 23. November 2026. CSV-Format **1**, unabhängig von Anwendung 2.4.0 und Datenbankschema 5.
 
 ## Inhalt
 

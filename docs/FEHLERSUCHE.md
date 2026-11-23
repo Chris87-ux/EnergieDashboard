@@ -123,7 +123,7 @@ Recorder aktivieren und Status unter System prüfen. Frisch angelegte Punkte bes
 
 Lücken und unvollständige Datenabdeckung sind sichtbar und werden nicht beliebig mit Null gefüllt. Die Lückenschwelle ersetzt keine fehlenden Messungen; abgeleitete Zustandskanäle haben zusätzlich eine begrenzte Gültigkeit passend zum Recorder-Intervall. Fehlende Phasen können keine vollständige Dreiphasensumme ergeben.
 
-DC-/Speicherzeilen werden nicht zur AC-Gesamtsumme addiert. Zufluss-/Abflusssummen über mehrere Messgrenzen sind kein universeller PV-Ertrags- oder Haus-Gesamtzähler. [Begriffe](GLOSSAR.md) und [Datenmodell](../DATENMODELL.md) erläutern die Grenzen.
+DC-/Speicherzeilen werden nicht zur AC-Gesamtsumme addiert. Produktion-/Verbrauchsummen über mehrere Messgrenzen sind kein universeller PV-Ertrags- oder Haus-Gesamtzähler. [Begriffe](GLOSSAR.md) und [Datenmodell](../DATENMODELL.md) erläutern die Grenzen.
 
 ## CSV wird abgewiesen
 
@@ -135,6 +135,6 @@ Nicht sofort neu konfigurieren. Zuerst prüfen, ob dieselben `MONGO_URL`, `DB_NA
 
 ## GitHub-Dockerprüfung
 
-Im Workflow den **ersten fehlgeschlagenen Schritt** öffnen. Der historische Fehler „Bestehende Installation fehlt“ im Lauf 44885156398 stammte aus dem LXC-Updater-Test im eingeschränkten App-Container. Dieser Test läuft seit der Korrektur auf dem Linux-Runner. Der für 2.3.0 geprüfte Quellstand hat einen [erfolgreichen Dockerlauf](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/44906013502).
+Im Workflow den **ersten fehlgeschlagenen Schritt** öffnen. Der historische Fehler „Bestehende Installation fehlt“ im Lauf 44885156398 stammte aus dem LXC-Updater-Test im eingeschränkten App-Container. Dieser Test läuft seit der Korrektur auf dem Linux-Runner. Der für 2.4.0 geprüfte Quellstand hat einen [erfolgreichen Dockerlauf](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/44906013502).
 
 Ein alter roter Lauf ändert sich nach einer Korrektur nicht automatisch; neuen Lauf und Commit vergleichen. Keine sinnvollen Prüfungen entfernen, nur um einen grünen Status zu erhalten.

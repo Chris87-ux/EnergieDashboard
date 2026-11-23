@@ -157,87 +157,86 @@ def _to_model(c: Calc) -> EnergyValue:
 
 
 async def compute_flow(flow: Flow, src, start: float, end: float, step: int, thr: float) -> FlowEnergy:
-    cache: dict[tuple[str, str], object] = {}
-
-    async def series(key: str, agg: str):
-        k = (key, agg)
-        if k not in cache:
-            cache[k] = await src.series(flow, key, start, end, step, agg)
-        return cache[k]
-
-    async def counter(key: str) -> Calc | None:
-        s = await series(key, "last")
-        return counter_delta(s[0], s[1], start, end, thr) if s else None
-
-    async def integ(key: str | None) -> Calc | None:
-        if not key:
-            return None
-        if flow.datapoints.get(key).startswith("energieboard:") and hasattr(src, "recorded_integral"):
-            return await src.recorded_integral(flow, start, end, thr)
-        s = await series(key, "mean")
-        if s and flow.datapoints.get(key).startswith("energieboard:"):
-            ts, values = s
-            duration = 0.0
-            watts_seconds = 0.0
-            gaps = []
-            for i, timestamp in enumerate(ts):
-                left = max(start, float(timestamp))
-                right = min(end, float(ts[i + 1]) if i + 1 < len(ts) else end)
-                valid_end = min(right, float(timestamp) + min(thr, src.s.recorder.interval_s * 2.5))
-                if valid_end > left:
-                    duration += valid_end - left
-                    watts_seconds += float(values[i]) * (valid_end - left)
-                if right > max(left, valid_end):
-                    gaps.append((max(left, valid_end), right))
-            if len(ts) and ts[0] > start:
-                gaps.insert(0, (start, float(ts[0])))
-            if duration <= 0:
-                return None
-            estimated = flow.run_power_w is not None
-            return Calc(
-                watts_seconds / 3.6e6, "run_estimate" if estimated else "power_integral",
-                min(duration / (end - start), 1), not gaps, gaps,
-                note="Geschätzt aus aufgezeichnetem RUN-Signal und fester Leistung" if estimated else "Getrennt aus vorzeichenbehafteter Speicherleistung aufgezeichnet",
-            )
-        return power_integral(s[0], s[1], start, end, thr) if s else None
-
-    def power_key(p: str) -> str | None:
-        if flow.power_phase_mode == "three":
-            return f"power_{p.lower()}"
-        return "power_total" if p == flow.power_phase else None
-
-    phases: dict[str, Calc] = {}
-    if flow.energy_phase_mode == "three":
+    from dataclasses import replace
+    cache = {}
+    async def series(key, agg):
+        if (key,agg) in cache: return cache[(key,agg)]
+        result = None
+        if flow.datapoints.get(key):
+            result = await src.series(flow,key,start,end,step,agg)
+        elif key.startswith("power") and flow.power_phase_mode == "three" and flow.electrical_side == "ac":
+            if key != "power_total":
+                base = await series("power_total",agg)
+                result = (base[0],base[1]/3) if base else None
+            else:
+                keys = ["power_"+p.lower() for p in PHASES if flow.datapoints.get("power_"+p.lower())]
+                parts = [await series(k,agg) for k in keys]
+                if parts and all(part is not None for part in parts):
+                    timestamps = parts[0][0]
+                    for part in parts[1:]: timestamps=np.intersect1d(timestamps,part[0])
+                    if len(timestamps):
+                        vals=sum(part[1][np.searchsorted(part[0],timestamps)] for part in parts)*3/len(parts)
+                        result=(timestamps,vals)
+        cache[(key,agg)] = result
+        return result
+    async def counter(key):
+        data=await series(key,"last")
+        return counter_delta(data[0],data[1],start,end,thr) if data else None
+    async def integ(key):
+        dp=flow.datapoints.get(key)
+        if dp.startswith("energieboard:") and hasattr(src,"recorded_integral"):
+            mapped=flow.model_copy(update={"datapoints":flow.datapoints.model_copy(update={"power_total":dp})})
+            return await src.recorded_integral(mapped,start,end,thr)
+        data=await series(key,"mean")
+        if data and dp.startswith("energieboard:"):
+            ts,values=data; duration=0.; watts_seconds=0.; gaps=[]
+            for i,t in enumerate(ts):
+                left=max(start,float(t));right=min(end,float(ts[i+1]) if i+1<len(ts) else end)
+                valid_end=min(right,float(t)+min(thr,src.s.recorder.interval_s*2.5))
+                if valid_end>left:duration+=valid_end-left;watts_seconds+=float(values[i])*(valid_end-left)
+                if right>max(left,valid_end):gaps.append((max(left,valid_end),right))
+            if len(ts) and ts[0]>start:gaps.insert(0,(start,float(ts[0])))
+            if duration<=0:return None
+            return Calc(watts_seconds/3.6e6,"run_estimate" if flow.run_power_w is not None else "power_integral",
+                min(duration/(end-start),1),not gaps,gaps,note="Aus aufgezeichneten Zustandsintervallen")
+        return power_integral(data[0],data[1],start,end,thr) if data else None
+    total=await counter("energy_total")
+    phase_counters={p:await counter("energy_"+p.lower()) for p in PHASES} if flow.energy_phase_mode=="three" else {}
+    if total is None and len(phase_counters)==3 and all(c is not None for c in phase_counters.values()):total=phase_sum(list(phase_counters.values()))
+    if total is None and phase_counters:
+        configured=[p for p in PHASES if flow.datapoints.get("energy_"+p.lower())]
+        if configured and all(phase_counters[p] is not None for p in configured):
+            part=phase_sum([phase_counters[p] for p in configured])
+            total=replace(part,kwh=part.kwh*3/len(configured),note="Symmetrisch aus vorhandenen Phasenzählern hochgerechnet")
+    if total is None:total=await integ("power_total")
+    if total is None:total=unavailable(start,end)
+    estimated_phases=[]
+    three=flow.electrical_side=="ac" and (flow.power_phase_mode=="three" or flow.energy_phase_mode=="three")
+    if three and not flow.extra.get("total_only"):
+        phases={}
+        missing=[]
         for p in PHASES:
-            c = await counter(f"energy_{p.lower()}")
-            if c is None:
-                pk = power_key(p)
-                c = not_applicable() if pk is None else (await integ(pk) or unavailable(start, end))
-            phases[p] = c
-        total = await counter("energy_total")
-        vals = list(phases.values())
-        if total is None and all(v.method == "counter_delta" for v in vals):
-            total = phase_sum(vals)
-        if total is None:
-            total = await integ("power_total")
-        if total is None and all(v.ok or v.method == "not_applicable" for v in vals) and any(v.ok for v in vals):
-            total = phase_sum(vals)
-        if total is None:
-            total = unavailable(start, end, "Unvollständige Phasendaten – keine Summe möglich")
+            key="power_"+p.lower();c=phase_counters.get(p)
+            if c is None and flow.datapoints.get(key):c=await integ(key)
+            if c is None and not flow.datapoints.get(key) and not flow.datapoints.get("energy_"+p.lower()):missing.append(p)
+            phases[p]=c
+        known=[c for c in phases.values() if c is not None]
+        if missing and total.kwh is not None and all(c is not None and c.kwh is not None for p,c in phases.items() if p not in missing):
+            share=(total.kwh-sum(c.kwh for c in known if c.kwh is not None))/len(missing)
+            for p in missing:
+                phases[p]=replace(total,kwh=share,complete=total.complete and all(c.complete for c in known),
+                    coverage=min([total.coverage]+[c.coverage for c in known]),
+                    gaps=_merge(total.gaps+[g for c in known for g in c.gaps]),
+                    note="Berechnet: symmetrische Aufteilung der verbleibenden Gesamtenergie.")
+                estimated_phases.append(p)
+        phases={p:c or unavailable(start,end) for p,c in phases.items()}
+        if total.kwh is None and all(v.ok for v in phases.values()):total=phase_sum(list(phases.values()))
     else:
-        sel = flow.energy_phase
-        total = await counter("energy_total")
-        if total is None:
-            total = await integ("power_total")
-        if total is None and flow.power_phase_mode == "three":
-            total = await integ(f"power_{sel.lower()}")
-        if total is None:
-            total = unavailable(start, end)
-        phases = {p: (total if p == sel else not_applicable()) for p in PHASES}
-
-    if flow.electrical_side == "dc" or flow.extra.get("total_only"):
-        phases = {p:not_applicable() for p in PHASES}
+        phases={p:total if p==flow.energy_phase else not_applicable() for p in PHASES}
+    if flow.electrical_side=="dc" or flow.extra.get("total_only"):
+        phases={p:not_applicable() for p in PHASES}
     return FlowEnergy(
+        estimated_phases=estimated_phases,
         electrical_side=flow.electrical_side,
         flow_id=flow.id,
         name=flow.name,
@@ -258,11 +257,23 @@ def pick_step(start: float, end: float) -> int:
     return int(min(1800, max(60, (end - start) / 1440)))
 
 
-async def compute_all(flows: list[Flow], src, start: float, end: float, step: int, thr: float):
+async def compute_all(flows: list[Flow], src, start: float, end: float, step: int, thr: float, configuration=None):
     results = await asyncio.gather(*(compute_flow(f, src, start, end, step, thr) for f in flows))
     def total(direction: str) -> float | None:
         values = [r.total.kwh for r in results if r.direction == direction and r.total.kwh is not None and not r.storage_id and r.electrical_side == "ac"]
         return round(sum(values), 3) if values else None
 
     incomplete = any(not r.total.complete for r in results if not r.storage_id and r.electrical_side == "ac")
-    return list(results), EnergyTotals(in_kwh=total("in"), out_kwh=total("out"), incomplete=incomplete)
+    totals=EnergyTotals(in_kwh=total("in"),out_kwh=total("out"),incomplete=incomplete)
+    if configuration is not None:
+        from lib.balance import balance
+        inferred_storage={id for f in configuration if f.category=="pv" and f.pv_type=="hybrid" and not f.mppt_ids for id in f.storage_ids}
+        incomplete=any(not r.total.complete for r in results if not r.storage_id or r.electrical_side=="ac" or r.storage_id in inferred_storage)
+        readings={r.flow_id:r.total.kwh for r in results}
+        batteries={f.id:(readings.get(f.id+":charge"),readings.get(f.id+":discharge")) for f in configuration if f.kind=="storage"}
+        b=balance(configuration,readings,batteries)
+        totals=EnergyTotals(in_kwh=b["production"],out_kwh=b["consumption"],incomplete=incomplete,
+            production_kwh=b["production"],consumption_kwh=b["consumption"],grid_import_kwh=b["grid_import"],
+            grid_export_kwh=b["grid_export"],autarky_pct=b["autarky_pct"],self_consumption_pct=b["self_consumption_pct"],
+            production_estimated=b["production_estimated"],notes=b["notes"])
+    return list(results),totals

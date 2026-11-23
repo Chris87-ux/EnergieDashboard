@@ -2,6 +2,10 @@
 
 [Dokumentationsübersicht](README.md) · [Datenquellen](DATENERFASSUNG.md) · [Technische Felder](../DATENMODELL.md)
 
+## Bilanz und Phasen ab 2.4
+
+Produktion, Verbrauch, Netzbezug/-lieferung und Speicherbewegungen sind getrennt. Autarkie und Eigenverbrauch gelten in der Übersicht für Heute, in der Energiebilanz für den gewählten Zeitraum. Produktion eines Hybrid-WR kommt aus zugeordneten MPPTs; ohne MPPT ist eine AC-/Batteriebilanz-Schätzung gekennzeichnet. Bei dreiphasiger Gesamtleistung werden fehlende Phasen symmetrisch berechnet, reale Messwerte bleiben vorrangig. Knoten zeigen ihre Restwerte auch je Phase. Alle Formeln, Messgrenzen und Grenzen der Herkunftszuordnung stehen in der [technischen Referenz](../DATENMODELL.md#bilanz-und-phasen-ab-24).
+
 ## Vorher die Messgrenzen festlegen
 
 Bei DC-gekoppelten Systemen sind PV-Leistung, Batterieleistung und AC-Abgabe verschiedene Werte. Beispiel:
@@ -110,7 +114,7 @@ AC netto = AC-Out − AC-In
 
 Positiv an AC-In bedeutet in den WR, positiv an AC-Out aus dem WR; Rückfluss kann negativ sein. Die allgemeine AC-Vorzeichenumkehr kehrt **beide** Portwerte um. Falls die Quellen unterschiedliche Konventionen besitzen, den betreffenden Messpunkt mit Faktor −1 normalisieren.
 
-Ein Netzzähler für das ganze Grundstück ist kein Ersatz für AC-In am WR. Alle relevanten Portwerte müssen dieselbe Systemgrenze abbilden. Aus einem gesamten AC-In wird keine Nettoaufteilung auf einzelne Ausgangsphasen erfunden; die Hybridkarte zeigt dann einen Gesamtwert ohne Phasenaufteilung.
+Ein Netzzähler für das ganze Grundstück ist kein Ersatz für AC-In am WR. Alle relevanten Portwerte müssen dieselbe Systemgrenze abbilden. Bei dreiphasiger Konfiguration wird die Nettoleistung ohne entsprechende Port-Phasenmessungen symmetrisch aufgeteilt und als berechnet markiert; dies ist keine gemessene Phasenbilanz.
 
 ## 5. Wirkungsgrad konfigurieren
 
@@ -149,6 +153,6 @@ Ein durch das Victron-System bereits berechneter DC-Wert ist keine unabhängige 
 
 ## 6. Bilanz und Kontrolle
 
-Hybrid-AC-Abgabe kann Batterieentladung enthalten. Sie darf nicht pauschal als reine PV-Erzeugung bezeichnet werden; daher bleiben entsprechende PV-/Eigenverbrauchskennzahlen bei Hybridbetrieb unverfügbar. Netzbezug/Lieferung bleiben messbar. Die Energie-Zufluss-/Abflusssummen sind Summen definierter Messgrenzen, kein automatisch deduplizierter Gesamt-PV-Ertragszähler.
+Hybrid-AC-Abgabe kann Batterieentladung enthalten. Sie darf nicht pauschal als reine PV-Erzeugung bezeichnet werden; daher werden zugeordnete MPPT-Messungen oder gekennzeichnete Schätzungen verwendet. Netzbezug/Lieferung bleiben messbar. Die Energie-Produktion-/Verbrauchsummen sind Summen definierter Messgrenzen, kein automatisch deduplizierter Gesamt-PV-Ertragszähler.
 
 Nach der Einrichtung drei echte Betriebsfälle prüfen: PV-Erzeugung, Batterieladung und Batterieentladung bzw. Netzladung. AC-In/Out und DC-Messung jeweils mit den Originalwerten vergleichen. Bestehende Hybrid-Konfigurationen bleiben nach dem Update im Modus „Nettoleistung“; wenn bisher AC-Out zugeordnet war, den Modus bewusst korrigieren. Frühere fehlerhafte abgeleitete Historie wird nicht rückwirkend neu berechnet.

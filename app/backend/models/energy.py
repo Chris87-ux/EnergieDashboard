@@ -22,6 +22,7 @@ class EnergyValue(BaseModel):
 
 
 class FlowEnergy(BaseModel):
+    estimated_phases: list[str] = Field(default_factory=list)
     electrical_side: str = "ac"
     flow_id: str
     name: str
@@ -38,6 +39,14 @@ class FlowEnergy(BaseModel):
 
 
 class EnergyTotals(BaseModel):
+    production_kwh: float | None = None
+    consumption_kwh: float | None = None
+    grid_import_kwh: float | None = None
+    grid_export_kwh: float | None = None
+    autarky_pct: float | None = None
+    self_consumption_pct: float | None = None
+    production_estimated: bool = False
+    notes: list[str] = Field(default_factory=list)
     in_kwh: float | None
     out_kwh: float | None
     incomplete: bool
@@ -66,6 +75,7 @@ class RangePreset(BaseModel):
 
 
 class LiveFlow(BaseModel):
+    estimated_phases: list[str] = Field(default_factory=list)
     hidden: bool = False
     zero_since: float | None = None
     telemetry: dict[str, float | str | None] = Field(default_factory=dict)
@@ -87,6 +97,7 @@ class LiveFlow(BaseModel):
 
 
 class LiveStorage(BaseModel):
+    estimated_phases: list[str] = Field(default_factory=list)
     electrical_side: str = "dc"
     phases: dict[str, float | None] = Field(default_factory=dict)
     reserve_soc_pct: float | None = None
@@ -106,6 +117,9 @@ class LiveStorage(BaseModel):
 
 
 class LiveNode(BaseModel):
+    children_phases: dict[str, float | None] = Field(default_factory=dict)
+    difference_phases: dict[str, float | None] = Field(default_factory=dict)
+    estimated_phases: list[str] = Field(default_factory=list)
     icon: str = "network"
     color: str = "#38BDF8"
     sort_order: int = 0
@@ -121,6 +135,9 @@ class LiveNode(BaseModel):
 
 
 class LiveSummary(BaseModel):
+    production_w: float | None = None
+    production_estimated: bool = False
+    notes: list[str] = Field(default_factory=list)
     in_w: float | None
     out_w: float | None
     pv_w: float | None

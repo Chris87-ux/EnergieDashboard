@@ -85,4 +85,4 @@ export const METHOD_LABELS: Record<Method, string> = {
   not_applicable: "Nicht belegt",
 };
 
-export const DIRECTION_LABELS = { in: "Zufluss", out: "Abfluss" } as const;
+export const DIRECTION_LABELS = { in: "Produktion", out: "Verbrauch" } as const;

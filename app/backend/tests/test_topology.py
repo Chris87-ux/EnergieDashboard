@@ -32,7 +32,7 @@ class TopologyTests(unittest.IsolatedAsyncioTestCase):
         consumer = Flow(name="Motor", parent_id=node.id, datapoints={"power_total": "motor"})
         producer = Flow(name="PV", direction="in", category="pv", parent_id=node.id, datapoints={"power_total": "pv"})
         run = Flow(id="run-device", name="Pumpe", parent_id=node.id, run_power_w=200, datapoints={"run": "run"})
-        battery = Flow(id="battery", name="Speicher", kind="storage", parent_id=node.id,
+        battery = Flow(id="battery", name="Speicher", kind="storage", electrical_side="dc", parent_id=node.id,
                        datapoints={"power_total": "bat", "soc": "soc"})
         flows = [node, consumer, producer, run, battery]
         values = {"l1": 600, "l2": 300, "l3": 100, "motor": 300, "pv": 100,

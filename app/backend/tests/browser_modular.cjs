@@ -13,6 +13,16 @@ const assert=require("node:assert/strict");
   assert.match(await page.getByTestId("storage-aggregate").innerText(),/9/);
   assert.equal(await page.getByRole("meter").count(),3);
   const allFlows=await page.request.get(url+"/api/flows").then(r=>r.json());
+  const gridTile=page.getByTestId("grid-connection");
+  assert.match(await gridTile.innerText(),/Frequenz aktuell/);
+  assert.match(await gridTile.innerText(),/Heute Bezug/);
+  assert.match(await gridTile.innerText(),/Heute geliefert/);
+  assert.equal(await page.getByTestId("dashboard-frequency").count(),0);
+  assert.doesNotMatch(await page.getByTestId("kpi-production-value").innerText(),/n. v./);
+  assert.match(await page.getByTestId("kpi-autarky").innerText(),/Heute/);
+  await page.waitForFunction(()=>!document.querySelector('[data-testid="kpi-autarky-value"]').textContent.includes("n. v."));
+  assert.doesNotMatch(await page.getByTestId("kpi-self-consumption-value").innerText(),/n. v./);
+
   assert.equal(await page.getByTestId("grid-connection").count(),1);
   assert.equal(await page.getByTestId("topology-diagram").locator('[data-testid^="flow-node-"]').filter({hasText:"Netzanschluss"}).count(),0);
   const gridRect=await page.getByTestId("grid-connection").boundingBox();
@@ -118,6 +128,21 @@ const assert=require("node:assert/strict");
   await page.getByTestId("flow-editor-tab-general").click();
   assert.equal(await page.getByTestId("flow-editor-name-input").inputValue(),"m".repeat(60));
   await page.getByTestId("flow-editor-cancel-button").click();
+  // Three-phase total becomes three calculated equal phases, with no tripling.
+  const runFlow=allFlows.find(f=>f.name==="RUN-Pumpe");
+  await page.request.put(url+"/api/flows/"+runFlow.id,{data:{...runFlow,power_phase_mode:"three"}});
+  await page.goto(url);
+  await page.getByTestId("flow-card-"+runFlow.id).waitFor();
+  assert.match(await page.getByTestId("flow-card-"+runFlow.id).innerText(),/ber./);
+  for(const phase of ["L1","L2","L3"])assert.match(await page.getByTestId("flow-card-phase-"+runFlow.id+"-"+phase).innerText(),/67/);
+  await page.request.put(url+"/api/flows/"+runFlow.id,{data:runFlow});
+  await page.goto(url+"/energie");
+  await page.getByTestId("energy-summary").waitFor();
+  assert.match(await page.getByTestId("energy-summary").innerText(),/Produktion gesamt/);
+  assert.match(await page.getByTestId("grid-connection").innerText(),/Zeitraum Bezug/);
+  await page.getByTestId("energy-autarky").waitFor();
+  assert.doesNotMatch(await page.locator("main").innerText(),/Zufluss|Abfluss|Zuflüsse|Abflüsse/);
+  await page.goto(url+"/konfiguration");
   // DC-MPPT must never expose AC phases, frequency or a RUN estimate.
   await page.getByTestId("add-flow-button").click();
   await page.getByTestId("flow-editor-category-select").click();

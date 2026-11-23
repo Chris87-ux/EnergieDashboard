@@ -333,7 +333,7 @@ class LiveSource:
         arr = np.array(vs, dtype=float)
         if key.startswith("power"):
             arr = arr * (1000.0 if flow.power_unit == "kW" else 1.0) * (-1.0 if flow.invert else 1.0)
-            arr = np.abs(arr)
+            if not derived: arr = np.abs(arr)
         elif key.startswith("energy"):
             arr = arr * (0.001 if flow.energy_unit == "Wh" else 1.0)
         return np.array(ts, dtype=float), arr

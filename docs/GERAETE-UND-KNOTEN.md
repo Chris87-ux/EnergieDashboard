@@ -2,6 +2,10 @@
 
 [Dokumentationsübersicht](README.md) · [Messpunkte vorbereiten](DATENERFASSUNG.md) · [Speicher und Hybrid](SPEICHER-UND-HYBRID.md)
 
+## Bilanz und Phasen ab 2.4
+
+Produktion, Verbrauch, Netzbezug/-lieferung und Speicherbewegungen sind getrennt. Autarkie und Eigenverbrauch gelten in der Übersicht für Heute, in der Energiebilanz für den gewählten Zeitraum. Produktion eines Hybrid-WR kommt aus zugeordneten MPPTs; ohne MPPT ist eine AC-/Batteriebilanz-Schätzung gekennzeichnet. Bei dreiphasiger Gesamtleistung werden fehlende Phasen symmetrisch berechnet, reale Messwerte bleiben vorrangig. Knoten zeigen ihre Restwerte auch je Phase. Alle Formeln, Messgrenzen und Grenzen der Herkunftszuordnung stehen in der [technischen Referenz](../DATENMODELL.md#bilanz-und-phasen-ab-24).
+
 ## Typ und Kategorie unterscheiden
 
 Unter **Konfiguration** gibt es die Typen **Gerät**, **Knoten**, **Netzanschluss** und **Speicher**. Die Kategorie beschreibt ein Gerät genauer, z. B. Photovoltaik, Generator/BHKW, Wärmepumpe, E-Auto, Verbraucher oder Benutzerdefiniert. Netz und Speicher sind eigene Typen, keine auszuwählenden Gerätekategorien.
@@ -31,8 +35,8 @@ Eine einzige dauerhafte Kachel zeigt beide Richtungen oben mittig. Bei 0 W bleib
 
 Zwei Einträge vom Typ Netzanschluss mit getrenntem Richtungsmodus anlegen:
 
-- **Zufluss/Bezug**: Datenpunkt für die aktuelle Bezugsleistung.
-- **Abfluss/Lieferung**: Datenpunkt für die aktuelle Einspeiseleistung.
+- **Produktion/Bezug**: Datenpunkt für die aktuelle Bezugsleistung.
+- **Verbrauch/Lieferung**: Datenpunkt für die aktuelle Einspeiseleistung.
 
 Die Werte müssen die jeweilige Richtung eindeutig abbilden. Nicht zusätzlich das signed Modell aktivieren. Höchstens ein aktiver Anschluss je Richtung bzw. ein signed Anschluss ist vorgesehen. Mindestens ein aktiver Netzanschluss bleibt erforderlich; den letzten erst nach Anlegen eines Ersatzes deaktivieren/löschen.
 
@@ -41,7 +45,7 @@ Netzanschlüsse liegen auf der **Hauptebene** und sind AC-Messungen. Sie erhalte
 ## Gerät mit Leistungssensor
 
 1. **Neuer Fluss**, Typ Gerät und passende Kategorie auswählen.
-2. Richtung: Verbraucher = Abfluss, Erzeuger = Zufluss.
+2. Richtung: Verbraucher = Verbrauch, Erzeuger = Produktion.
 3. Unter „Knoten / Anschluss“ den tatsächlichen Abschnitt wählen; ohne Zuordnung bleibt das Gerät auf der Hauptebene.
 4. Gesamtleistung und optional Energiezähler auswählen. Bei dreiphasiger Messung die tatsächlich verfügbaren L1–L3-Werte zuordnen.
 5. Einheiten prüfen, speichern und mit der Quelle vergleichen.
@@ -66,7 +70,7 @@ RUN ist für Geräte geeignet, deren Leistungsansatz sinnvoll ist. Bei stark var
 
 ## Generator / BHKW
 
-Gerät, Kategorie **Generator/BHKW**, normalerweise Richtung Zufluss wählen. Zusätzlich zur elektrischen Leistung sind optionale Datenpunkte möglich:
+Gerät, Kategorie **Generator/BHKW**, normalerweise Richtung Produktion wählen. Zusätzlich zur elektrischen Leistung sind optionale Datenpunkte möglich:
 
 | Datenpunkt | Erwartete Einheit |
 |---|---|
@@ -116,7 +120,7 @@ Bei negativem Rest erscheint Resterzeugung. Nicht manuell nochmals einen Verbrau
 
 Ein **gemessener Unterknoten** geht beim Elternknoten einmal mit seinem Zähler-Netto ein. Seine Kinder werden dort nicht nochmals abgezogen. Ein **ungemessener Unterknoten** ist eine Gruppe und liefert seine Kindersumme.
 
-Fehlt ein notwendiger Zähler-/Kinderwert, bleibt der Rest unbekannt. Restwerte enthalten auch ungemessene Lasten, Verluste und zeitliche Messabweichungen; sie sind keine automatische Korrektur falscher Sensorzuordnungen. DC-MPPTs und Speicher bleiben aus dieser AC-Restverrechnung herausgenommen.
+Fehlt ein notwendiger Zähler-/Kinderwert, bleibt der Rest unbekannt. Restwerte enthalten auch ungemessene Lasten, Verluste und zeitliche Messabweichungen; sie sind keine automatische Korrektur falscher Sensorzuordnungen. DC-MPPTs und DC-Speicher bleiben aus dieser AC-Restverrechnung herausgenommen; AC-Speicher werden vorzeichenrichtig verrechnet.
 
 Kreise sind verboten. Zum Löschen eines Knotens zuerst seine Kinder verschieben. Deaktivieren eines Knotens deaktiviert auch seine Unterstruktur für Anzeige und Aufzeichnung. Umhängen verändert die aktuelle Topologie, aber berechnet alte Resthistorie nicht rückwirkend neu.
 
