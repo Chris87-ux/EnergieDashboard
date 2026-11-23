@@ -8,7 +8,7 @@ Stand: 23. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokol
 
 Integration mit echter Test-MongoDB, HTTP/MQTT/Modbus, 50 Geräten und Chromium erfolgreich: gemeinsame Netzkachel mit Frequenz und Tagesenergie, Hybridproduktion verfügbar, berechnete RUN-Phasen, Zeitraumkennzahlen, geänderte Bezeichnungen, CSV, Migration, Backup/Restore sowie Desktop-/Mobilansichten ohne JavaScript-Fehler. TypeScript/Vite-Build erfolgreich. Physische Geräte und tatsächlicher Proxmox-LXC sind weiterhin nicht Teil dieser Prüfung.
 
-Dockerprüfung des neuen Quellstands folgt vor Freigabe. Die nachfolgenden Abschnitte dokumentieren die älteren Prüfstände und deren Grenzen.
+Der neue Quellstand besteht die vollständige [Linux-Dockerprüfung](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/45128748869): Build, alle 80 Backendtests im Laufzeitimage, Healthcheck, Persistenz nach App-Neuerstellung und Linux-Updater-Erfolgs-/Fehlerfälle erfolgreich. Die nachfolgenden Abschnitte dokumentieren die älteren Prüfstände und deren Grenzen.
 
 ## Dokumentationsstand
 
