@@ -42,7 +42,7 @@ export default function AppShell() {
             </span>
             <span className="font-heading text-lg font-bold tracking-tight">Energy Flow</span>
           </NavLink>
-          <nav className="hidden items-center gap-1 lg:flex" data-testid="main-nav">
+          <nav className="hidden items-center gap-1 xl:flex" data-testid="main-nav">
             {NAV.map((n) => (
               <NavLink
                 key={n.to}
@@ -63,7 +63,7 @@ export default function AppShell() {
           </nav>
           <div className="flex shrink-0 items-center gap-2"><LanguageSelector /><ModeIndicator /></div>
         </div>
-        <nav className="flex gap-1 overflow-x-auto border-t border-[var(--border)] px-2 py-1.5 lg:hidden" data-testid="mobile-nav">
+        <nav className="flex gap-1 overflow-x-auto border-t border-[var(--border)] px-2 py-1.5 xl:hidden" data-testid="mobile-nav">
           {NAV.map((n) => (
             <NavLink
               key={n.to}

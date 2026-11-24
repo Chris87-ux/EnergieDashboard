@@ -248,6 +248,7 @@ const assert=require("node:assert/strict");
   for(const [path,title] of [["/energie","Total and phase energy in kWh"],["/konfiguration","Production and consumption"],["/datenerfassung","Data acquisition"],["/darstellung","Appearance"],["/system","System & connections"]]){
    await page.goto(url+path);
    await page.getByRole("heading",{name:title,exact:true}).waitFor();
+   if(path==="/darstellung"){await page.locator('a[href$="/flow?lang=en"]').waitFor();assert.match(await page.locator("pre").innerText(),/flow\?lang=en/);}
    assert.equal(await page.locator("html").getAttribute("lang"),"en");
   }
   await page.getByRole("button",{name:"Test connection"}).first().waitFor();
@@ -277,6 +278,12 @@ const assert=require("node:assert/strict");
    await page.goto(url+path);await page.waitForTimeout(350);
    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`English horizontal overflow ${path}`);
   }
+  for(const width of [768,1024,1280,1440]){
+   await page.setViewportSize({width,height:900});
+   await page.goto(url+"/?lang=en");await page.getByText("Combined storage",{exact:true}).waitFor();
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`English header overflow at ${width}`);
+  }
+  await page.setViewportSize({width:390,height:844});
   await page.goto(url+"/?lang=de");
   await page.getByText("Gesamtspeicher",{exact:true}).waitFor();
   assert.equal(await page.locator("html").getAttribute("lang"),"de");
