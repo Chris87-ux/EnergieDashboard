@@ -22,7 +22,7 @@ Chromium prüft Kopiereditor und neue IDs, Restgruppen, Geräteprofil, Statussei
 
 TypeScript/Vite-Produktionsbuild erfolgreich. Startbereitschaftstest: erwartete vorübergehende curl-Verbindungsfehler bleiben verborgen; echter Timeout zeigt den letzten Fehler. Updateharness: Austausch, Rollback und Prüfsummenfehler vor Dienststopp erfolgreich. ShellCheck und Bash-Syntax erfolgreich.
 
-Dokumentationslinks/Sprungmarken, JSON-Beispiele, Bash-Blöcke, Paketinhalt, ausführbare Skriptmodi und SHA-256 werden vor Veröffentlichung geprüft. Die Linux-Dockerprüfung des neuen Quellstands wird vor dem finalen Release abgewartet und anschließend hier verlinkt.
+Dokumentationsprüfung erfolgreich: 44 Markdown-Dateien, 329 lokale Links/Sprungmarken, 18 JSON-Beispiele und 70 Bash-Blöcke. Paketinhalt, ausführbare Skriptmodi und SHA-256 erfolgreich geprüft. Die [Linux-Dockerprüfung für 2.7.0](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/45396672363) ist vollständig grün: Compose-Build, Start, alle 141 Backendtests im Laufzeitimage, zusätzliche echte MongoDB-Tests, Healthcheck/Non-Root, Persistenz von Konfiguration/Charts/Prognosezugang nach Container-Neuerstellung und beide Linux-Skriptprüfungen.
 
 ## Prüfgrenzen
 

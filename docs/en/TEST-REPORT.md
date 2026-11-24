@@ -20,7 +20,7 @@ Chromium covers copying points with fresh IDs, residual group assignment, applia
 
 Production TypeScript/Vite build passed. Readiness tests suppress expected connection refusals and reveal genuine final timeouts. Updater tests passed successful replacement, rollback and pre-stop checksum rejection. ShellCheck and Bash syntax passed.
 
-Documentation links/anchors, JSON/Bash examples, package content, executable modes and SHA-256 are checked before publication. The new Linux Docker workflow will be awaited and linked here before the final release.
+Documentation validation passed: 44 Markdown files, 329 local links/anchors, 18 JSON examples and 70 Bash blocks. Package content, executable modes and SHA-256 passed. The [Linux Docker workflow for 2.7.0](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/45396672363) passed every step: Compose build/start, all 141 tests inside the runtime image, additional real MongoDB tests, health/non-root checks, configuration/chart/forecast-token persistence after container recreation and both Linux deployment harnesses.
 
 ## Limits
 
