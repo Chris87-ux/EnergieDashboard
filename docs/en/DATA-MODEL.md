@@ -202,7 +202,7 @@ Use an object with quoted keys and JSON values: strings, finite numbers, boolean
 
 Groups have stable id, name (1–80), color (#RRGGBB) and sort_order. group_id applies to individual consumers independently of parent_id. Missing group reference gives 422; deleting a referenced group gives 409.
 
-Live/energy reports include consumer_groups with id, name, color, member_ids, complete and power_w or energy_kwh. Group sums do not affect totals. Site reports include production_w/production_kwh, consumption, grid directional energy, indicators and completeness notes. Historic compatibility fields in_w/out_w and in_kwh/out_kwh now mean production/consumption; machine direction keys and historical channel IDs are unchanged.
+Live/energy reports include consumer_groups with id, name, color, member_ids, complete and power_w or energy_kwh. Group sums do not affect totals. Site reports include production_w/production_kwh, consumption, grid directional energy, indicators and completeness notes. Hybrid reports include individual diagnostic `notes` and the backward-compatible combined `note`; translated responses keep both consistent. Historic compatibility fields in_w/out_w and in_kwh/out_kwh now mean production/consumption; machine direction keys and historical channel IDs are unchanged.
 
 ## System parameters and versioning
 

@@ -340,3 +340,5 @@ Live- und Energieantworten ergänzen `consumer_groups` mit `id`, `name`, `color`
 ## Sprache ab 2.6
 
 `Accept-Language: en` liefert englische eingebaute Meldungen, Hinweise und Zeitraumbeschriftungen; de bzw. kein unterstützter Sprachwunsch bleibt Deutsch. JSON-Antworten kennzeichnen Content-Language und Vary: Accept-Language. Maschinenfelder, IDs, Nutzernamen, extra-Metadaten und Zahlen bleiben unverändert. CSV-Spalten werden nicht übersetzt. Die Oberfläche speichert ihre Sprache pro Browser und erlaubt `?lang=en` oder `?lang=de`, auch für die Einbettung. Datenbankschema bleibt 6, CSV bleibt 1; keine Sprachmigration der Konfiguration/Historie.
+
+Hybrid-Ausgaben enthalten einzelne Hinweise in `notes` und weiterhin den kombinierten Text `note`. Übersetzte Antworten halten beide Darstellungen konsistent; dies verändert weder Messwerte noch Datenbankschema.

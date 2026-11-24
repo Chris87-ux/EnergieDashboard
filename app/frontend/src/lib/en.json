@@ -648,5 +648,13 @@
   " ({0} ausgeblendet)": " ({0} hidden)",
   "{0} Messwerte": "{0} samples",
   "Laden": "Charging",
-  "Entladen": "Discharging"
+  "Entladen": "Discharging",
+  "· aus AC-/DC-Messung": "· from AC/DC measurements",
+  "Motortemperatur (°C)": "Engine temperature (°C)",
+  " · gespeicherte MQTT-Nachricht": " · retained MQTT message",
+  "AC-Out Gesamtleistung": "Total AC-Out power",
+  "Adresse / Variable {address}": "Address / variable {address}",
+  "Lade Livedaten…": "Loading live data…",
+  "⚠ Kreis": "⚠ Cycle",
+  "⚠ Zuordnung fehlt": "⚠ Missing assignment"
 }

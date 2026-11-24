@@ -48,7 +48,7 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-[#8EA8C3]">
-          <span data-testid="dashboard-updated">{data ? t("Aktualisiert {0}", fmtTime(data.ts)) : live.isError ? t("Backend nicht erreichbar") : "Lade Livedaten…"}</span>
+          <span data-testid="dashboard-updated">{data ? t("Aktualisiert {0}", fmtTime(data.ts)) : live.isError ? t("Backend nicht erreichbar") : t("Lade Livedaten…")}</span>
         </div>
       </section>
 

@@ -7,7 +7,7 @@ _path = Path(__file__).with_name("en.json")
 if not _path.is_file():
     _path = Path(__file__).resolve().parents[2] / "frontend/src/lib/en.json"
 ENGLISH = json.loads(_path.read_text(encoding="utf-8-sig"))
-_FIELDS = {"message", "detail", "details", "msg", "errors", "notes", "warnings", "source_errors", "reason", "hint"}
+_FIELDS = {"message", "detail", "details", "msg", "errors", "note", "notes", "warnings", "source_errors", "reason", "hint"}
 _PATTERNS = []
 for source, translated in ENGLISH.items():
     if re.search(r"\{\d+\}", source):
@@ -50,6 +50,8 @@ def localise_payload(value, field="", route=""):
         return [localise_payload(item, field, route) for item in value]
     if isinstance(value, dict):
         result = {key: item if key in {"extra", "datapoints", "input", "ctx", "appearance", "influx", "iobroker"} else localise_payload(item, key, route) for key, item in value.items()}
+        if isinstance(value.get("notes"), list) and isinstance(value.get("note"), str):
+            result["note"] = " ".join(result["notes"])
         # Preset labels are built-in, while all user-entered names stay verbatim.
         if route.endswith("/energy/presets") and isinstance(value.get("label"), str):
             result["label"] = translate(value["label"])

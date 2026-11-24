@@ -101,8 +101,8 @@ export default function Config() {
 
   const list = flows.isError ? [] : flows.data ?? [];
   function path(id:string|null,seen=new Set<string>()):string {
-    if(!id)return t("Haus");if(seen.has(id))return "⚠ Kreis";
-    const parent=list.find(n=>n.id===id);if(!parent)return "⚠ Zuordnung fehlt";
+    if(!id)return t("Haus");if(seen.has(id))return t("⚠ Kreis");
+    const parent=list.find(n=>n.id===id);if(!parent)return t("⚠ Zuordnung fehlt");
     seen.add(id);return `${path(parent.parent_id,seen)} → ${parent.name}`;
   }
   const [search, setSearch] = useState("");

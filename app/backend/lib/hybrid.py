@@ -74,5 +74,5 @@ def hybrid_reports(flows, values, storages):
         reports.append(LiveHybrid(id=flow.id,name=flow.name,parent_id=flow.parent_id,
             ac_net_w=ac,ac_output_w=port_out,ac_input_w=port_in,dc_pv_w=pv,
             battery_charge_w=charge,battery_discharge_w=discharge,dc_load_w=loads,
-            dc_net_w=dc,dc_source=source,efficiency_pct=efficiency,loss_w=loss,mode=mode,note=" ".join(notes)))
+            dc_net_w=dc,dc_source=source,efficiency_pct=efficiency,loss_w=loss,mode=mode,note=" ".join(notes),notes=notes))
     return reports

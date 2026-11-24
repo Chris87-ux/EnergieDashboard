@@ -16,6 +16,8 @@ class LanguageTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(translate('Werkstatt: API-Wertpfad nicht verfügbar.'),'Werkstatt: API value path unavailable.')
         self.assertEqual(translate('Value error, Ein Speicher benötigt einen Leistungs- und einen SOC-Datenpunkt.'),'Value error, Battery storage requires power and SOC data points.')
         self.assertEqual(translate('3 Zähler-Reset(s) berücksichtigt'),'3 counter reset(s) accounted for')
+        result=localise_payload({'note':'AC-Nettoleistung fehlt. DC-Leistung am WR fehlt.','notes':['AC-Nettoleistung fehlt.','DC-Leistung am WR fehlt.']},route='/api/live')
+        self.assertEqual(result['note'],'Net AC power missing. Inverter DC power missing.')
         self.assertEqual(translate('Zählerdelta; Keine Zähler- oder Leistungsdaten'),'Counter delta; No counter or power data')
 
     def test_user_data_and_identifiers_are_not_translated(self):

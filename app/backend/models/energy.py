@@ -179,6 +179,7 @@ class LiveHybrid(BaseModel):
     loss_w: float | None
     mode: str
     note: str
+    notes: list[str] = Field(default_factory=list)
 
 
 class LiveReport(BaseModel):

@@ -367,7 +367,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
               </Field><Field label={t("SOC-Reserve-Datenpunkt (%)")} hint={t("Optional. Bei fehlendem/ungültigem Reservewert ist die Laufzeit unbekannt.")}><Input list="measurement-options" value={form.datapoints.soc_reserve ?? ""} onChange={e=>setDp("soc_reserve",e.target.value)} data-testid="flow-editor-dp-soc_reserve" /></Field></>
             )}
             {form.kind === "device" && form.category === "generator" && <div className="grid gap-3 sm:grid-cols-2">
-              {Object.entries({engine_temperature:"Motortemperatur (°C)",efficiency:t("Effizienz (%)"),fuel_consumption:t("Kraftstoffverbrauch"),operating_hours:t("Betriebsstunden (h)")}).map(([key,label])=><Field key={key} label={label}><Input list="measurement-options" value={form.datapoints[key]??""} onChange={e=>setDp(key,e.target.value)} data-testid={`flow-editor-dp-${key}`} /></Field>)}
+              {Object.entries({engine_temperature:t("Motortemperatur (°C)"),efficiency:t("Effizienz (%)"),fuel_consumption:t("Kraftstoffverbrauch"),operating_hours:t("Betriebsstunden (h)")}).map(([key,label])=><Field key={key} label={label}><Input list="measurement-options" value={form.datapoints[key]??""} onChange={e=>setDp(key,e.target.value)} data-testid={`flow-editor-dp-${key}`} /></Field>)}
               <Field label={t("Einheit Kraftstoffverbrauch")}><select className="w-full rounded border border-border bg-background p-2" value={form.fuel_unit} onChange={e=>set("fuel_unit",e.target.value as FlowInput["fuel_unit"])}>{["L/h","L","m³/h","m³","kg/h","kg"].map(u=><option key={u}>{u}</option>)}</select></Field>
               <p className="text-xs text-muted-foreground">{t("Optionale Messwerte, keine automatische Berechnung. Effizienz in Prozent und Betriebsstunden in Stunden bereitstellen.")}</p>
             </div>}
@@ -381,7 +381,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
             <datalist id="measurement-options">{(points.data ?? []).filter(p => p.enabled).map(p => <option key={p.id} value={"point:" + p.id}>{p.name} · {p.unit}</option>)}</datalist>
             <p className="text-xs text-[#8EA8C3]">{t("Messpunkt aus Datenerfassung auswählen oder bestehende ioBroker-ID eingeben, z. B. ")}<span className="font-mono text-[#93C5FD]">smartmeter.0.1-0:1_7_0__255.value</span>{t(". Leere Felder werden ignoriert.")}</p>
             {form.run_power_w === null && <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={isMppt ? t("DC-Leistung (MPPT-Ausgang / DC-Bus)") : isHybrid && form.hybrid_ac_mode === "terminals" ? "AC-Out Gesamtleistung" : form.kind === "storage" ? t("Speicherleistung mit Vorzeichen") : singlePower ? t("Wirkleistung ({0})", form.power_phase) : t("Gesamtleistung (ganzes Gerät; ohne Phasenwerte symmetrisch / 3)")}>
+              <Field label={isMppt ? t("DC-Leistung (MPPT-Ausgang / DC-Bus)") : isHybrid && form.hybrid_ac_mode === "terminals" ? t("AC-Out Gesamtleistung") : form.kind === "storage" ? t("Speicherleistung mit Vorzeichen") : singlePower ? t("Wirkleistung ({0})", form.power_phase) : t("Gesamtleistung (ganzes Gerät; ohne Phasenwerte symmetrisch / 3)")}>
                 <Input list="measurement-options" className="font-mono text-xs" value={form.datapoints.power_total} onChange={(e) => setDp("power_total", e.target.value)} data-testid="flow-editor-dp-power_total" />
               </Field>
               {!singlePower &&
