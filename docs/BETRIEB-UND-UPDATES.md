@@ -57,7 +57,7 @@ Als root **im LXC**. Nicht parallel ausführen. Ausreichend freien Platz für al
 Auf den dokumentierten Release-Stand aktualisieren:
 
 ```bash
-bash /opt/energieboard/deploy/update.sh v2.6.0
+bash /opt/energieboard/deploy/update.sh v2.7.0
 ```
 
 Für ein späteres Release den passenden bestehenden Tag einsetzen. Ohne Argument verwendet der Updater `main`; für einen bewusst reproduzierbaren Stand ist ein fester Tag vorzuziehen.
@@ -65,8 +65,8 @@ Für ein späteres Release den passenden bestehenden Tag einsetzen. Ohne Argumen
 Wenn eine sehr alte Installation noch keinen Updater besitzt, diesen einmalig laden:
 
 ```bash
-curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/v2.6.0/deploy/update.sh -o /tmp/energieboard-update.sh
-bash /tmp/energieboard-update.sh v2.6.0
+curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/v2.7.0/deploy/update.sh -o /tmp/energieboard-update.sh
+bash /tmp/energieboard-update.sh v2.7.0
 ```
 
 ### Ablauf
@@ -130,12 +130,12 @@ Die Datenbank selbst braucht dafür keinen veröffentlichten Hostport. Nicht das
 git status --short
 git describe --tags --always
 git fetch --tags
-git checkout v2.6.0
+git checkout v2.7.0
 ```
 
-`v2.6.0` ist der aktuelle dokumentierte Stand; bei späterem Update dessen neuen Tag verwenden. Eigene Änderungen vor dem Checkout prüfen und sichern, nicht mit `reset --hard` verwerfen. Detached HEAD nach Tag-Checkout ist für diesen Betrieb normal.
+`v2.7.0` ist der aktuelle dokumentierte Stand; bei späterem Update dessen neuen Tag verwenden. Eigene Änderungen vor dem Checkout prüfen und sichern, nicht mit `reset --hard` verwerfen. Detached HEAD nach Tag-Checkout ist für diesen Betrieb normal.
 
-4. In `.env` `ENERGIEBOARD_VERSION=2.6.0` passend zum gewählten Tag setzen. Die Variable benennt nur das lokale Image; der Git-Stand bestimmt den Inhalt.
+4. In `.env` `ENERGIEBOARD_VERSION=2.7.0` passend zum gewählten Tag setzen. Die Variable benennt nur das lokale Image; der Git-Stand bestimmt den Inhalt.
 5. **Denselben Projektnamen und dieselbe Datenbank/Volume-Zuordnung beibehalten.**
 6. Neubau und Prüfung:
 
@@ -226,3 +226,11 @@ Bestehende ioBroker-Verbindungen werden automatisch auf `protocol=api`, Vorlage 
 Beim LXC-Start wartet `deploy/wait_ready.sh` standardmäßig bis zu 30 Versuche auf API und aktiven Dienst. Ein anfängliches Connection refused wird während der Wiederholungen nicht als curl-Fehler ausgegeben. Scheitert die gesamte Startfrist, erscheinen der letzte Verbindungsfehler und die Dienstdiagnose; der Updater kann dann zurückrollen. Damit entfällt die gemeldete irreführende curl-Meldung unmittelbar vor einem erfolgreichen Update.
 
 Wie immer vor dem Update sichern. Ein Downgrade von Schema 6 benötigt die zum alten Stand gehörende Datenbanksicherung; nicht nur den alten Programmcode starten.
+
+## Update auf 2.7 / Schema 7
+
+Vollständiges Backup vor dem Update erstellen. Schema 7 ergänzt optionale Gerätezyklen, Restgeräte-Metadaten, Charts und Prognosekonfiguration. Bestehende IDs, Messreihen, Verbrauchergruppen und Zugangsdaten bleiben erhalten. Neue Funktionen sind anfangs deaktiviert. Der System-Reiter enthält keine doppelte ioBroker-Konfiguration mehr; die migrierte Verbindung steht unter Datenerfassung.
+
+MongoDB speichert zusätzlich Charts, Zykluszustände und -ereignisse, Prognoseanlagen/-quellen, Snapshots, Tagesmodelle, Ausschlussprotokolle und Anfragebudgets. Ein vollständiges Backup erfasst alle Sammlungen. CSV sichert deren Konfiguration, nicht Tagesprotokolle, Messhistorie oder Zählerzustände. Für Downgrades die zum alten Stand passende Datenbanksicherung verwenden.
+
+Die bereits eingeführte Startbereitschaftsprüfung wartet auf API und aktiven Dienst. Vorübergehende `curl: (7)`-Meldungen beim normalen Start bleiben verborgen; echte Startfehler führen weiterhin zu Diagnose und Rollback. LXC-Update: bestehendes Update-Skript verwenden. Docker: Compose-Image aktualisieren und neu erstellen, vorhandenes Datenvolume behalten; kein `down --volumes`.

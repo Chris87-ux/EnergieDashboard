@@ -67,7 +67,7 @@ Fehlender SOC oder fehlende Kapazität macht den Gesamt-SOC unbekannt. Gleichzei
 
 ## 2. DC-MPPT anlegen
 
-**Neuer Fluss → Gerät → Photovoltaik → DC-MPPT**.
+**Gerät / Komponente hinzufügen → Gerät → Photovoltaik → DC-MPPT**.
 
 1. DC-Leistungsdatenpunkt zuordnen: **Ausgang des MPPT zum DC-Bus**.
 2. Optional kumulativen **Gesamtenergie-DC-Zähler** dieses Ausgangs zuordnen.
@@ -158,3 +158,11 @@ Ein durch das Victron-System bereits berechneter DC-Wert ist keine unabhängige 
 Hybrid-AC-Abgabe kann Batterieentladung enthalten. Sie darf nicht pauschal als reine PV-Erzeugung bezeichnet werden; daher werden zugeordnete MPPT-Messungen oder gekennzeichnete Schätzungen verwendet. Netzbezug/Lieferung bleiben messbar. Die Energie-Produktion-/Verbrauchsummen sind Summen definierter Messgrenzen, kein automatisch deduplizierter Gesamt-PV-Ertragszähler.
 
 Nach der Einrichtung drei echte Betriebsfälle prüfen: PV-Erzeugung, Batterieladung und Batterieentladung bzw. Netzladung. AC-In/Out und DC-Messung jeweils mit den Originalwerten vergleichen. Bestehende Hybrid-Konfigurationen bleiben nach dem Update im Modus „Nettoleistung“; wenn bisher AC-Out zugeordnet war, den Modus bewusst korrigieren. Frühere fehlerhafte abgeleitete Historie wird nicht rückwirkend neu berechnet.
+
+## Mehrere DC-Verbraucher am Hybrid-WR (ab 2.7)
+
+Jeden Verbraucher zuerst als gewöhnliches Verbrauchsgerät mit Anschluss **DC** anlegen. Gesamtleistung und optional Gesamtenergie oder RUN mit fester Wattzahl zuordnen; DC-Geräte haben keine Phasenzuordnung. Anschließend im Hybrid-WR unter **DC-Verbraucher** einen oder mehrere Einträge auswählen. Ein Gerät kann nur einem Hybrid-WR gehören.
+
+Die DC-Busbilanz rechnet `MPPT + Batterieentladung − Batterieladung − Summe DC-Verbraucher`. Einzeln zugeordnete Verbraucher und ein Sammel-Datenpunkt `dc_load_power` sind Alternativen und dürfen nicht gleichzeitig verwendet werden. Zugeordnete Geräte fehlen bei Ausfall nicht einfach als 0; die abgeleitete Bilanz wird unbekannt. Eine direkt gemessene DC-Leistung am WR hat weiterhin Vorrang. Für eine Schätzung die vollständige DC-Busbilanz bewusst bestätigen.
+
+DC-Verbraucher werden in ihren eigenen Messgrenzen aufgezeichnet und können Verbrauchsgruppen angehören, erhöhen aber die AC-Gebäudebilanz oder den AC-Knotenrest nicht nochmals. Ihre Energie kann bereits im Hybrid-AC-Umsatz stecken. Für PV-Prognosen die MPPT-Isterträge verwenden, nicht den gemischten Hybrid-AC-Ausgang.

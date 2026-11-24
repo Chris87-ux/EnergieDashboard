@@ -46,7 +46,7 @@ Netzanschlüsse liegen auf der **Hauptebene** und sind AC-Messungen. Sie erhalte
 
 ## Gerät mit Leistungssensor
 
-1. **Neuer Fluss**, Typ Gerät und passende Kategorie auswählen.
+1. **Gerät / Komponente hinzufügen**, Typ Gerät und passende Kategorie auswählen.
 2. Richtung: Verbraucher = Verbrauch, Erzeuger = Produktion.
 3. Unter „Knoten / Anschluss“ den tatsächlichen Abschnitt wählen; ohne Zuordnung bleibt das Gerät auf der Hauptebene.
 4. Gesamtleistung und optional Energiezähler auswählen. Bei dreiphasiger Messung die tatsächlich verfügbaren L1–L3-Werte zuordnen.
@@ -129,3 +129,9 @@ Kreise sind verboten. Zum Löschen eines Knotens zuerst seine Kinder verschieben
 ## Kontrolle nach Änderungen
 
 Einen bekannten Verbraucher einschalten und sowohl Kind als auch Rest beobachten. Der ganze Abschnitt darf sich nur um die reale zusätzliche Last ändern. Danach CSV sichern und die Historie ab dem Änderungszeitpunkt prüfen. Bei Problemen: [Fehlersuche](FEHLERSUCHE.md).
+
+## Automatische Restverbraucher konfigurieren (ab 2.7)
+
+Ein Knoten mit eigenem Zähler erzeugt einen virtuellen Restverbraucher. Unter Konfiguration steht er bei den Geräten, mit Kennzeichnung **Automatischer Restverbraucher**. Bearbeiten öffnet ausschließlich Name, Gruppe, Symbol, Farbe und Anzeigereihenfolge; eigene Datenpunkte gibt es nicht. Die Messung kommt weiter vom Knoten abzüglich seiner Kinder. Bei einer negativen Differenz bleibt die bestehende Resterzeugung erhalten. Die zusätzliche Gruppe erhält nur den Verbrauchsanteil.
+
+Der Restverbraucher hat die stabile ID `<Knoten-ID>:rest_consumption`. Einstellungen liegen am Knoten unter `residual`; es wird kein zweiter Zähler angelegt. Nicht separat löschen oder als `kind=residual` importieren. Zum Entfernen des Knotenzählers vorher Charts mit dessen Restquelle anpassen.

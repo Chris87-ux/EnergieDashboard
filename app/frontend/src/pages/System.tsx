@@ -70,13 +70,11 @@ const RECORDER_LABELS: Record<string, string> = {
 function SettingsForm({ initial }: { initial: SettingsOut }) {
   const qc = useQueryClient();
   const [form, setForm] = useState<SettingsOut>(initial);
-  const [iobResult, setIobResult] = useState<TestResult | null>(null);
   const [influxResult, setInfluxResult] = useState<TestResult | null>(null);
   const recorder = useRecorder();
   const rec = recorder.isError ? undefined : recorder.data;
 
   const upd = <K extends keyof SettingsOut>(k: K, v: SettingsOut[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const iob = <K extends keyof SettingsOut["iobroker"]>(k: K, v: SettingsOut["iobroker"][K]) => setForm((f) => ({ ...f, iobroker: { ...f.iobroker, [k]: v } }));
   const inf = <K extends keyof SettingsOut["influx"]>(k: K, v: SettingsOut["influx"][K]) => setForm((f) => ({ ...f, influx: { ...f.influx, [k]: v } }));
   const recSet = <K extends keyof SettingsOut["recorder"]>(k: K, v: SettingsOut["recorder"][K]) => setForm((f) => ({ ...f, recorder: { ...f.recorder, [k]: v } }));
 
@@ -95,11 +93,6 @@ function SettingsForm({ initial }: { initial: SettingsOut }) {
       const d = e instanceof ApiError ? JSON.stringify((e.body as { detail?: unknown })?.detail ?? "") : String(e);
       toast.error(t("Speichern fehlgeschlagen: {0}", d));
     },
-  });
-  const testIob = useMutation({
-    mutationFn: (body: SettingsOut) => apiPost<TestResult>("/settings/test/iobroker", body),
-    onSuccess: setIobResult,
-    onError: () => setIobResult({ ok: false, message: t("Test fehlgeschlagen"), details: [] }),
   });
   const testInflux = useMutation({
     mutationFn: (body: SettingsOut) => apiPost<TestResult>("/settings/test/influx", body),
@@ -127,35 +120,6 @@ function SettingsForm({ initial }: { initial: SettingsOut }) {
               <Input type="number" min={1} value={form.gap_threshold_min} onChange={(e) => upd("gap_threshold_min", num(e.target.value))} data-testid="settings-gap-input" />
             </F>
           </div>
-        </Panel>
-
-        <Panel title={t("ioBroker (simple-api)")} icon={Radio} testid="settings-iobroker-panel">
-          <div className="grid gap-4 sm:grid-cols-[110px_1fr_110px]">
-            <F label={t("Protokoll")}>
-              <Select value={form.iobroker.protocol} onValueChange={(v: string) => iob("protocol", v as "http" | "https")}>
-                <SelectTrigger className="w-full" data-testid="settings-iob-protocol-select"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="http">http</SelectItem>
-                  <SelectItem value="https">https</SelectItem>
-                </SelectContent>
-              </Select>
-            </F>
-            <F label="Host / IP">
-              <Input placeholder="192.168.1.20" value={form.iobroker.host} onChange={(e) => iob("host", e.target.value)} data-testid="settings-iob-host-input" />
-            </F>
-            <F label="Port">
-              <Input type="number" value={form.iobroker.port} onChange={(e) => iob("port", num(e.target.value))} data-testid="settings-iob-port-input" />
-            </F>
-          </div>
-          <div className="mt-4 flex items-end gap-3">
-            <F label="Timeout (s)">
-              <Input type="number" className="w-28" value={form.iobroker.timeout_s} onChange={(e) => iob("timeout_s", num(e.target.value))} data-testid="settings-iob-timeout-input" />
-            </F>
-            <Button variant="outline" onClick={() => testIob.mutate(form)} disabled={testIob.isPending} data-testid="settings-iob-test-button">
-              {testIob.isPending ? "Teste…" : t("Verbindung testen")}
-            </Button>
-          </div>
-          <TestBox result={iobResult} testid="settings-iob-test-result" />
         </Panel>
 
         <Panel title={t("Aufzeichnungs-Dienst (Recorder)")} icon={Database} testid="settings-recorder-panel">

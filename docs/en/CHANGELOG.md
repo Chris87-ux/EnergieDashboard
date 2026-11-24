@@ -2,6 +2,18 @@
 
 [Documentation](README.md) · [Full historical German changelog](../../CHANGELOG.md)
 
+## 2.7.0 · 24 November 2026
+
+- Inline measurement copying with fresh IDs and independent history.
+- Multiple measured or RUN-estimated DC loads per hybrid inverter, without aggregate/per-device or AC double counting.
+- Configurable automatic residual consumers with names, display settings and consumer-group membership, without independent sensors.
+- Device/component wording and consolidated API connection configuration; legacy compatibility retained.
+- Saved charts combining raw measurements and computed values with separate unit axes and gaps; independent measurement recording.
+- Washing-machine, dryer and dishwasher cycle detection with durable counts, status, pause/minimum-time handling, restart/gap recovery and recorded cycle energy.
+- Four private-use PV sources: VRM, Forecast.Solar, Solcast and a local Open-Meteo irradiance model. Persistent request limits, immutable morning forecasts, actual-yield evaluation, validated correction factors, correlated-source families and audited exclusions.
+- German/English UI and guides for all additions; CSV includes charts, cycles and forecast configuration without tokens.
+- Additive schema 7 preserves existing IDs, history and groups; CSV format remains 1. Startup readiness suppresses expected transient curl errors during updates.
+
 ## 2.6.0 — 24 November 2026
 
 - German/English selector with per-browser persistence and explicit lang URL override, including flow-only embedding.

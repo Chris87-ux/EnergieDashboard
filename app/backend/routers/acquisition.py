@@ -53,6 +53,8 @@ async def save_measurement(id: str, body: Measurement):
     except ValueError as exc:raise HTTPException(422,str(exc)) from exc
     old = await db.measurements.find_one({"id": id})
     body.id = id
+    if await db.forecast_sites.find_one({'curtailment_point':'point:'+id}) and (body.unit!='bool' or not body.enabled or not body.record):
+        raise HTTPException(409,'Zuerst das Abregelungssignal in der PV-Prognose ändern.')
     body.history_key = old.get("history_key", "") if old else ""
     body.legacy_until = old.get("legacy_until") if old else None
     await db.measurements.replace_one({"id": id}, body.model_dump(), upsert=True)
@@ -62,8 +64,11 @@ async def save_measurement(id: str, body: Measurement):
 @router.delete("/measurements/{id}", status_code=204)
 @locked
 async def delete_measurement(id: str):
+    if await db.forecast_sites.find_one({"curtailment_point":"point:"+id}):raise HTTPException(409,"Messpunkt wird noch als Abregelungssignal verwendet.")
+    if await db.charts.find_one({"series":{"$elemMatch":{"kind":"measurement","reference_id":id}}}):
+        raise HTTPException(409,"Messpunkt wird noch in einem Chart verwendet.")
     for flow in await db.flows.find({}, {"_id": 0}).to_list():
-        if "point:" + id in flow.get("datapoints", {}).values():
+        if "point:" + id in flow.get("datapoints", {}).values() or flow.get("cycle_tracking",{}).get("signal_point")=="point:"+id:
             raise HTTPException(409, "Messpunkt wird noch von einem Gerät verwendet.")
     await db.measurements.delete_one({"id": id})
 

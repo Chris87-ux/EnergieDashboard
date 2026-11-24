@@ -2,7 +2,7 @@
 
 [Documentation](README.md) · [Data acquisition](DATA-ACQUISITION.md) · [Full backups](OPERATIONS.md)
 
-CSV format is **1**, independently of application 2.6.0 and database schema 6. Column names, record types and IDs are identical in both languages and are never translated.
+CSV format is **1**, independently of application 2.7.0 and database schema 7. Column names, record types and IDs are identical in both languages and are never translated.
 
 ## Export options
 
@@ -92,3 +92,9 @@ Strings that spreadsheet software could interpret as formulas are prefixed with 
 ## Hybrid and MPPT fields
 
 Current exports include `hybrid_ac_mode` (net/terminals), `dc_power_unit`, `dc_invert`, `dc_balance_complete`, `hybrid_min_power_w`, and data-point fields `ac_input`, `dc_power`, `dc_load_power`. Hybrids require DC batteries. MPPT uses device/pv/mppt, DC `power_total` and optional `energy_total`, without phases or RUN. Use a fresh full row when editing existing hybrids so missing newer fields do not silently revert to defaults. See [Storage and hybrid](STORAGE-AND-HYBRID.md).
+
+## Fields added in 2.7
+
+The full export also includes `chart`, `forecast_site` and `forecast_provider` records. `series` and `arrays` contain JSON lists inside a CSV cell. ID lists in `actual_flow_ids`, `solcast_resource_ids` and `dc_load_ids` use `|`. Export before editing to retain correct headers and escaping. Tokens are excluded: existing forecast tokens survive imports with the same ID; import new account providers disabled, then enter credentials in their editor.
+
+Residual devices are not separate flow rows. Their metadata is stored in the node row as `residual.*`; cycle settings use `cycle_tracking.*`. Charts require existing sources, forecast sites valid PV yield devices, and providers an existing site. The complete candidate is validated before application. Relevant forecast changes establish new revisions without deleting past daily logs.

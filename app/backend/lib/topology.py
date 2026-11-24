@@ -66,8 +66,6 @@ def history_flows(flows: list[Flow]) -> list[Flow]:
                         **({"power_"+p.lower():sample_id(flow,channel)+":"+p.lower() for p in ("L1","L2","L3")} if flow.kind=="node" and flow.power_phase_mode=="three" else {})}),
                 }))
             continue
-        if flow.kind != "storage" and flow.pv_type != "mppt" and flow.electrical_side == "dc" and flow.direction != "in" and not flow.group_id:
-            continue
         if flow.kind == "storage":
             for channel, direction, suffix in (("charge", "out", "Laden"), ("discharge", "in", "Entladen")):
                 out.append(flow.model_copy(update={
@@ -93,4 +91,9 @@ def history_flows(flows: list[Flow]) -> list[Flow]:
             }))
         else:
             out.append(flow.model_copy(update={"category":"grid"}) if flow.kind == "grid" else flow)
+    from lib.residuals import apply_residual_display
+    for item in out:
+        if item.id.endswith(":rest_consumption"):
+            node = next((f for f in flows if f.id + ":rest_consumption" == item.id), None)
+            if node: apply_residual_display(item, node)
     return out

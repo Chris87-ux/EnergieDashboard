@@ -50,3 +50,11 @@ Minimum power defaults to 100 W on both sides and must be positive. Low power, m
 ## Updates and historic limitations
 
 Existing hybrids remain in net mode. If a previous mapping was actually AC-Out, consciously switch to terminal mode and add AC-In. Existing MPPTs are normalised to DC total-value semantics while IDs/history remain. Fix an incorrectly linked AC battery by removing the hybrid link, changing it to DC, then relinking. Previously recorded incorrect derived energy is not recomputed retrospectively.
+
+## Multiple DC consumers per hybrid inverter (2.7)
+
+Create each load as an ordinary consumer connected to **DC**, mapping total power and optional total energy or a RUN signal with fixed wattage. DC devices have no phase assignment. Then select one or more **DC consumers** in the hybrid inverter. A load can belong to only one hybrid.
+
+DC bus balance = MPPT + battery discharge − battery charging − sum of DC loads. Individual `dc_load_ids` and aggregate `dc_load_power` are alternatives; never configure both. Missing assigned load readings make the inferred balance unknown, not zero. Direct inverter DC measurements retain priority. Explicitly confirm complete DC-bus coverage when estimating converter input.
+
+DC loads retain their own recorded energy and may join consumer groups, but are not added again to AC building totals or AC node residuals. Their energy may already be represented at the hybrid AC boundary. PV forecast actuals must use MPPT yield rather than mixed hybrid AC output.

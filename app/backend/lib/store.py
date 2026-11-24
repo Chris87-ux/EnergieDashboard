@@ -63,6 +63,8 @@ def all_datapoints(flows: list[Flow]) -> list[str]:
         elif flow.run_power_w is not None:
             keys = {key: "" for key in ("run", "engine_temperature", "efficiency", "fuel_consumption", "operating_hours")}
         ids.update(flow.datapoints.get(key) for key in keys if flow.datapoints.get(key))
+        if flow.cycle_tracking.enabled and flow.cycle_tracking.mode == "bool" and flow.cycle_tracking.signal_point:
+            ids.add(flow.cycle_tracking.signal_point)
     return sorted(ids)
 
 

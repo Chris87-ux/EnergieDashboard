@@ -1,25 +1,29 @@
-# Test report — Energieboard 2.6.0
+# Test report · Energieboard 2.7.0
 
-[Documentation](README.md) · [Development](DEVELOPMENT.md) · [Historical German report](../../PRUEFBERICHT.md)
-
-## Scope
-
-The application contains no demo mode. Automated source data comes from isolated test servers and a temporary real MongoDB, not production devices. Language changes preserve configuration and history; schema remains 6 and CSV 1.
+[Deutsch](../../PRUEFBERICHT.md) · 24 November 2026.
 
 ## Backend
 
-103 tests passed: 97 existing regressions plus six language tests for language/quality negotiation, placeholder integrity, translated diagnostics, protected user data and metadata, generated labels, and actual HTTP response language/error handling. Existing acquisition, grouping, topology, power/energy, hybrid, storage, counter and CSV tests remain active.
+**141 backend tests passed**, including all previous regressions. Added coverage includes virtual residual configuration/groups without duplicate accounting, hybrid DC loads, CSV, charts, appliance cycles and four forecast adapters.
 
-## Browser and integration
+Charts cover negative/small values, symmetrical phase estimates, raw units, digital last values, gaps and bounded output. Cycles cover washing pauses, spikes, initially running appliances, boolean edges, restart/gap handling and runtime warnings. Forecast tests cover 23/25-hour DST days, native power/energy units, combined AC clipping, absent data, token headers without secrets in URLs, rate errors and backoff. Learning tests reject future data, require out-of-sample correction evidence, restore raw forecasts when correction loses, and verify correlated-source weighting and cutoff-aware exclusions.
 
-TypeScript/Vite production build and integration against real local MongoDB, FastAPI, HTTP API presets, MQTT and Modbus TCP passed. The 50-device fixture checks period energy/indicators, stable IDs, CSV validation/apply, groups, source staleness, recursive node disabling, repeated migration and full backup/restore including BSON values.
+## Real MongoDB and Chromium integration
 
-Chromium checks German and English navigation, the actual language selector, persistence, explicit URL overrides, unchanged configuration, cancellation with unsaved edits, API forms, English server labels, locale numbers, calendar, embedded flow view and desktop/mobile widths without JavaScript errors. Existing editor/layout/CSV/grid/storage/generator/hybrid checks remain active.
+Passed against an isolated real MongoDB and HTTP/MQTT/Modbus TCP fixtures with 50 devices. Existing energy/phase/grid indicators, nested nodes, storage/hybrids, groups, source staleness, CSV preview/apply/concurrency protection, migration and BSON-compatible full backup/restore remain covered.
+
+Additional MongoDB tests prove idempotent completed counts when retrying after a simulated event/state write interruption. Twelve concurrent forecast reservations permit only eight per token/UTC day, with next-day reset and no plaintext token in usage records. Frozen morning predictions survive later updates; actual counter deltas produce correct daily forecast errors. Provider failures preserve forecasts and apply backoff.
+
+Chromium covers copying points with fresh IDs, residual group assignment, appliance profiles/status, saved measurement/computed charts, forecast configuration, token redaction, CSV and dependency guards in German and English. Existing forms, layouts, language persistence/URL override, user-name preservation, calendars, embeds and desktop/mobile checks remain active without JavaScript errors.
 
 ## Deployment and publication
 
-Readiness and updater harnesses cover eventual startup success without transient curl noise, visible final timeout, successful replacement, rollback and checksum rejection. Shell syntax/ShellCheck, Markdown links/anchors, JSON examples, package content and SHA-256 are checked before publication. The final [Linux Docker workflow](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/45355535075) passed: image build, all 103 tests in the runtime container, non-root/health checks, persistence after app recreation and both Linux deployment harnesses. Documentation validation passed for 38 Markdown files, 298 local links/anchors, 14 JSON examples and 70 Bash blocks.
+Production TypeScript/Vite build passed. Readiness tests suppress expected connection refusals and reveal genuine final timeouts. Updater tests passed successful replacement, rollback and pre-stop checksum rejection. ShellCheck and Bash syntax passed.
+
+Documentation links/anchors, JSON/Bash examples, package content, executable modes and SHA-256 are checked before publication. The new Linux Docker workflow will be awaited and linked here before the final release.
 
 ## Limits
 
-No physical Victron, Home Assistant or evcc production system or actual Proxmox LXC boot was connected during these automated tests. Source credentials, TLS/proxy setup, register maps, hardware compatibility, measurement boundaries and signs require commissioning on the target installation. Synthetic recorded history checks calculations but does not establish metering accuracy. Language does not change machine configuration/API keys; user-entered names can remain German in an English interface by design.
+No live Victron/PV accounts or physical appliances were connected. Adapters are tested against official formats and isolated HTTP responses; account permissions, free-plan limits and service availability require actual commissioning. Improved forecast accuracy over multiple weeks has not been demonstrated with real history and is not guaranteed.
+
+No actual Proxmox LXC boot was performed here. Verify networking, TLS/proxy access, source addresses, register maps, measurement boundaries and signs on your system. Tune appliance thresholds through complete real cycles. Test history checks arithmetic, not meter certification. The wiki Git endpoint remains unavailable; all guides are versioned in the repository and installation archive.

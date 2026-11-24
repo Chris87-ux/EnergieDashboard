@@ -15,6 +15,15 @@ def hybrid_ac(flow, values):
     return output,phases,None,None
 
 
+def dc_device_power(flow, values):
+    """Whole-device DC power, including a configured RUN estimate."""
+    if flow.run_power_w is not None:
+        run = values.get(flow.datapoints.get("run"))
+        return None if run is None else flow.run_power_w if run != 0 else 0
+    from lib.phases import measured_power
+    return measured_power(flow, values)[0]
+
+
 def hybrid_reports(flows, values, storages):
     from models.energy import LiveHybrid
     by_id={f.id:f for f in flows}
@@ -41,6 +50,14 @@ def hybrid_reports(flows, values, storages):
         factor=1000 if flow.dc_power_unit=="kW" else 1
         loads=values.get(flow.datapoints.get("dc_load_power")) if flow.datapoints.get("dc_load_power") else 0
         loads=None if loads is None else abs(loads)*factor
+        if flow.dc_load_ids:
+            parts = []
+            for id in flow.dc_load_ids:
+                config = by_id.get(id)
+                power = dc_device_power(config, values) if config and config.kind == "device" and config.electrical_side == "dc" and config.direction == "out" else None
+                if power is None: missing.append(config.name if config else id)
+                parts.append(power)
+            loads = sum(abs(p) for p in parts) if all(p is not None for p in parts) else None
         dc=None;source="unavailable";notes=[]
         if flow.datapoints.get("dc_power"):
             raw=values.get(flow.datapoints.get("dc_power"))

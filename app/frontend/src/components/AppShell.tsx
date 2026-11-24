@@ -7,7 +7,10 @@ import { useLive } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 const NAV = [
+  { to: "/prognose", label: t("PV-Prognose"), icon: BarChart3, testid: "nav-forecast" },
   { to: "/", label: t("Energiefluss"), icon: Activity, testid: "nav-dashboard" },
+  { to: "/geraete", label: t("Gerätestatus"), icon: Activity, testid: "nav-devices" },
+  { to: "/charts", label: t("Charts"), icon: BarChart3, testid: "nav-charts" },
   { to: "/energie", label: t("Energie-Bilanz"), icon: BarChart3, testid: "nav-energy" },
   { to: "/konfiguration", label: t("Konfiguration"), icon: SlidersHorizontal, testid: "nav-config" },
   { to: "/datenerfassung", label: t("Datenerfassung"), icon: Database, testid: "nav-acquisition" },
@@ -42,7 +45,7 @@ export default function AppShell() {
             </span>
             <span className="font-heading text-lg font-bold tracking-tight">Energy Flow</span>
           </NavLink>
-          <nav className="hidden items-center gap-1 xl:flex" data-testid="main-nav">
+          <nav className="hidden items-center gap-1 min-[1800px]:flex" data-testid="main-nav">
             {NAV.map((n) => (
               <NavLink
                 key={n.to}
@@ -63,7 +66,7 @@ export default function AppShell() {
           </nav>
           <div className="flex shrink-0 items-center gap-2"><LanguageSelector /><ModeIndicator /></div>
         </div>
-        <nav className="flex gap-1 overflow-x-auto border-t border-[var(--border)] px-2 py-1.5 xl:hidden" data-testid="mobile-nav">
+        <nav className="flex gap-1 overflow-x-auto border-t border-[var(--border)] px-2 py-1.5 min-[1800px]:hidden" data-testid="mobile-nav">
           {NAV.map((n) => (
             <NavLink
               key={n.to}

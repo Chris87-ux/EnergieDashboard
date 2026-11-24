@@ -1,5 +1,6 @@
 """Flow configuration schema. `extra="allow"` + `extra` dict + `schema_version` keep it extensible."""
 
+from models.cycles import CycleSettings
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Literal
@@ -12,7 +13,7 @@ Direction = Literal["in", "out"]
 Category = Literal["pv", "generator", "grid", "battery", "heatpump", "ev", "consumer", "custom"]
 
 PHASES: tuple[Phase, ...] = ("L1", "L2", "L3")
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 
 
 class Datapoints(BaseModel):
@@ -47,12 +48,22 @@ class Datapoints(BaseModel):
         return str(value).strip()
 
 
+class ResidualSettings(BaseModel):
+    name: str = Field(default="", max_length=60)
+    group_id: str | None = None
+    color: str | None = Field(default=None, pattern=r"^#[0-9A-Fa-f]{6}$")
+    icon: str = Field(default="", max_length=80)
+    sort_order: int | None = None
+
+
 class FlowBase(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     name: str = Field(min_length=1, max_length=60)
-    kind: Literal["device", "node", "storage", "grid"] = "device"
+    kind: Literal["device", "node", "storage", "grid", "residual"] = "device"
     parent_id: str | None = None
+    residual: ResidualSettings = Field(default_factory=ResidualSettings)
+    cycle_tracking: CycleSettings = Field(default_factory=CycleSettings)
     group_id: str | None = None
     run_power_w: float | None = Field(default=None, gt=0, allow_inf_nan=False)
     charge_sign: Literal["negative", "positive"] = "negative"
@@ -70,6 +81,7 @@ class FlowBase(BaseModel):
     hybrid_id: str | None = None
     storage_ids: list[str] = Field(default_factory=list)
     mppt_ids: list[str] = Field(default_factory=list)
+    dc_load_ids: list[str] = Field(default_factory=list)
     grid_mode: Literal["directional", "signed"] = "directional"
     category: Category = "consumer"
     direction: Direction = "out"
@@ -114,6 +126,18 @@ class FlowBase(BaseModel):
 
     @model_validator(mode="after")
     def validate_kind(self):
+        if self.cycle_tracking.enabled:
+            if self.kind != "device" or self.direction != "out" or self.pv_type in ("hybrid", "mppt"):
+                raise ValueError("Gerätezyklen sind nur für einzelne Verbrauchsgeräte vorgesehen.")
+            if self.cycle_tracking.mode == "bool" and not (self.cycle_tracking.signal_point or self.datapoints.get("run")):
+                raise ValueError("Für die Bool-Zykluserkennung ein Betriebssignal zuordnen.")
+        for ids in (self.storage_ids, self.mppt_ids, self.dc_load_ids):
+            if len(ids) != len(set(ids)):
+                raise ValueError("Hybrid-Zuordnungen dürfen keine doppelten Geräte enthalten.")
+        if self.dc_load_ids and self.datapoints.get("dc_load_power"):
+            raise ValueError("DC-Verbraucher einzeln oder als Sammelmesswert zuordnen, nicht beides gleichzeitig.")
+        if self.kind == "device" and self.electrical_side == "dc" and self.direction == "out":
+            self.power_phase_mode = self.energy_phase_mode = "single"
         if self.kind == "device" and self.category == "pv" and self.pv_type == "mppt":
             self.electrical_side = "dc"
             self.power_phase_mode = "single"
@@ -130,7 +154,7 @@ class FlowBase(BaseModel):
             raise ValueError("Ein Speicher benötigt einen Leistungs- und einen SOC-Datenpunkt.")
         if self.kind == "device" and bool(self.datapoints.get("run")) != (self.run_power_w is not None):
             raise ValueError("Für RUN sind ein Datenpunkt und eine feste Leistung in Watt erforderlich.")
-        if self.group_id and (self.kind!="device" or self.direction!="out" or self.category=="pv" and self.pv_type=="hybrid"):
+        if self.group_id and (self.kind not in ("device", "residual") or self.direction!="out" or self.category=="pv" and self.pv_type=="hybrid"):
             raise ValueError("Verbrauchergruppen sind nur für einzelne Verbrauchsgeräte vorgesehen.")
         return self
 

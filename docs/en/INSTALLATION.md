@@ -71,7 +71,7 @@ As root **inside the new LXC**. Archive and checksum are pinned to the same rele
   apt-get install -y ca-certificates curl
   download_dir="$(mktemp -d /tmp/energieboard-install.XXXXXXXX)"
   cd "$download_dir"
-  release=v2.6.0
+  release=v2.7.0
   basis="https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/$release/outputs"
   curl -fL --retry 3 "$basis/Energieboard-LXC.tar.gz" -o Energieboard-LXC.tar.gz
   curl -fL --retry 3 "$basis/SHA256SUMS" -o SHA256SUMS
@@ -134,7 +134,7 @@ curl -fsS http://127.0.0.1:8000/api/
 hostname -I
 ```
 
-Expect an active service and JSON status `ok`, version `2.6.0`, schema `6`. Open `http://<LXC-IP>:8000/?lang=en`. The ready check quietly retries expected startup connection refusals; persistent failures show the last error and journal diagnostics.
+Expect an active service and JSON status `ok`, version `2.7.0`, schema `6`. Open `http://<LXC-IP>:8000/?lang=en`. The ready check quietly retries expected startup connection refusals; persistent failures show the last error and journal diagnostics.
 
 Energieboard has no built-in login. Keep it on a trusted network or use a reverse proxy with authentication and HTTPS. Do not publish port 8000 directly to the Internet.
 

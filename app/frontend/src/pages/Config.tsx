@@ -1,3 +1,4 @@
+import ResidualEditor from "@/components/ResidualEditor";
 import { t } from "@/lib/i18n";
 import ConsumerGroupsConfig from "@/components/ConsumerGroupsConfig";
 import CsvConfiguration from "@/components/CsvConfiguration";
@@ -38,7 +39,7 @@ function FlowRow({ flow, parentName, onEdit, onDelete, onToggle }: { flow: Flow;
             {!flow.enabled && <span className="rounded border border-[var(--border)] px-1.5 text-[10px] text-[#8EA8C3]">{t("inaktiv")}</span>}
           </div>
           <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[#8EA8C3]">
-            <span>{flow.kind === "storage" ? t("Speicher") : flow.kind === "node" ? t("Knoten") : CATEGORY_LABELS[flow.category]}</span>
+            <span>{flow.kind === "residual" ? t("Automatischer Restverbraucher") : flow.kind === "storage" ? t("Speicher") : flow.kind === "node" ? t("Knoten") : CATEGORY_LABELS[flow.category]}</span>
             <span>{t("Last: ")}{phaseLabel(flow.power_phase_mode, flow.power_phase)}</span>
             <span>{t("Zählung: ")}{phaseLabel(flow.energy_phase_mode, flow.energy_phase)}</span>
             <span>{mapped} {t(" Datenpunkt(e)")}</span>
@@ -48,13 +49,13 @@ function FlowRow({ flow, parentName, onEdit, onDelete, onToggle }: { flow: Flow;
       </div>
       <div className="flex items-center gap-2">
         <label className="mr-2 flex items-center gap-1.5 text-xs text-[#8EA8C3]">
-          <Checkbox checked={flow.enabled} onCheckedChange={(c) => onToggle(c === true)} data-testid={`config-flow-enabled-${flow.id}`} />
+          <Checkbox disabled={flow.kind==="residual"} checked={flow.enabled} onCheckedChange={(c) => onToggle(c === true)} data-testid={`config-flow-enabled-${flow.id}`} />
           {t("aktiv")}</label>
         <Button variant="outline" size="sm" onClick={onEdit} data-testid={`config-flow-edit-${flow.id}`}>
           <Pencil className="size-3.5" /> {t(" Bearbeiten")}</Button>
-        <Button variant="ghost" size="icon-sm" onClick={onDelete} aria-label={t("Löschen")} data-testid={`config-flow-delete-${flow.id}`}>
+        {flow.kind!=="residual"&&<Button variant="ghost" size="icon-sm" onClick={onDelete} aria-label={t("Löschen")} data-testid={`config-flow-delete-${flow.id}`}>
           <Trash2 className="size-4 text-[#F87171]" />
-        </Button>
+        </Button>}
       </div>
     </div>
   );
@@ -64,6 +65,7 @@ export default function Config() {
   const qc = useQueryClient();
   const flows = useFlows();
   const [editorOpen, setEditorOpen] = useState(false);
+  const [residualEditing,setResidualEditing]=useState<Flow|null>(null);
   const [editing, setEditing] = useState<Flow | null>(null);
   const [initial, setInitial] = useState<FlowInput>(emptyFlow());
   const [editorKey, setEditorKey] = useState(0);
@@ -91,6 +93,7 @@ export default function Config() {
   });
 
   const openEditor = (f: Flow | null, dir?: "in" | "out") => {
+    if(f?.kind==="residual"){setResidualEditing(f);return;}
     setEditing(f);
     const base = f ? toInput(f) : emptyFlow();
     if (!f && dir) base.direction = dir;
@@ -116,12 +119,12 @@ export default function Config() {
     <>
       <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
-          <p className="text-sm font-medium text-[var(--primary)]">{t("Fluss-Konfiguration")}</p>
-          <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="config-title">{t("Zu- und Verbrauch")}</h1>
-          <p className="max-w-2xl text-sm text-[#8EA8C3]">{t("Beliebig viele Flüsse mit eigenen ioBroker-Datenpunkten, Name, Symbol, Farbe, Kategorie und Phasen-Zuordnung.")}</p>
+          <p className="text-sm font-medium text-[var(--primary)]">{t("Geräte und Anlage")}</p>
+          <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="config-title">{t("Produktion und Verbrauch")}</h1>
+          <p className="max-w-2xl text-sm text-[#8EA8C3]">{t("Geräte, Knoten und Speicher mit ihren Datenpunkten und Zuordnungen konfigurieren.")}</p>
         </div>
         <Button onClick={() => openEditor(null)} data-testid="add-flow-button">
-          <Plus className="size-4" /> {t(" Neuer Fluss")}</Button>
+          <Plus className="size-4" /> {t(" Gerät / Komponente hinzufügen")}</Button>
       </section>
 
       {flows.isError && <div className="text-sm text-[#F87171]">{t("Konfiguration konnte nicht geladen werden.")}</div>}
@@ -130,7 +133,7 @@ export default function Config() {
       <ConsumerGroupsConfig />
       <Input aria-label={t("Geräte und Knoten suchen")} placeholder={t("Geräte, Knoten oder Speicher suchen")} value={search} onChange={(e) => setSearch(e.target.value)} />
       {groups.map((g) => {
-        const items = visible.filter((f) => f.kind === "device" && f.direction === g.dir);
+        const items = visible.filter((f) => (f.kind === "device" || f.kind === "residual") && f.direction === g.dir);
         return (
           <section key={g.dir} className="space-y-3" data-testid={`config-group-${g.dir}`}>
             <div className="flex items-center justify-between">
@@ -176,6 +179,7 @@ export default function Config() {
           ))}
         </section>
       ))}
+      {residualEditing&&<ResidualEditor flow={residualEditing} onClose={()=>setResidualEditing(null)}/>}
       <FlowEditor key={editorKey} open={editorOpen} onOpenChange={setEditorOpen} editing={editing} initial={initial} flows={list} />
 
       <Dialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>

@@ -3,7 +3,8 @@ from fastapi import APIRouter, HTTPException
 from lib.db import db
 from lib.recorder import request_recheck
 from lib.store import load_flows
-from models.flow import Flow, FlowCreate
+from models.flow import Flow, FlowCreate, ResidualSettings
+from lib.residuals import with_residuals, has_meter, residual_device
 
 router = APIRouter(tags=["flows"])
 from lib.config_lock import config_lock, locked
@@ -11,6 +12,13 @@ topology_lock = config_lock
 
 
 async def validate_parent(flow: Flow) -> None:
+    if flow.kind == "residual":
+        raise HTTPException(422, "Restgeräte werden automatisch aus Knotenzählern erzeugt.")
+    if flow.kind == "node" and flow.residual.group_id and not await db.consumer_groups.find_one({"id":flow.residual.group_id}):
+        raise HTTPException(422, "Die ausgewählte Verbrauchergruppe existiert nicht.")
+    signal=flow.cycle_tracking.signal_point
+    if signal.startswith("point:") and not await db.measurements.find_one({"id":signal[6:]}):
+        raise HTTPException(422,"Das Betriebssignal für die Zykluserkennung existiert nicht.")
     if flow.group_id and not await db.consumer_groups.find_one({"id":flow.group_id}):
         raise HTTPException(422,"Die ausgewählte Verbrauchergruppe existiert nicht.")
     if flow.kind == "device" and flow.category == "pv" and flow.pv_type == "mppt":
@@ -58,7 +66,13 @@ async def validate_parent(flow: Flow) -> None:
             field = "storage_ids" if kind == "storage" else "mppt_ids"
             if await db.flows.find_one({"id": {"$ne": flow.id}, field: id}):
                 raise HTTPException(422, "Dieser Eintrag ist bereits einem Hybrid-WR zugeordnet.")
-    if flow.storage_ids or flow.mppt_ids:
+    for id in flow.dc_load_ids:
+        doc = await db.flows.find_one({"id": id, "kind": "device", "electrical_side": "dc", "direction": "out"})
+        if not doc or id == flow.id or doc.get("pv_type") in ("mppt", "hybrid"):
+            raise HTTPException(422, "DC-Verbraucher zuerst als separates DC-Verbrauchsgerät anlegen.")
+        if await db.flows.find_one({"id": {"$ne": flow.id}, "dc_load_ids": id}):
+            raise HTTPException(422, "Dieser DC-Verbraucher gehört bereits zu einem Hybrid-WR.")
+    if flow.storage_ids or flow.mppt_ids or flow.dc_load_ids:
         if flow.kind != "device" or flow.category != "pv" or flow.pv_type != "hybrid":
             raise HTTPException(422, "Speicher-/MPPT-Auswahl gehört zu einem PV-Hybrid-WR.")
 
@@ -71,7 +85,7 @@ async def flow_schema():
 @router.get("/flows", response_model=list[Flow])
 @locked
 async def list_flows():
-    return await load_flows()
+    return with_residuals(await load_flows())
 
 
 @router.post("/flows", response_model=Flow, status_code=201)
@@ -99,6 +113,8 @@ async def update_flow(id: str, body: FlowCreate):
         doc = await db.flows.find_one({"id": id}, {"_id": 0})
         if not doc:
             raise HTTPException(status_code=404, detail="Fluss nicht gefunden")
+        if (body.kind != "device" or body.electrical_side != "dc" or body.direction != "out" or body.pv_type in ("mppt", "hybrid")) and await db.flows.find_one({"dc_load_ids": id}):
+            raise HTTPException(409, "Zuerst die DC-Verbraucherzuordnung im Hybrid-WR entfernen.")
         if (body.kind != "storage" or body.electrical_side != "dc") and await db.flows.find_one({"storage_ids": id}):
             raise HTTPException(409, "Zuerst die Speicherzuordnung im Hybrid-WR entfernen.")
         if (body.kind != "device" or body.category != "pv" or body.pv_type != "mppt") and await db.flows.find_one({"mppt_ids": id}):
@@ -110,6 +126,18 @@ async def update_flow(id: str, body: FlowCreate):
             raise HTTPException(status_code=409, detail="Zuerst die zugeordneten Geräte und Speicher verschieben.")
         flow = Flow(**{**body.model_dump(exclude={"id", "created_at", "schema_version"}), "id": id, "created_at": doc["created_at"]})
         await validate_parent(flow)
+        # Validate dependent virtual chart sources and forecast selections before mutation.
+        from lib.charts import source_catalog, validate_chart
+        from models.charts import ChartConfig
+        from models.forecast import ForecastSite
+        from lib.forecast import validate_site
+        candidate=[flow if f.id==id else f for f in await load_flows()]
+        points=await db.measurements.find({}, {'_id':0}).to_list()
+        try:
+            catalog=source_catalog(candidate,points)
+            for chart in await db.charts.find({}, {'_id':0}).to_list():validate_chart(ChartConfig(**chart),catalog)
+            for site in await db.forecast_sites.find({}, {'_id':0}).to_list():validate_site(ForecastSite(**site),candidate,{p['id']:p for p in points})
+        except ValueError as exc:raise HTTPException(409,str(exc)) from exc
         result = await db.flows.replace_one({"id": id}, flow.model_dump())
         if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Fluss nicht gefunden")
@@ -120,11 +148,14 @@ async def update_flow(id: str, body: FlowCreate):
 @router.delete("/flows/{id}", status_code=204)
 async def delete_flow(id: str):
     async with topology_lock:
+        if await db.charts.find_one({"series":{"$elemMatch":{"kind":{"$ne":"measurement"},"reference_id":{"$in":[id,id+":rest_consumption"]}}}}):
+            raise HTTPException(409,"Dieses Gerät wird noch in einem Chart verwendet.")
+        if await db.forecast_sites.find_one({'actual_flow_ids':id}):raise HTTPException(409,'Dieses Gerät wird noch als PV-Istquelle verwendet.')
         doc = await db.flows.find_one({"id": id})
         if doc and doc.get("kind") == "grid" and doc.get("enabled", True):
             if not await db.flows.find_one({"kind": "grid", "enabled": True, "id": {"$ne": id}}):
                 raise HTTPException(409, "Zuerst einen neuen Netzanschluss anlegen.")
-        if await db.flows.find_one({"$or": [{"storage_ids": id}, {"mppt_ids": id}]}):
+        if await db.flows.find_one({"$or": [{"storage_ids": id}, {"mppt_ids": id}, {"dc_load_ids": id}]}):
             raise HTTPException(409, "Zuerst die Hybrid-WR-Zuordnung entfernen.")
         if await db.flows.find_one({"parent_id": id}):
             raise HTTPException(status_code=409, detail="Zuerst die zugeordneten Geräte und Speicher verschieben.")
@@ -134,3 +165,15 @@ async def delete_flow(id: str):
     request_recheck()
 
 
+
+
+@router.put("/residuals/{node_id}", response_model=Flow)
+@locked
+async def update_residual(node_id: str, body: ResidualSettings):
+    doc = await db.flows.find_one({"id": node_id, "kind": "node"}, {"_id": 0})
+    if not doc or not has_meter(Flow(**doc)):
+        raise HTTPException(404, "Der Knoten hat keinen eigenen Zähler und kein Restgerät.")
+    if body.group_id and not await db.consumer_groups.find_one({"id": body.group_id}):
+        raise HTTPException(422, "Die ausgewählte Verbrauchergruppe existiert nicht.")
+    await db.flows.update_one({"id": node_id}, {"$set": {"residual": body.model_dump()}})
+    return residual_device(Flow(**{**doc, "residual": body.model_dump()}))

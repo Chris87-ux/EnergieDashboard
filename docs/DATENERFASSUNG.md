@@ -156,3 +156,9 @@ Pro Verbindung werden Register nacheinander gelesen. Viele langsame oder nicht a
 Für 30–50 Geräte zuerst Namen/IDs und Einheiten planen, danach [CSV exportieren, bearbeiten und mit Vorschau importieren](../CSV-IMPORT.md). Verbindungskennwörter und API-Tokens werden nicht mit exportiert. Änderungen von Faktor/Quelle gelten für neue Daten und rechnen die bestehende Historie nicht rückwirkend um.
 
 [Weiter: Geräte und Knoten](GERAETE-UND-KNOTEN.md) · [Fehlersuche](FEHLERSUCHE.md).
+
+## Messpunkte kopieren und eigenständig aufzeichnen (ab 2.7)
+
+Neben jedem Messpunkt **Kopieren** wählen. Der Editor öffnet direkt bei der Zeile mit neuer ID und kopierten Einstellungen; Name anpassen, Adresse/Register/Topic ändern und ausdrücklich speichern. Die Kopie teilt die Verbindung, erhält aber keine alte Historienzuordnung. Abbrechen legt keinen Messpunkt an. Neue Werte werden ab dem Speichern separat aufgezeichnet.
+
+Aufgezeichnete Messpunkte müssen keinem Gerät zugeordnet sein; so lassen sich Temperatur oder andere Sensoren in [Charts](CHARTS.md) nutzen. Die doppelte globale ioBroker-Eingabe unter System ist entfernt. API-Verbindungen werden ausschließlich in Datenerfassung konfiguriert; die interne Altbestandsübernahme bleibt erhalten.

@@ -72,6 +72,9 @@ async def energy(start: str | None = None, end: str | None = None, preset: str |
     thr = max(s.gap_threshold_min * 60, 2.5 * step)
     src = LiveSource(s)
     results, totals = await compute_all(history_flows(flows), src, t0, t1, step, thr, configuration=flows)
+    for result in results:
+        node = next((f for f in flows if f.kind == "node" and f.id + ":rest_consumption" == result.flow_id), None)
+        if node: result.name_is_generated = not bool(node.residual.name)
     zone = ZoneInfo(tz)
     from lib.consumer_groups import group_summaries
     groups=group_summaries(await load_consumer_groups(),flows,{r.flow_id:r.total.kwh for r in results},{r.flow_id:r.total.complete for r in results},energy=True)
@@ -163,11 +166,11 @@ async def live():
     summary = _summary(out)
     from lib.hybrid import hybrid_reports
     hybrids = hybrid_reports(flows, values, storages)
-    dc = [{"id": f.id, "name": f.name, "hybrid_id": next((h.id for h in flows if f.id in h.mppt_ids), None),
-           "hybrid_name": next((h.name for h in flows if f.id in h.mppt_ids), None),
+    from lib.hybrid import dc_device_power
+    dc = [{"id": f.id, "name": f.name, "hybrid_id": next((h.id for h in flows if f.id in h.mppt_ids or f.id in h.dc_load_ids), None),
+           "hybrid_name": next((h.name for h in flows if f.id in h.mppt_ids or f.id in h.dc_load_ids), None),
            "energy_total_kwh": None if values.get(f.datapoints.get("energy_total")) is None else values[f.datapoints.get("energy_total")] * (0.001 if f.energy_unit == "Wh" else 1),
-           "power_w": None if values.get(f.datapoints.get("power_total")) is None else
-           values[f.datapoints.get("power_total")] * (1000 if f.power_unit == "kW" else 1) * (-1 if f.invert else 1)}
+           "power_w": dc_device_power(f, values)}
           for f in flows if f.kind == "device" and (f.electrical_side == "dc" or f.pv_type == "mppt")]
     from lib.balance import balance, strict_sum
     readings={r.flow_id:None if r.power_w is None else abs(r.power_w) for r in out}

@@ -1,0 +1,39 @@
+import {useEffect,useState} from "react";
+import {useQuery,useQueryClient} from "@tanstack/react-query";
+import {apiGet,apiPut,apiDelete,ApiError} from "@/lib/api";
+import {t} from "@/lib/i18n";
+import {usePresets,useSettings,type Range} from "@/lib/queries";
+import type {ChartConfig,ChartSource,ChartData,SeriesKind} from "@/lib/chartTypes";
+import TimeChart from "@/components/TimeChart";
+import RangePicker from "@/components/RangePicker";
+import {Input} from "@/components/ui/input";
+import {Button} from "@/components/ui/button";
+import {toast} from "sonner";
+const palette=["#38BDF8","#F59E0B","#34D399","#FB7185","#A78BFA","#E879F9","#A3E635","#F97316"];
+const kinds:Record<SeriesKind,string>={measurement:t("Messpunkt"),power:t("Leistung"),soc:"SOC",charge:t("Laden"),discharge:t("Entladen"),status:t("Gerätestatus"),cycles:t("Zyklen")};
+const uuid=()=>typeof crypto.randomUUID==="function"?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,"0")).join("");
+
+function ChartPanel({chart,range,live,timezone,onEdit,onDelete}:{chart:ChartConfig;range:Range|null;live:boolean;timezone:string;onEdit:()=>void;onDelete:()=>void}){
+ const query=useQuery({queryKey:["chart-data",chart.id,range?.start,range?.end],queryFn:()=>apiGet<ChartData>(`/charts/${chart.id}/data?start=${encodeURIComponent(range!.start)}&end=${encodeURIComponent(range!.end)}`),enabled:!!range,refetchInterval:live?60000:false});
+ return <section className="min-w-0 space-y-3 rounded-xl border border-border bg-card p-4" data-testid={`chart-${chart.id}`}><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="break-all text-lg font-bold">{chart.name}</h2><div className="flex gap-2"><Button variant="outline" onClick={onEdit}>{t("Bearbeiten")}</Button><Button variant="ghost" onClick={onDelete}>{t("Löschen")}</Button></div></div>{query.isLoading&&<p>{t("Historie wird geladen…")}</p>}{query.isError&&<p role="alert">{query.error instanceof ApiError?JSON.stringify(query.error.body):t("Backend nicht erreichbar")}</p>}{query.data&&!query.isError&&<TimeChart data={query.data} timezone={timezone}/>} {query.data?.errors.map((error,i)=><p role="alert" className="break-words text-xs text-amber-300" key={i}>{error}</p>)}</section>;
+}
+export default function Charts(){
+ const qc=useQueryClient();const presets=usePresets();const settings=useSettings();
+ const charts=useQuery({queryKey:["charts"],queryFn:()=>apiGet<ChartConfig[]>("/charts")});
+ const sources=useQuery({queryKey:["chart-sources"],queryFn:()=>apiGet<ChartSource[]>("/chart-sources")});
+ const [range,setRange]=useState<Range|null>(null);const [preset,setPreset]=useState<string|undefined>("today");
+ const [draft,setDraft]=useState<ChartConfig|null>(null);const [busy,setBusy]=useState(false);
+ useEffect(()=>{const p=presets.data?.find(p=>p.key===preset);if(p)setRange(r=>r?.start===p.start&&r?.end===p.end?r:{start:p.start,end:p.end});},[presets.data,preset]);
+ function add(){const first=sources.data?.[0];if(!first)return;setDraft({id:uuid(),name:"",sort_order:100,series:[{kind:first.kind,reference_id:first.reference_id,label:"",color:palette[0],unit:first.unit}]});}
+ async function save(e:React.FormEvent){e.preventDefault();if(!draft)return;setBusy(true);try{await apiPut(`/charts/${draft.id}`,draft);setDraft(null);await qc.invalidateQueries();toast.success(t("Chart gespeichert"));}catch(error){toast.error(error instanceof ApiError?JSON.stringify(error.body):String(error));}finally{setBusy(false);}}
+ async function remove(chart:ChartConfig){if(!confirm(t("Chart „{0}“ löschen?",chart.name)))return;try{await apiDelete(`/charts/${chart.id}`);await qc.invalidateQueries({queryKey:["charts"]});}catch(error){toast.error(String(error));}}
+ const editor=draft&&<form onSubmit={save} className="min-w-0 space-y-3 rounded-xl border border-primary bg-card p-4" data-testid="chart-editor"><label className="grid gap-1 text-sm">{t("Chart-Name")}<Input required maxLength={80} value={draft.name} onChange={e=>setDraft({...draft,name:e.target.value})} data-testid="chart-name"/></label><p className="text-xs text-muted-foreground">{t("Bis zu acht Reihen pro Chart. Namen werden automatisch übernommen; eigene Beschriftungen sind optional.")}</p>
+ {draft.series.map((series,index)=><div key={index} className="grid min-w-0 gap-2 rounded border border-border p-3 sm:grid-cols-[2fr_1fr_auto_auto]"><label className="grid min-w-0 gap-1 text-xs">{t("Quelle")}<select data-testid={`chart-source-${index}`} className="min-w-0 max-w-full rounded border border-border bg-background p-2" value={JSON.stringify([series.kind,series.reference_id])} onChange={e=>{const [kind,id]=JSON.parse(e.target.value);const item=sources.data?.find(s=>s.kind===kind&&s.reference_id===id);if(item)setDraft({...draft,series:draft.series.map((s,i)=>i===index?{...s,kind,reference_id:id,unit:item.unit}:s)});}}>{Object.keys(kinds).map(kind=><optgroup key={kind} label={kinds[kind as SeriesKind]}>{sources.data?.filter(s=>s.kind===kind).map(s=><option key={s.reference_id} value={JSON.stringify([s.kind,s.reference_id])}>{s.name} · {s.unit||"—"}{!s.enabled?" · "+t("inaktiv"):""}</option>)}</optgroup>)}</select></label><label className="grid min-w-0 gap-1 text-xs">{t("Beschriftung (optional)")}<Input maxLength={100} value={series.label} placeholder={sources.data?.find(s=>s.kind===series.kind&&s.reference_id===series.reference_id)?.name} onChange={e=>setDraft({...draft,series:draft.series.map((s,i)=>i===index?{...s,label:e.target.value}:s)})}/></label><label className="grid gap-1 text-xs">{t("Farbe")}<Input type="color" className="w-16" value={series.color} onChange={e=>setDraft({...draft,series:draft.series.map((s,i)=>i===index?{...s,color:e.target.value}:s)})}/></label><Button type="button" variant="ghost" disabled={draft.series.length===1} onClick={()=>setDraft({...draft,series:draft.series.filter((_,i)=>i!==index)})}>{t("Entfernen")}</Button></div>)}
+ <div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={draft.series.length>=8} onClick={()=>{const item=sources.data?.find(s=>!draft.series.some(a=>a.kind===s.kind&&a.reference_id===s.reference_id));if(item)setDraft({...draft,series:[...draft.series,{kind:item.kind,reference_id:item.reference_id,label:"",color:palette[draft.series.length],unit:item.unit}]});}}>{t("Reihe hinzufügen")}</Button><Button type="submit" disabled={busy}>{t("Speichern")}</Button><Button type="button" variant="ghost" onClick={()=>setDraft(null)}>{t("Abbrechen")}</Button></div></form>;
+ return <><div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-2xl font-bold">{t("Charts")}</h1><p className="text-sm text-muted-foreground">{t("Eigene Übersichten aus aufgezeichneten Messpunkten und berechneten Gerätewerten.")}</p></div><Button disabled={!sources.data?.length||busy} onClick={add}>{t("Chart hinzufügen")}</Button></div>{presets.data&&<RangePicker value={range} presets={presets.data} activePreset={preset} onChange={(r,p)=>{setPreset(p);setRange(r);}}/>}<Button variant="outline" onClick={()=>qc.invalidateQueries({queryKey:["chart-data"]})}>{t("Aktualisieren")}</Button>
+ {(charts.isError||sources.isError)&&<p role="alert">{t("Charts konnten nicht geladen werden.")}</p>}
+ {draft&&!charts.data?.some(c=>c.id===draft.id)&&editor}
+ {!charts.data?.length&&<p className="text-sm text-muted-foreground">{t("Noch keine Charts. Zuerst Datenpunkte aufzeichnen und anschließend die gewünschten Reihen auswählen.")}</p>}
+ {charts.data?.map(chart=><div className="min-w-0 space-y-2" key={chart.id}><ChartPanel chart={chart} range={range} live={preset==="today"} timezone={settings.data?.timezone??"Europe/Berlin"} onEdit={()=>setDraft(structuredClone(chart))} onDelete={()=>void remove(chart)}/>{draft?.id===chart.id&&editor}</div>)}
+ </>;
+}

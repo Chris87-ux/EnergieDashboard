@@ -1,3 +1,4 @@
+import CycleSettingsEditor from "@/components/CycleSettingsEditor";
 import { t } from "@/lib/i18n";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -30,7 +31,7 @@ export function emptyFlow(): FlowInput {
     fuel_unit: "L/h",
     capacity_kwh: null, reserve_soc_pct: 0, max_power_w: 5000, electrical_side: "ac",
     hybrid_ac_mode: "net", dc_power_unit: "W", dc_invert: false, dc_balance_complete: false, hybrid_min_power_w: 100,
-    pv_type: "wr", hybrid_id: null, storage_ids: [], mppt_ids: [], grid_mode: "directional",
+    pv_type: "wr", hybrid_id: null, storage_ids: [], mppt_ids: [], dc_load_ids: [], grid_mode: "directional",
     kind: "device", parent_id: null, group_id:null, run_power_w: null, charge_sign: "negative",
     power_phase_mode: "single", power_phase: "L1", energy_phase_mode: "single", energy_phase: "L1",
     power_unit: "W", energy_unit: "kWh", invert: false, datapoints: { ...EMPTY_DP }, extra: {},
@@ -139,7 +140,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
 
   const isMppt = form.kind === "device" && form.category === "pv" && form.pv_type === "mppt";
   const isHybrid = form.kind === "device" && form.category === "pv" && form.pv_type === "hybrid";
-  const dcOnly = isMppt || form.kind === "storage" && form.electrical_side === "dc";
+  const dcOnly = form.electrical_side === "dc";
   const singlePower = dcOnly || form.power_phase_mode === "single";
   const singleEnergy = dcOnly || form.energy_phase_mode === "single";
   const groups=useQuery({queryKey:["consumer-groups"],queryFn:()=>apiGet<ConsumerGroup[]>("/consumer-groups")});
@@ -149,14 +150,15 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[92vh] overflow-y-auto border-[var(--border)] bg-[var(--card)] sm:max-w-2xl" data-testid="flow-editor-dialog">
         <DialogHeader>
-          <DialogTitle className="font-heading">{editing ? t("Fluss bearbeiten") : t("Neuer Fluss")}</DialogTitle>
+          <DialogTitle className="font-heading">{editing ? t("Gerät / Komponente bearbeiten") : t("Gerät / Komponente hinzufügen")}</DialogTitle>
           <DialogDescription>{t("Typ, Anschluss und Messpunkte festlegen.")}</DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="general">
-          <TabsList className="w-full">
+          <TabsList className="flex h-auto w-full flex-wrap">
             <TabsTrigger value="general" data-testid="flow-editor-tab-general">{t("Allgemein")}</TabsTrigger>
             <TabsTrigger value="phases" data-testid="flow-editor-tab-phases">{dcOnly ? t("DC / Energie") : t("Phasen")}</TabsTrigger>
             <TabsTrigger value="datapoints" data-testid="flow-editor-tab-datapoints">{t("Datenpunkte")}</TabsTrigger>
+            {form.kind==="device"&&form.direction==="out"&&!isHybrid&&!isMppt&&<TabsTrigger value="cycles" data-testid="flow-editor-tab-cycles">{t("Gerätezyklen")}</TabsTrigger>}
             <TabsTrigger value="extra" data-testid="flow-editor-tab-extra">{t("Erweitert")}</TabsTrigger>
           </TabsList>
 
@@ -164,7 +166,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={t("Typ")}>
                 <Select value={form.kind} onValueChange={(kind: FlowInput["kind"]) => setForm((f) => ({
-                  ...f, kind, group_id:kind==="device"?f.group_id:null, parent_id: kind === "grid" ? null : f.parent_id, grid_mode: kind === "grid" ? "signed" : f.grid_mode, pv_type: "wr", storage_ids: [], mppt_ids: [],
+                  ...f, kind, cycle_tracking: f.cycle_tracking ? {...f.cycle_tracking, enabled:false}:undefined, group_id:kind==="device"?f.group_id:null, parent_id: kind === "grid" ? null : f.parent_id, grid_mode: kind === "grid" ? "signed" : f.grid_mode, pv_type: "wr", storage_ids: [], mppt_ids: [], dc_load_ids: [],
                   run_power_w: null, datapoints: { ...f.datapoints, run: "" },
                   category: ["grid","storage","node"].includes(kind) ? "custom" : ["grid","battery"].includes(f.category) ? "consumer" : f.category,
                   electrical_side: kind === "storage" ? "dc" : "ac",
@@ -206,14 +208,14 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
               {(form.kind === "device" && !isMppt && !isHybrid || form.kind === "grid" && form.grid_mode === "directional") && <Field label={t("Richtung")} hint={t("Geräte: Produktion oder Verbrauch. Netzbezug und Lieferung werden separat bilanziert.")}>
                 <Segmented
                   value={form.direction}
-                  onChange={(v) => setForm(f=>({...f,direction:v,group_id:v==="out"?f.group_id:null}))}
+                  onChange={(v) => setForm(f=>({...f,direction:v,cycle_tracking:f.cycle_tracking?{...f.cycle_tracking,enabled:v==="out"&&f.cycle_tracking.enabled}:undefined,group_id:v==="out"?f.group_id:null}))}
                   testid="flow-editor-direction"
                   options={[{ value: "in", label: form.kind === "grid" ? t("Bezug") : t("Produktion") }, { value: "out", label: form.kind === "grid" ? t("Lieferung") : t("Verbrauch") }]}
                 />
               </Field>
               }
               {form.kind === "device" && <Field label={t("Kategorie")}>
-                <Select value={form.category} onValueChange={(v: string) => setForm(f=>({...f,category:v as Category,icon:v === "generator" ? "generator" : f.icon,direction:v === "generator" ? "in" : f.direction,pv_type:v === "pv" ? f.pv_type : "wr",storage_ids:v === "pv" ? f.storage_ids : [],mppt_ids:v === "pv" ? f.mppt_ids : []}))}>
+                <Select value={form.category} onValueChange={(v: string) => setForm(f=>({...f,category:v as Category,cycle_tracking:f.cycle_tracking?{...f.cycle_tracking,enabled:v!=="generator"&&f.cycle_tracking.enabled}:undefined,icon:v === "generator" ? "generator" : f.icon,direction:v === "generator" ? "in" : f.direction,pv_type:v === "pv" ? f.pv_type : "wr",storage_ids:v === "pv" ? f.storage_ids : [],mppt_ids:v === "pv" ? f.mppt_ids : [],dc_load_ids:v === "pv" ? f.dc_load_ids : []}))}>
                   <SelectTrigger className="w-full" data-testid="flow-editor-category-select">
                     <SelectValue />
                   </SelectTrigger>
@@ -238,7 +240,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
               <Segmented value={form.grid_mode} onChange={v => set("grid_mode", v)} testid="grid-mode" options={[{value:"signed", label:t("Ein Wert: Bezug + / Einspeisung −")},{value:"directional",label:t("Getrennter Richtungswert")}]} />
             </Field>}
             {form.kind === "device" && form.category === "pv" && <>
-              <Field label={t("Photovoltaik-Typ")}><Segmented value={form.pv_type} onChange={v => setForm(f => ({...f, pv_type:v, group_id:null, electrical_side:v === "mppt" ? "dc" : "ac", run_power_w:null, datapoints:{...f.datapoints,run:""}, power_phase_mode:v === "mppt" ? "single" : f.power_phase_mode, energy_phase_mode:v === "mppt" ? "single" : f.energy_phase_mode, direction:"in", storage_ids:v === "hybrid" ? f.storage_ids : [], mppt_ids:v === "hybrid" ? f.mppt_ids : []}))} testid="pv-type" options={[{value:"wr",label:t("WR")},{value:"hybrid",label:t("Hybrid-WR")},{value:"mppt",label:"DC-MPPT"}]} /></Field>
+              <Field label={t("Photovoltaik-Typ")}><Segmented value={form.pv_type} onChange={v => setForm(f => ({...f, pv_type:v, cycle_tracking:f.cycle_tracking?{...f.cycle_tracking,enabled:false}:undefined, group_id:null, electrical_side:v === "mppt" ? "dc" : "ac", run_power_w:null, datapoints:{...f.datapoints,run:""}, power_phase_mode:v === "mppt" ? "single" : f.power_phase_mode, energy_phase_mode:v === "mppt" ? "single" : f.energy_phase_mode, direction:"in", storage_ids:v === "hybrid" ? f.storage_ids : [], mppt_ids:v === "hybrid" ? f.mppt_ids : [],dc_load_ids:v === "hybrid" ? f.dc_load_ids : []}))} testid="pv-type" options={[{value:"wr",label:t("WR")},{value:"hybrid",label:t("Hybrid-WR")},{value:"mppt",label:"DC-MPPT"}]} /></Field>
               {form.pv_type === "hybrid" && <div className="space-y-3 rounded-lg border border-border p-3">
                 <p className="text-xs text-muted-foreground">{t("AC-Leistung des Hybrid-WR oben zuordnen. Speicher und MPPT zuerst anlegen und hier auswählen. DC-Werte bleiben separat.")}</p>
                 {(["storage", "mppt"] as const).map(kind => <Field key={kind} label={kind === "storage" ? t("DC-Speicher") : "DC-MPPTs"}>
@@ -247,6 +249,10 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
                     return <label key={f.id} className="flex gap-2 text-sm"><Checkbox checked={form[key].includes(f.id)} onCheckedChange={on => set(key, on ? [...form[key],f.id] : form[key].filter(id => id !== f.id))} />{f.name}</label>;
                   })}
                 </Field>)}
+                <Field label={t("DC-Verbraucher")}>
+                  <p className="text-xs text-muted-foreground">{t("Einzelgeräte am DC-Bus auswählen. Alternativ den Sammelmesswert unter Datenpunkte verwenden, nicht beides zusammen.")}</p>
+                  {flows.filter(f=>f.kind==="device"&&f.electrical_side==="dc"&&f.direction==="out"&&f.pv_type!=="hybrid"&&f.pv_type!=="mppt").map(f=><label key={f.id} className="flex gap-2 text-sm"><Checkbox checked={(form.dc_load_ids??[]).includes(f.id)} onCheckedChange={on=>set("dc_load_ids",on?[...(form.dc_load_ids??[]),f.id]:(form.dc_load_ids??[]).filter(id=>id!==f.id))}/>{f.name}</label>)}
+                </Field>
                 <Field label={t("AC-Messung")}><Segmented value={form.hybrid_ac_mode} onChange={v=>set("hybrid_ac_mode",v)} testid="hybrid-ac-mode" options={[{value:"net",label:t("WR-Nettoleistung")},{value:"terminals",label:"AC-Out minus AC-In"}]}/></Field>
                 <p className="text-xs text-muted-foreground">{t("AC-Out kann Netz-Durchleitung enthalten. Im zweiten Modus den tatsächlichen WR-AC-Eingang zusätzlich zuordnen.")}</p>
                 <label className="flex items-start gap-2 text-sm"><Checkbox checked={form.dc_balance_complete} onCheckedChange={v=>set("dc_balance_complete",v===true)} data-testid="hybrid-dc-balance-complete"/>{t("DC-Bilanz vollständig: alle MPPTs, DC-Speicher und weiteren DC-Lasten berücksichtigt.")}</label>
@@ -407,6 +413,7 @@ export default function FlowEditor({ open, onOpenChange, editing, initial, flows
             </div>}
           </TabsContent>
 
+          <TabsContent value="cycles" className="mt-4"><CycleSettingsEditor value={form.cycle_tracking} onChange={v=>set("cycle_tracking",v)} points={points.data??[]}/></TabsContent>
           <TabsContent value="extra" className="mt-4 space-y-2">
             <Field label={t("Zusätzliche Felder (JSON)")} hint={t("Zusatzmetadaten als JSON-Objekt, z. B. {\"manufacturer\":\"Victron\",\"notes\":\"Garage\"}. Kapazität und Berechnungen über die regulären Felder einstellen. Schema unter /api/schemas/flow; Anleitung in DATENMODELL.md.")}>
               <Textarea rows={8} className="font-mono text-xs" value={extraText} onChange={(e) => setExtraText(e.target.value)} data-testid="flow-editor-extra-textarea" />

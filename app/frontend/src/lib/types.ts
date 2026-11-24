@@ -21,11 +21,18 @@ export interface Datapoints {
   [key: string]: string;
 }
 
+export interface CycleSettings {
+ enabled:boolean;mode:"power"|"bool";profile:"washing_machine"|"dryer"|"dishwasher"|"custom";signal_point:string;
+ start_w:number;end_w:number;standby_w:number;start_delay_s:number;end_delay_s:number;window_s:number;minimum_run_s:number;maximum_run_s:number;
+}
+
 // models/flow.py — FlowCreate
 export interface FlowInput {
-  kind: "device" | "node" | "storage" | "grid";
+  kind: "device" | "node" | "storage" | "grid" | "residual";
   parent_id: string | null;
+  residual?: {name:string;group_id:string|null;color:string|null;icon:string;sort_order:number|null};
   group_id: string | null;
+  cycle_tracking?: CycleSettings;
   run_power_w: number | null;
   charge_sign: "negative" | "positive";
   capacity_kwh: number | null;
@@ -42,6 +49,7 @@ export interface FlowInput {
   hybrid_id: string | null;
   storage_ids: string[];
   mppt_ids: string[];
+  dc_load_ids: string[];
   grid_mode: "directional" | "signed";
   name: string;
   category: Category;

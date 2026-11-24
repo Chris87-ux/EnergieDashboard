@@ -22,6 +22,7 @@ class EnergyValue(BaseModel):
 
 
 class FlowEnergy(BaseModel):
+    name_is_generated: bool = True
     estimated_phases: list[str] = Field(default_factory=list)
     electrical_side: str = "ac"
     flow_id: str
@@ -86,6 +87,7 @@ class RangePreset(BaseModel):
 
 
 class LiveFlow(BaseModel):
+    name_is_generated: bool = True
     estimated_phases: list[str] = Field(default_factory=list)
     hidden: bool = False
     zero_since: float | None = None

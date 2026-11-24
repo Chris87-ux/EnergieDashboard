@@ -1,4 +1,4 @@
-# Energieboard 2.6.0
+# Energieboard 2.7.0
 
 **English** · [Deutsch](README.md) · [Full English documentation](docs/en/README.md)
 
@@ -39,4 +39,13 @@ Open `http://<SERVER-IP>:8000/?lang=en` or choose English in the header. Languag
 
 The app has no built-in login. Use a trusted LAN or an authenticated HTTPS reverse proxy. A suggested starting allocation for 30–50 devices is 2 vCPU, 4 GB RAM and 32 GB SSD plus history/backups. Direct LXC targets Debian 12 amd64; Docker targets Linux amd64. Local MongoDB requires AVX and a compatible kernel. See the installation guides for checks and external-database options.
 
-Application **2.6.0**, database schema **6**, CSV **1**. Use fixed release tags such as v2.6.0. See the [test report](docs/en/TEST-REPORT.md) for validation and limits and [release changes](docs/en/CHANGELOG.md) for history.
+Application **2.7.0**, database schema **7**, CSV **1**. Use fixed release tags such as v2.7.0. See the [test report](docs/en/TEST-REPORT.md) for validation and limits and [release changes](docs/en/CHANGELOG.md) for history.
+
+## New analysis features in 2.7
+
+- [PV forecasts](docs/en/PV-FORECASTS.md): four sources, immutable morning predictions, validated corrections and daily logs.
+- [Appliance cycles](docs/en/APPLIANCE-CYCLES.md): washing machines, dryers and dishwashers with states and completed counts.
+- [Charts](docs/en/CHARTS.md): saved views combining measurements, node residuals, storage and device status.
+- Copy measurements, assign several DC loads to a hybrid inverter and edit automatic residual consumers including group membership.
+
+Enable recording for history and cycle detection. Forecast providers remain disabled until configured.

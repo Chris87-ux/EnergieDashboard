@@ -61,7 +61,7 @@ Use a new project directory on the Docker host:
 ```bash
 mkdir -p /opt
 cd /opt
-git clone --branch v2.6.0 https://github.com/Chris87-ux/EnergieDashboard.git energieboard-docker
+git clone --branch v2.7.0 https://github.com/Chris87-ux/EnergieDashboard.git energieboard-docker
 cd /opt/energieboard-docker
 cp docker.env.example .env
 ```
@@ -69,7 +69,7 @@ cp docker.env.example .env
 Edit `.env` before starting if needed:
 
 ```dotenv
-ENERGIEBOARD_VERSION=2.6.0
+ENERGIEBOARD_VERSION=2.7.0
 ENERGIEBOARD_PORT=8000
 ENERGIEBOARD_BIND=0.0.0.0
 ```
@@ -84,7 +84,7 @@ docker compose logs --tail=60 energieboard
 curl -fsS http://127.0.0.1:8000/api/
 ```
 
-Expect healthy application and MongoDB containers and API status `ok`, version `2.6.0`. Open `http://<DOCKER-HOST-IP>:8000/?lang=en`, substituting a changed host port when applicable.
+Expect healthy application and MongoDB containers and API status `ok`, version `2.7.0`. Open `http://<DOCKER-HOST-IP>:8000/?lang=en`, substituting a changed host port when applicable.
 
 ## 4. Persistence and network access
 

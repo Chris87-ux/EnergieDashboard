@@ -49,3 +49,9 @@ Self-sufficiency and self-consumption in the overview use **recorded Today**, no
 ## Grouping, removal and checks
 
 An optional [consumer group](CONSUMER-GROUPS.md) adds a cross-node summary without moving the electrical connection. Before deleting a node, move its devices, batteries and child nodes. Removing a configuration entry does not reconstruct or erase previously recorded energy automatically. Confirm signs and boundaries with known loads and check residuals before expanding the installation.
+
+## Configure automatic residual consumers (2.7)
+
+A metered node exposes a virtual residual consumer in Configuration. Its editor contains name, group, icon, colour and display order only; no independent data points. Values remain the node meter minus children. Negative residuals retain the separate residual-production channel; consumer groups include only the consumption share.
+
+The stable virtual ID is `<node-id>:rest_consumption`; metadata is stored on the node in `residual`. Do not create or import a separate `kind=residual` record. Remove dependent chart references before removing the node meter.

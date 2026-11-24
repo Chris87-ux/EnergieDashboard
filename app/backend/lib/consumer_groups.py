@@ -3,9 +3,11 @@ from models.energy import ConsumerGroupSummary
 
 
 def group_summaries(groups, flows, readings, complete=None, energy=False):
+    from lib.residuals import with_residuals
+    flows = with_residuals(flows)
     result=[]
     for group in sorted(groups,key=lambda g:(g.sort_order,g.name,g.id)):
-        members=[f for f in flows if f.group_id==group.id and f.kind=="device" and f.direction=="out" and not (f.category=="pv" and f.pv_type=="hybrid")]
+        members=[f for f in flows if f.group_id==group.id and f.kind in ("device", "residual") and f.direction=="out" and not (f.category=="pv" and f.pv_type=="hybrid")]
         vals=[readings.get(f.id) for f in members]
         value=None if any(v is None for v in vals) else sum(abs(v) for v in vals)
         ok=value is not None and all((complete or {}).get(f.id,True) for f in members)

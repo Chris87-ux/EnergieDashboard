@@ -1,3 +1,4 @@
+import CycleOverview from "@/components/CycleOverview";
 import { t } from "@/lib/i18n";
 import { Link } from "react-router-dom";
 import { ArrowRight, Gauge, Leaf, Sun } from "lucide-react";
@@ -126,6 +127,7 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
       {data && <ConsumerGroupsOverview live={data.consumer_groups} energy={todayReport?.consumer_groups}/> }
       {data && <HybridOverview data={data} />}
       {data && <StorageOverview data={data} />}
+      {!embedded&&<CycleOverview/>}
     </>
   );
 }

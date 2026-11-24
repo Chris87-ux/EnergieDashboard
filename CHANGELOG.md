@@ -2,6 +2,18 @@
 
 [English](docs/en/CHANGELOG.md)
 
+## 2.7.0 · 24.11.2026
+
+- Messpunkte direkt neben dem Eintrag kopieren, mit neuer ID und ohne Übernahme alter Historienkanäle.
+- Mehrere DC-Verbraucher je Hybrid-WR, gemessen oder über RUN. Einzelzuordnung und Sammelmesswert schließen sich aus; keine zusätzliche AC-Doppelzählung.
+- Automatische Restverbraucher in der Konfiguration mit eigenem Namen, Symbol, Farbe, Reihenfolge und Verbrauchergruppe, ohne eigene Messpunkte.
+- Geräte-/Komponentenbegriffe statt „Neuer Fluss“; doppelte globale ioBroker-Eingabe unter System entfernt, Altbestandsübernahme bleibt erhalten.
+- Gespeicherte Charts aus Rohmesspunkten und berechneten Werten, getrennte Einheitenachsen und sichtbare Datenlücken. Aufzeichnung auch ohne Gerätezuordnung.
+- Status und dauerhafte abgeschlossene Laufzähler für Waschmaschine, Trockner und Geschirrspüler, inklusive Pausen, Mindestzeiten, Neustart-/Lückenbehandlung und Verlaufsenergie.
+- Vier private PV-Prognosequellen: VRM, Forecast.Solar, Solcast und Open-Meteo als lokales Einstrahlungsmodell. Dauerhafte Abruflimits, unveränderte Tagesanfangsprognosen, Vergleich mit Ist-Ertrag, geprüfte Faktoren, Quellenfamilien und protokollierte Ausschlüsse.
+- Neue Funktionen auf Deutsch und Englisch dokumentiert und übersetzt. CSV-Konfiguration enthält Charts, Zyklusparameter und Prognosen ohne Tokens.
+- Schema 7 additiv; bestehende IDs, Historie und Gruppen bleiben. CSV bleibt Version 1. Die Startbereitschaftsprüfung vermeidet vorübergehende curl-Verbindungsfehler beim Update.
+
 ## 2.6.0 · 24. November 2026
 
 - Deutsch/Englisch für Navigation, Übersichten, Formulare, Hinweise, Dialoge und die eingebaute Installationshilfe.

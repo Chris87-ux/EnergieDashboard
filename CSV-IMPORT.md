@@ -1,10 +1,10 @@
-# CSV-Konfiguration · Energieboard 2.6.0
+# CSV-Konfiguration · Energieboard 2.7.0
 
 [English](docs/en/CSV.md)
 
 [Dokumentationsübersicht](docs/README.md) · [Datenerfassung](docs/DATENERFASSUNG.md) · [Vollständige Sicherung](docs/BETRIEB-UND-UPDATES.md)
 
-Stand: 23. November 2026. CSV-Format **1**, unabhängig von Anwendung 2.6.0 und Datenbankschema 6.
+Stand: 23. November 2026. CSV-Format **1**, unabhängig von Anwendung 2.7.0 und Datenbankschema 7.
 
 ## Inhalt
 
@@ -126,3 +126,9 @@ Für MPPT `pv_type=mppt`, `category=pv`, `kind=device`, `datapoints.power_total`
 CSV-Version bleibt 1. API-Verbindungen verwenden `protocol=api`. Die Spalten `api_preset`, `api_path`, `api_json_path`, `api_response_format`, `api_auth` und `api_token_header` enthalten die in der [Datenerfassung](docs/DATENERFASSUNG.md) beschriebenen Einstellungen. Altes `protocol=iobroker` wird weiter eingelesen und auf die ioBroker-API-Vorlage normalisiert. API-Token und Kennwörter fehlen absichtlich im Export; bei gleicher ID bleiben vorhandene Geheimnisse erhalten, neue müssen im Board ergänzt werden.
 
 Gruppen zuerst unter Konfiguration anlegen und einen vollständigen Export bearbeiten. Ihre Zeilen haben `record_type=consumer_group`, `id`, `name`, `color` und `sort_order`. Bei Verbraucherzeilen verweist `group_id` auf diese ID. Eine nicht vorhandene oder unzulässige Gruppenzuordnung wird bereits in der Importvorschau abgewiesen. Ein Gesamtersatz benötigt auch die zu erhaltenden Gruppenzeilen. Eine alte ergänzende CSV ohne Gruppen entfernt keine vorhandenen Gruppen; fehlendes `group_id` in einer aktualisierten Gerätezeile setzt deren optionale Zuordnung zurück.
+
+## Neue Felder ab 2.7
+
+Die Gesamtkonfiguration enthält zusätzlich `chart`, `forecast_site` und `forecast_provider`. `series` und `arrays` sind JSON-Listen innerhalb einer CSV-Zelle; IDs in `actual_flow_ids`, `solcast_resource_ids` und `dc_load_ids` werden mit `|` getrennt. Immer zuerst exportieren, damit Überschriften und Maskierung stimmen. Keine Zugangstokens in CSV eintragen. Vorhandene Prognosetokens bleiben bei gleicher ID erhalten; neue Quellen mit Tokenbedarf erst deaktiviert importieren und danach im Editor vervollständigen.
+
+Restgeräte werden nicht als eigene `flow`-Zeilen exportiert. Name/Gruppe/Symbol/Farbe/Reihenfolge liegen in `residual.*` der Knoten-Zeile. Zyklusparameter stehen in `cycle_tracking.*`. Charts benötigen vorhandene Messpunkt-/Geräte-IDs. Anlagen benötigen passende PV-Istquellen und Quellen eine vorhandene Anlage. Der komplette Kandidat wird vor Übernahme geprüft. Relevante Prognoseänderungen erhalten eine neue Revision; bestehende Tagesprotokolle bleiben als Historie erhalten.

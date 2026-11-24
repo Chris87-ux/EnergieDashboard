@@ -275,7 +275,7 @@ class LiveSource:
             note="Geschätzt aus aufgezeichnetem RUN-Signal und fester Leistung" if estimated else "Aus aufgezeichneter abgeleiteter Leistung",
         )
 
-    async def series(self, flow: Flow, key: str, start: float, end: float, step: int, agg: str):
+    async def series(self, flow: Flow, key: str, start: float, end: float, step: int, agg: str, *, bucket_derived: bool = False):
         dp = flow.datapoints.get(key)
         if not dp:
             return None
@@ -298,7 +298,7 @@ class LiveSource:
             except Exception as exc:
                 self.errors.append(f"InfluxDB {dp}: {exc}")
         try:
-            local = await mongo_series(dp, start, end, step, "raw" if derived else agg)
+            local = await mongo_series(dp, start, end, step, "raw" if derived and not bucket_derived else agg)
             if history_key and history_end >= start:
                 local += await mongo_series(history_key, start, history_end, step, agg)
             # Keep recorder samples in windows without an InfluxDB point.

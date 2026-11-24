@@ -287,6 +287,7 @@ def main():
                 assert period["totals"]["self_consumption_pct"] is not None
                 assert period["totals"]["grid_import_kwh"] is not None
                 print("Period production/consumption, grid energy, autonomy and self-consumption resolve with recorded fixture history OK",flush=True)
+                subprocess.run([sys.executable,str(BACKEND/'tests/integration_extensions.py')],env={**env,'DB_NAME':database+'_extensions'},cwd=ROOT,check=True)
                 if os.environ.get("BROWSER_TEST"):
                     stamp=time.time()
                     db.visibility.update_one({"id":idle["id"]},{"$set":{"last_seen":stamp,"zero_since":stamp-61}},upsert=True)
@@ -323,7 +324,7 @@ def main():
                 assert migrated["electrical_side"]=="dc" and migrated["power_phase_mode"]==migrated["energy_phase_mode"]=="single"
                 assert db.consumer_groups.find_one({"id":"pumps"})
                 assert db.connections.find_one({"id":"ha"})["token"]=="fixture-ha-token"
-                assert migrated["datapoints"]==mppt["datapoints"] and db.metadata.find_one({"id":"schema"})["version"]==6
+                assert migrated["datapoints"]==mppt["datapoints"] and db.metadata.find_one({"id":"schema"})["version"]==7
                 print("Backup/restore including history and repeated configuration migration OK",flush=True)
         finally:
             if api is not None:

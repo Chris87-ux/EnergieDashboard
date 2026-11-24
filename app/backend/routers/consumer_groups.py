@@ -23,7 +23,7 @@ async def save_group(id:str,body:ConsumerGroup):
 @router.delete("/consumer-groups/{id}",status_code=204)
 @locked
 async def delete_group(id:str):
-    if await db.flows.find_one({"group_id":id}):
+    if await db.flows.find_one({"$or":[{"group_id":id},{"kind":"node","residual.group_id":id}]}):
         raise HTTPException(409,"Zuerst die zugeordneten Verbraucher aus der Gruppe entfernen.")
     result=await db.consumer_groups.delete_one({"id":id})
     if not result.deleted_count:raise HTTPException(404,"Gruppe nicht gefunden.")

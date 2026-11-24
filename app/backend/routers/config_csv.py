@@ -13,11 +13,13 @@ from lib.config_lock import locked
 from models.flow import Flow
 from models.acquisition import Connection, Measurement, validate_measurement
 from models.consumer_group import ConsumerGroup
+from models.charts import ChartConfig, ChartSeries
+from models.forecast import ForecastSite, ForecastProvider, PVArray
 from models.settings import AppSettings
 
 router = APIRouter(tags=["CSV-Konfiguration"])
-MODELS = {"connection":Connection,"measurement":Measurement,"flow":Flow,"settings":AppSettings,"consumer_group":ConsumerGroup}
-COLLECTIONS = {"connection":"connections","measurement":"measurements","flow":"flows","settings":"settings","consumer_group":"consumer_groups"}
+MODELS = {"connection":Connection,"measurement":Measurement,"flow":Flow,"settings":AppSettings,"consumer_group":ConsumerGroup,"chart":ChartConfig,"forecast_site":ForecastSite,"forecast_provider":ForecastProvider}
+COLLECTIONS = {"connection":"connections","measurement":"measurements","flow":"flows","settings":"settings","consumer_group":"consumer_groups","chart":"charts","forecast_site":"forecast_sites","forecast_provider":"forecast_providers"}
 SECRETS = {"password","token"}
 OPTIONAL = {"parent_id","hybrid_id","capacity_kwh","run_power_w","legacy_until","group_id"}
 
@@ -28,7 +30,7 @@ def flatten(data, prefix=""):
         path = f"{prefix}.{key}" if prefix else key
         if key in SECRETS or key == "_id":continue
         if isinstance(value,dict) and key!="extra":result.update(flatten(value,path))
-        elif isinstance(value,list):result[path]="|".join(map(str,value))
+        elif isinstance(value,list):result[path]=json.dumps(value,ensure_ascii=False,allow_nan=False) if key in ("series","arrays") else "|".join(map(str,value))
         elif isinstance(value,dict):result[path]=json.dumps(value,ensure_ascii=False,allow_nan=False)
         elif isinstance(value,datetime):result[path]=value.isoformat()
         else:result[path]=value
@@ -47,7 +49,7 @@ def safe_cell(value):
 def render_csv(state, selected=None):
     rows=[]
     defaults = {"connection":Connection(name="Vorlage",protocol="mqtt",host="localhost",port=1883),
-        "measurement":Measurement(name="Vorlage",connection_id=""),"flow":Flow(name="Vorlage"),"settings":AppSettings(),"consumer_group":ConsumerGroup(name="Vorlage")}
+        "measurement":Measurement(name="Vorlage",connection_id=""),"flow":Flow(name="Vorlage"),"settings":AppSettings(),"consumer_group":ConsumerGroup(name="Vorlage"),"chart":ChartConfig(name="Vorlage",series=[ChartSeries(reference_id="Vorlage")]),"forecast_site":ForecastSite(name="Vorlage",latitude=0,longitude=0,arrays=[PVArray(kwp=1)],actual_flow_ids=["Vorlage"]),"forecast_provider":ForecastProvider(name="Vorlage",site_id="Vorlage",kind="open_meteo")}
     headers={"record_type","csv_version","id"}
     for kind,model in defaults.items():
         if selected is None or kind in selected:headers.update(flatten(model.model_dump()))
@@ -101,9 +103,9 @@ def parse_csv(text):
                 if part in target and not isinstance(target[part],dict):raise ValueError("Widersprüchliche Spalten.")
                 target=target.setdefault(part,{})
             key=parts[-1]
-            if key in ("storage_ids","mppt_ids"):value=[v.strip() for v in value.split("|") if v.strip()]
+            if key in ("storage_ids","mppt_ids","dc_load_ids","actual_flow_ids","solcast_resource_ids"):value=[v.strip() for v in value.split("|") if v.strip()]
             elif key=="function":value=int(value)
-            elif key=="extra":value=json.loads(value)
+            elif key in ("extra","series","arrays"):value=json.loads(value)
             target[key]=value
         id=data.get("id") or ("app" if kind=="settings" else "")
         if not id or not isinstance(id,str) or len(id)>100 or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.:" for c in id):raise ValueError(f"Zeile {line}: ungültige ID.")
@@ -126,16 +128,21 @@ def prepare(state, text, mode):
             if kind=="measurement":
                 for key in ("history_key","legacy_until"):
                     if previous:data[key]=previous.get(key)
-            if kind=="connection":
+            if kind in ("connection","forecast_provider"):
                 for key in ("password","token"):data[key]=previous.get(key,"")
             if kind=="settings":
                 data.setdefault("influx",{})
                 for key in ("password","token"):data["influx"][key]=previous.get("influx",{}).get(key,"")
             if kind=="flow":
-                data["schema_version"]=6
+                data["schema_version"]=7
                 if previous:data["created_at"]=previous.get("created_at",datetime.now(timezone.utc))
             try:parsed=model.model_validate(data).model_dump()
             except ValueError as exc:raise ValueError(f"{kind} {id}: {exc}") from exc
+            if kind in ('forecast_site','forecast_provider'):
+                import time
+                from lib.forecast_model import site_revision,provider_revision
+                parsed['revision']=site_revision(ForecastSite(**parsed),parsed.get('timezone') or next((s.get('timezone','Europe/Berlin') for s in incoming['settings']),next((s.get('timezone','Europe/Berlin') for s in state.get('settings',[])),'Europe/Berlin'))) if kind=='forecast_site' else provider_revision(ForecastProvider(**parsed))
+                parsed['changed_at']=previous.get('changed_at',0) if parsed['revision']==previous.get('revision') else time.time()
             parsed["id"]=id
             merged[id]=parsed
             status="new" if id not in old else "unchanged" if flatten(parsed)==flatten(old[id]) else "changed"
@@ -158,6 +165,11 @@ def validate_graph(state):
     owners=set();grids=[]
     group_ids={g["id"] for g in state.get("consumer_group",[])}
     for f in flows.values():
+        if f["kind"] == "residual": raise ValueError("Restgeräte über die Einstellungen ihres Knotens konfigurieren.")
+        signal=f.get("cycle_tracking",{}).get("signal_point","")
+        if signal.startswith("point:") and signal[6:] not in points: raise ValueError("Betriebssignal der Zykluserkennung fehlt.")
+        residual_group = f.get("residual", {}).get("group_id") if f["kind"] == "node" else None
+        if residual_group and residual_group not in group_ids: raise ValueError("Verbrauchergruppe des Restgeräts fehlt.")
         if f.get("group_id") and f["group_id"] not in group_ids:raise ValueError(f"{f['name']}: Verbrauchergruppe fehlt.")
         seen={f["id"]};parent=f.get("parent_id")
         while parent:
@@ -178,14 +190,33 @@ def validate_graph(state):
             if f["electrical_side"]!="ac" or f["run_power_w"] is not None:raise ValueError("Hybrid-WR benötigt gemessene AC-Leistung.")
             if not (f["datapoints"].get("power_total") or f["power_phase_mode"]=="three" and all(f["datapoints"].get("power_"+p) for p in ("l1","l2","l3"))):raise ValueError("Hybrid-AC-Leistung fehlt.")
             if f["hybrid_ac_mode"]=="terminals" and not f["datapoints"].get("ac_input"):raise ValueError("AC-In-Messpunkt fehlt.")
-        if (f["storage_ids"] or f["mppt_ids"]) and not (f["kind"]=="device" and f["category"]=="pv" and f["pv_type"]=="hybrid"):
+        if (f["storage_ids"] or f["mppt_ids"] or f.get("dc_load_ids")) and not (f["kind"]=="device" and f["category"]=="pv" and f["pv_type"]=="hybrid"):
             raise ValueError("Speicher-/MPPT-Zuordnung gehört zu einem Hybrid-WR.")
+        for id in f.get("dc_load_ids", []):
+            load = flows.get(id)
+            if not load or load["kind"] != "device" or load["electrical_side"] != "dc" or load["direction"] != "out" or load["pv_type"] in ("mppt", "hybrid"):
+                raise ValueError("Ungültige DC-Verbraucherzuordnung.")
+            if ("dc_load_ids", id) in owners: raise ValueError("Doppelte DC-Verbraucherzuordnung.")
+            owners.add(("dc_load_ids", id))
         for field,kind in (("storage_ids","storage"),("mppt_ids","device")):
             for id in f[field]:
                 if id not in flows or flows[id]["kind"]!=kind or kind=="device" and flows[id]["pv_type"]!="mppt":raise ValueError("Ungültige Hybrid-Zuordnung.")
                 if kind=="storage" and flows[id]["electrical_side"]!="dc":raise ValueError("Hybrid-WR darf nur DC-Speicher zuordnen.")
                 if (field,id) in owners:raise ValueError("Doppelte Hybrid-Zuordnung.")
                 owners.add((field,id))
+    from lib.charts import source_catalog, validate_chart
+    catalog=source_catalog([Flow(**f) for f in flows.values()],list(points.values()))
+    for chart in state.get("chart",[]):
+        validate_chart(ChartConfig(**chart),catalog)
+    from lib.forecast import validate_site,validate_provider
+    sites={v['id']:v for v in state.get('forecast_site',[])}
+    for v in sites.values():validate_site(ForecastSite(**v),[Flow(**f) for f in flows.values()],points)
+    seen_providers=set()
+    for v in state.get('forecast_provider',[]):
+        validate_provider(ForecastProvider(**v),sites)
+        key=(v['site_id'],v['kind'])
+        if key in seen_providers:raise ValueError('Doppelte Prognosequelle für dieselbe Anlage.')
+        seen_providers.add(key)
     if any(f["enabled"] for f in flows.values()) and not grids:raise ValueError("Mindestens ein aktiver Netzanschluss erforderlich.")
     if len(grids)>2 or len(grids)>1 and (any(g["grid_mode"]=="signed" for g in grids) or len({g["direction"] for g in grids})!=len(grids)):
         raise ValueError("Widersprüchliche Netzanschlüsse.")

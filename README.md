@@ -1,4 +1,4 @@
-# Energieboard 2.6.0
+# Energieboard 2.7.0
 
 [English](README.en.md)
 
@@ -60,6 +60,15 @@ Energieboard besitzt keine eigene Anmeldung. Im vertrauenswürdigen LAN betreibe
 
 ## Version und Verlässlichkeit
 
-Aktueller Anwendungsstand: **2.6.0**, Datenbankschema **6**, CSV-Format **1**. Dokumentation: **24. November 2026**. Für Installationen feste Tags wie `v2.6.0` verwenden; `main` kann bereits neuere Änderungen enthalten.
+Aktueller Anwendungsstand: **2.7.0**, Datenbankschema **7**, CSV-Format **1**. Dokumentation: **24. November 2026**. Für Installationen feste Tags wie `v2.7.0` verwenden; `main` kann bereits neuere Änderungen enthalten.
 
 [Prüfbericht und bekannte Grenzen](PRUEFBERICHT.md): 103 Backendtests sowie Integrations-, Browser- und Linux-Dockerprüfungen. Physische Victron-Geräte und ein produktiver Proxmox-LXC wurden hier nicht angeschlossen. Energieboard ist eine Anzeige und Auswertung; Schätzwerte ersetzen keinen geeichten Zähler.
+
+## Neue Auswertungen ab 2.7
+
+- [PV-Prognosen](docs/PV-PROGNOSEN.md): vier Quellen, unveränderte Morgenprognosen, geprüfte Korrekturen und Tagesprotokolle.
+- [Gerätezyklen](docs/GERAETEZYKLEN.md): Waschmaschine, Trockner und Geschirrspüler mit Status und abgeschlossenen Läufen.
+- [Charts](docs/CHARTS.md): eigene gespeicherte Ansichten aus Messpunkten, Knotenrest, Speicher- und Gerätestatus.
+- Messpunkte kopieren, mehrere DC-Verbraucher pro Hybrid-WR und konfigurierbare Restverbraucher mit Gruppenzuordnung.
+
+Der Recorder muss für Historie und Zykluserkennung aktiv sein. Prognosezugänge werden erst durch eigene Konfiguration aktiviert.

@@ -2,7 +2,7 @@
 
 [Project overview](../../README.en.md) · [Deutsch](../README.md)
 
-Application **2.6.0** · database schema **6** · CSV format **1** · 24 November 2026.
+Application **2.7.0** · database schema **7** · CSV format **1** · 24 November 2026.
 
 ## Install
 
@@ -38,3 +38,9 @@ Choose **Deutsch / English** in the application header. The choice is stored in 
 `?lang=en` and `?lang=de` override the browser preference for a page, including `/flow?lang=en`. Opening an override link does not overwrite the saved preference. The application sends `Accept-Language` for API requests; direct API clients can send `Accept-Language: en`. Configuration keys, CSV columns, API paths, user-entered names, IDs and recorded values are language-independent.
 
 The repository contains both documentation languages. English pages are part of the LXC archive and available with every corresponding release tag. Historical tags retain their original content.
+
+## Forecasts and appliance analysis
+
+- [PV forecasts, sources, evaluation and calibration](PV-FORECASTS.md)
+- [Appliance cycles and status](APPLIANCE-CYCLES.md)
+- [Custom charts from recorded and calculated values](CHARTS.md)

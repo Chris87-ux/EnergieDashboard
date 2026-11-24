@@ -4,7 +4,7 @@
 
 ## Persistent identity
 
-Configuration and history live in MongoDB. IDs link measurements, devices, groups and recorded channels. Keep the same database URI/name and, in Docker, project/volume identity. Application updates run idempotent additive migrations. Schema 6 is unchanged in 2.6.0; language preferences live in each browser and require no database migration.
+Configuration and history live in MongoDB. IDs link measurements, devices, groups and recorded channels. Keep the same database URI/name and, in Docker, project/volume identity. Application updates run idempotent additive migrations. Schema 6 is unchanged in 2.7.0; language preferences live in each browser and require no database migration.
 
 A CSV export contains configuration without secrets or history. Full backups include credentials and history. Protect them and test restoration on an isolated target. The local recorder has no automatic history retention limit; monitor disk space and backup size.
 
@@ -35,14 +35,14 @@ Store a copy outside the LXC. Proxmox snapshots/backups are useful but an applic
 After backup, run **inside the LXC**:
 
 ```bash
-bash /opt/energieboard/deploy/update.sh v2.6.0
+bash /opt/energieboard/deploy/update.sh v2.7.0
 ```
 
 For an installation whose old updater cannot handle the target release, fetch the target updater first:
 
 ```bash
-curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/v2.6.0/deploy/update.sh -o /tmp/energieboard-update.sh
-bash /tmp/energieboard-update.sh v2.6.0
+curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/v2.7.0/deploy/update.sh -o /tmp/energieboard-update.sh
+bash /tmp/energieboard-update.sh v2.7.0
 ```
 
 The updater resolves the ref, verifies archive/checksum, saves the previous application, database and environment, replaces code and runs installation checks. Configuration, stable IDs, groups and history are preserved. Success names the backup directory. A failure attempts rollback to the previous application/database. Do not run the direct LXC updater for Docker.
@@ -93,10 +93,10 @@ Check and save any local changes before changing tags; do not discard them with 
 git status --short
 git describe --tags --always
 git fetch --tags
-git checkout v2.6.0
+git checkout v2.7.0
 ```
 
-Set `ENERGIEBOARD_VERSION=2.6.0` in `.env` to match the chosen tag. This variable names the local image; Git determines the source. Rebuild/recreate:
+Set `ENERGIEBOARD_VERSION=2.7.0` in `.env` to match the chosen tag. This variable names the local image; Git determines the source. Rebuild/recreate:
 
 ```bash
 docker compose config --quiet
@@ -147,3 +147,11 @@ The restore utility verifies all backup streams before changing collections. A d
 ## Moving installations
 
 Prepare the target without creating conflicting live writers, stop the source app, take a full backup, transfer code/environment and restore into the dedicated target database. Retain IDs and database identity where appropriate. Verify network reachability from the new host, source ACLs, time zone and recording. Start only the intended writer. Changing a URI to an empty database creates the appearance of an empty installation; do not reconfigure everything before checking the connection.
+
+## Upgrade to 2.7 / schema 7
+
+Make a complete backup first. Schema 7 adds optional cycles, residual metadata, charts and forecasts. Existing IDs, measurements, groups and credentials persist. New features start disabled; API configuration is consolidated under Data acquisition.
+
+Full backups include charts, cycle states/events, forecast configuration, snapshots, daily models, exclusion logs and request budgets. CSV includes configuration only, not history or runtime states. Downgrades require the matching older database backup.
+
+Startup readiness waits for the API and an active service. Expected transient curl connection refusals stay quiet; genuine startup failures still diagnose and roll back. Use the existing LXC updater or rebuild/recreate Docker Compose services while retaining database volumes. Never use `down --volumes` for an update.

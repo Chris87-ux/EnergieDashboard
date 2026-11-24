@@ -25,6 +25,8 @@ jobs:
         run: docker compose up -d --wait --wait-timeout 180
       - name: Backend regression tests in runtime image
         run: docker compose run --rm --no-deps -v "$PWD/app/backend/tests:/tests:ro" energieboard python -m unittest discover -s /tests -v
+      - name: Extended MongoDB regression tests
+        run: docker compose run --rm --no-deps -e DB_NAME=energieboard_extensions -e PYTHONPATH=/opt/energieboard/app/backend -v "$PWD/app/backend/tests:/tests:ro" energieboard python /tests/integration_extensions.py
       - name: Health and persistence
         run: |
           docker compose exec -T energieboard python - create < deploy/docker_smoke.py

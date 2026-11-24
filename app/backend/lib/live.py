@@ -138,6 +138,9 @@ def evaluate(flows, values, now):
             for direction, suffix, sign in (("out", "rest_consumption", 1), ("in", "rest_production", -1)):
                 item = row(flow, None if rest is None else max(0, rest * sign), id=flow.id + ":" + suffix,
                     name=flow.name + (" · Restverbrauch" if sign == 1 else " · Resterzeugung"), direction=direction, category="custom")
+                if sign == 1:
+                    from lib.residuals import apply_residual_display
+                    apply_residual_display(item, flow)
                 item.phases = {p:None if v is None or rest is None else v*sign if rest*sign>0 else 0 for p,v in rest_phases.items()}
                 item.estimated_phases = branch_estimates(flow)
                 item.parent_id = flow.id

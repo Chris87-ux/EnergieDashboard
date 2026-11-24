@@ -1,10 +1,10 @@
-# Datenmodell und Erweiterungen · Version 2.6.0
+# Datenmodell und Erweiterungen · Version 2.7.0
 
 [English](docs/en/DATA-MODEL.md)
 
 [Dokumentationsübersicht](docs/README.md) · [Schritt-für-Schritt-Konfiguration](docs/ERSTE-SCHRITTE.md) · [Hybrid-Anleitung](docs/SPEICHER-UND-HYBRID.md)
 
-Diese Seite ist die technische Referenz. Für die Bedienung zuerst die Benutzeranleitungen lesen. Stand: 24. November 2026, Anwendung 2.6.0, Schema 6, CSV 1.
+Diese Seite ist die technische Referenz. Für die Bedienung zuerst die Benutzeranleitungen lesen. Stand: 24. November 2026, Anwendung 2.7.0, Schema 7, CSV 1.
 
 ## Bilanz und Phasen ab 2.4
 
@@ -329,7 +329,7 @@ Die Lückenschwelle gibt keine unbegrenzte Gültigkeit für RUN-/Rest-/Speicherk
 
 ## Versionierung
 
-Anwendungsversion in `VERSION`; Datenbankschema aktuell Version 6; CSV-Format Version 1. Additive Migrationen laufen beim Start und dürfen mehrfach ausgeführt werden. Ein neueres Datenbankschema wird von dieser Version abgewiesen. Ein Downgrade erfolgt zusammen mit der dazugehörigen Datenbanksicherung. Messpunkt- und Geräte-IDs bleiben bei Updates erhalten.
+Anwendungsversion in `VERSION`; Datenbankschema aktuell Version 7; CSV-Format Version 1. Additive Migrationen laufen beim Start und dürfen mehrfach ausgeführt werden. Ein neueres Datenbankschema wird von dieser Version abgewiesen. Ein Downgrade erfolgt zusammen mit der dazugehörigen Datenbanksicherung. Messpunkt- und Geräte-IDs bleiben bei Updates erhalten.
 
 ## Verbrauchergruppen ab 2.5 (Schema 6)
 
@@ -342,3 +342,29 @@ Live- und Energieantworten ergänzen `consumer_groups` mit `id`, `name`, `color`
 `Accept-Language: en` liefert englische eingebaute Meldungen, Hinweise und Zeitraumbeschriftungen; de bzw. kein unterstützter Sprachwunsch bleibt Deutsch. JSON-Antworten kennzeichnen Content-Language und Vary: Accept-Language. Maschinenfelder, IDs, Nutzernamen, extra-Metadaten und Zahlen bleiben unverändert. CSV-Spalten werden nicht übersetzt. Die Oberfläche speichert ihre Sprache pro Browser und erlaubt `?lang=en` oder `?lang=de`, auch für die Einbettung. Datenbankschema bleibt 6, CSV bleibt 1; keine Sprachmigration der Konfiguration/Historie.
 
 Hybrid-Ausgaben enthalten einzelne Hinweise in `notes` und weiterhin den kombinierten Text `note`. Übersetzte Antworten halten beide Darstellungen konsistent; dies verändert weder Messwerte noch Datenbankschema.
+
+## Modulare Erweiterungen ab 2.7 / Schema 7
+
+`dc_load_ids` ist eine Liste gewöhnlicher DC-Verbrauchsgeräte am Hybrid-WR. Sie wird wie `storage_ids` und `mppt_ids` auf vorhandene Ziele, eindeutige Eigentümerschaft und passende Messseite geprüft. Nicht gleichzeitig `datapoints.dc_load_power` konfigurieren.
+
+Ein automatisch erzeugter Restverbraucher wird in `GET /api/flows` mit `kind=residual` und ID `<node-id>:rest_consumption` ausgegeben. Er wird **nicht** als zweiter Fluss gespeichert und nicht erneut in die elektrische Bilanz aufgenommen. Einstellungen werden mit `PUT /api/residuals/<node-id>` gespeichert:
+
+```json
+{"name":"Ungemessene Werkstatt","group_id":"workshop-group","icon":"plug","color":"#38BDF8","sort_order":100}
+```
+
+Der Knoten enthält diese Werte unter `residual`. Ein leerer Name bedeutet automatisch aus dem Knotennamen ableiten. Die Datenpunkte des virtuellen Geräts sind leer; sein Historienkanal bleibt `energieboard:<node-id>:rest_consumption`. Bestehende Historie behält diese ID.
+
+Gerätezyklen sind reguläre Konfiguration in `cycle_tracking`, nicht im freien `extra`-JSON. Beispiel eines Verbrauchers:
+
+```json
+{"name":"Waschmaschine","kind":"device","category":"consumer","direction":"out","datapoints":{"power_total":"point:washer-power"},"cycle_tracking":{"enabled":true,"profile":"washing_machine","mode":"power","start_w":10,"end_w":5,"standby_w":0.5,"start_delay_s":60,"end_delay_s":600,"window_s":120,"minimum_run_s":300,"maximum_run_s":14400}}
+```
+
+`signal_point` bezeichnet bei Bool-Erkennung einen registrierten Messpunkt oder bleibt leer für `datapoints.run`. `cycles:<device-id>:status` und `cycles:<device-id>:cycles` sind aufgezeichnete Status-/Zählerkanäle. Ereignisse behalten eine eindeutige Lauf-ID. [Bedienung und Zustände](docs/GERAETEZYKLEN.md).
+
+Charts: `ChartConfig` enthält `id`, `name`, `sort_order`, `series` (1–8). Jede Reihe hat `kind` (`measurement`, `power`, `soc`, `charge`, `discharge`, `status`, `cycles`), `reference_id`, optional `label`, `color`, `unit`. Der Server setzt die Einheit anhand der Quelle. Die [Chart-Anleitung](docs/CHARTS.md) beschreibt API und Aggregation.
+
+PV-Prognosekonfiguration: `GET /api/forecast/config`, `PUT/DELETE /api/forecast/sites/<id>`, `PUT/DELETE /api/forecast/providers/<id>`. `ForecastSite` enthält Standort, Zeitzone, `arrays` aus kWp/Neigung/Azimut, `actual_flow_ids`, Messseite, Ertragsfaktor, optionale AC-Grenze, Stichtagszeit und Lernfenster. `ForecastProvider` verbindet `site_id` mit `kind=vrm|forecast_solar|solcast|open_meteo`. Token bleibt bei leerem Wert erhalten; `clear_token=true` löscht ihn. Revisionen und Änderungszeitpunkte setzt der Server. Bericht: `GET /api/forecast/report`, Aktualisierung vormerken: `POST /api/forecast/refresh` mit `{}`, manuell ausschließen: `PUT /api/forecast/days/<id>/exclusion` mit `excluded` und `reason`. [Anleitung, Grenzen und Formeln](docs/PV-PROGNOSEN.md).
+
+Die normalen Datenbankbackups erfassen alle neuen Konfigurations- und Laufzeitsammlungen. CSV erfasst nur Konfiguration und keine Tokens. Schema 7 ist additiv; CSV-Version bleibt 1. Das freie `extra`-Objekt bleibt reine Zusatzmetadaten und schaltet keine dieser Funktionen ein.

@@ -7,7 +7,7 @@ _path = Path(__file__).with_name("en.json")
 if not _path.is_file():
     _path = Path(__file__).resolve().parents[2] / "frontend/src/lib/en.json"
 ENGLISH = json.loads(_path.read_text(encoding="utf-8-sig"))
-_FIELDS = {"message", "detail", "details", "msg", "errors", "note", "notes", "warnings", "source_errors", "reason", "hint"}
+_FIELDS = {"message", "detail", "details", "msg", "errors", "note", "notes", "warnings", "source_errors", "reason", "hint", "quality_reason", "error"}
 _PATTERNS = []
 for source, translated in ENGLISH.items():
     if re.search(r"\{\d+\}", source):
@@ -55,8 +55,10 @@ def localise_payload(value, field="", route=""):
         # Preset labels are built-in, while all user-entered names stay verbatim.
         if route.endswith("/energy/presets") and isinstance(value.get("label"), str):
             result["label"] = translate(value["label"])
+        if ((route.startswith('/api/flows') and value.get('kind')=='residual' and not value.get('residual',{}).get('name')) or (route.startswith('/api/chart') and value.get('name_is_generated'))) and str(value.get('name','')).endswith(' · Restverbrauch'):
+            result['name']=value['name'][:-len('Restverbrauch')]+translate('Restverbrauch')
         # Derived flow names consist of an unchanged user name plus a built-in suffix.
-        if route in ("/api/live", "/api/energy") and isinstance(value.get("name"), str):
+        if route in ("/api/live", "/api/energy") and value.get("name_is_generated", True) and isinstance(value.get("name"), str):
             generated = value.get("flow_id", value.get("id", ""))
             if isinstance(generated, str) and (value.get("category") in ("grid", "pv", "battery") or ":rest_" in generated) and any(generated.endswith(":" + suffix) for suffix in ("import", "export", "charge", "discharge", "rest_production", "rest_consumption", "ac_production", "ac_consumption")):
                 for suffix in ("Restverbrauch", "Resterzeugung", "AC-Abgabe", "AC-Aufnahme", "Bezug", "Einspeisung", "Laden", "Entladen"):

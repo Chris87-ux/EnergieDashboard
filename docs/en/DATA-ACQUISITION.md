@@ -108,3 +108,9 @@ The source history must match the configured measurement/history keys. Newly cre
 ## Recording and scale
 
 Record raw value stores the **normalised** measurement value when the local recorder is enabled. Derived RUN, node residual, grid, hybrid and storage channels are also recorded for energy evaluation. For 30–50 devices, validate one measurement per protocol, plan stable names/IDs, then use [CSV](CSV.md). Changing scale/source affects future samples; existing history is not recalculated.
+
+## Copy and independently record measurements (2.7)
+
+Choose **Copy** beside a measurement. Its inline editor opens with a fresh ID and copied settings. Adjust the name and address/register/topic, then explicitly save. The connection is shared, but legacy history mappings are cleared. Cancel creates nothing. The copy records new observations independently.
+
+Recorded measurements need not belong to a device; this supports temperature or other sensor series in [Charts](CHARTS.md). Duplicate global ioBroker controls have been removed from System. Configure all API connections under Data acquisition; internal legacy migration remains compatible.

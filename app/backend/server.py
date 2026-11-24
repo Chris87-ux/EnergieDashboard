@@ -16,7 +16,7 @@ load_dotenv(ROOT_DIR / '.env')
 # MongoDB connection
 from lib.db import client, db, ensure_indexes  # noqa: E402
 from lib.recorder import recorder_loop  # noqa: E402
-from routers import energy, flows, settings, acquisition, config_csv, consumer_groups  # noqa: E402
+from routers import energy, flows, settings, acquisition, config_csv, consumer_groups, charts, cycles, forecast  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -32,9 +32,14 @@ async def lifespan(app: FastAPI):
             logger.exception("MongoDB-Start fehlgeschlagen. MONGO_URL und DB_NAME prüfen.")
             raise
         recorder = asyncio.create_task(recorder_loop())
+        from lib.forecast import forecast_loop
+        forecaster = asyncio.create_task(forecast_loop())
         try:
             yield
         finally:
+            forecaster.cancel()
+            with suppress(asyncio.CancelledError):
+                await forecaster
             recorder.cancel()
             with suppress(asyncio.CancelledError):
                 await recorder
@@ -44,7 +49,7 @@ async def lifespan(app: FastAPI):
         await client.close()
 
 
-app = FastAPI(lifespan=lifespan, title="Energieboard", version="2.6.0")
+app = FastAPI(lifespan=lifespan, title="Energieboard", version="2.7.0")
 
 @app.middleware("http")
 async def response_language(request, call_next):
@@ -76,7 +81,7 @@ async def root():
         await db.command("ping")
     except PyMongoError as exc:
         raise HTTPException(status_code=503, detail="MongoDB ist derzeit nicht erreichbar.") from exc
-    return {"message": "Energieboard API", "status": "ok", "version": "2.6.0", "schema_version": 6}
+    return {"message": "Energieboard API", "status": "ok", "version": "2.7.0", "schema_version": 7}
 
 
 api_router.include_router(flows.router)
@@ -85,6 +90,9 @@ api_router.include_router(energy.router)
 api_router.include_router(acquisition.router)
 api_router.include_router(config_csv.router)
 api_router.include_router(consumer_groups.router)
+api_router.include_router(charts.router)
+api_router.include_router(cycles.router)
+api_router.include_router(forecast.router)
 
 logging.basicConfig(
     level=logging.INFO,

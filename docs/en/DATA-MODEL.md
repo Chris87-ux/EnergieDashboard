@@ -2,7 +2,7 @@
 
 [Documentation](README.md) · [Configuration walkthrough](GETTING-STARTED.md)
 
-Application 2.6.0, schema **6**, CSV **1**. For exact required types/defaults/limits use the live schemas and OpenAPI. This reference complements [device balance](DEVICES-AND-NODES.md), [hybrid boundaries](STORAGE-AND-HYBRID.md) and [data acquisition](DATA-ACQUISITION.md).
+Application 2.7.0, schema **7**, CSV **1**. For exact required types/defaults/limits use the live schemas and OpenAPI. This reference complements [device balance](DEVICES-AND-NODES.md), [hybrid boundaries](STORAGE-AND-HYBRID.md) and [data acquisition](DATA-ACQUISITION.md).
 
 ## API and language
 
@@ -219,3 +219,17 @@ Live/energy reports include consumer_groups with id, name, color, member_ids, co
 | appearance.background/surface/accent | #RRGGBB colours |
 
 Gap threshold does not give indefinite validity to RUN/residual/storage samples. Derived channels have interval-based validity. Influx settings read suitable existing history; the recorder is not an Influx writing adapter. Schema migrations are additive and repeatable. Newer schemas are rejected by older software; downgrade together with its matching database backup. Application, database schema and CSV versions are independent.
+
+## Modular extensions in 2.7 / schema 7
+
+Hybrid `dc_load_ids` assigns ordinary DC consumers alongside `mppt_ids` and `storage_ids`. It is mutually exclusive with aggregate `datapoints.dc_load_power`; referenced devices and exclusive ownership are validated.
+
+Metered nodes expose virtual `kind=residual` entries through `GET /api/flows`, with ID `<node-id>:rest_consumption`. These are not separate stored electrical flows and do not duplicate totals. Use `PUT /api/residuals/<node-id>` with `name`, `group_id`, `icon`, `color`, `sort_order`. Metadata is stored in the node's `residual` field. Blank name restores automatic naming; history remains `energieboard:<node-id>:rest_consumption`. [Device guide](DEVICES-AND-NODES.md).
+
+Consumer `cycle_tracking` contains `enabled`, `profile`, `mode`, optional `signal_point`, thresholds `start_w`, `end_w`, `standby_w`, and times `start_delay_s`, `end_delay_s`, `window_s`, `minimum_run_s`, `maximum_run_s`. These are regular fields, not arbitrary `extra` metadata. Boolean mode may reuse `datapoints.run`. Recorded channels: `cycles:<device-id>:status` and `cycles:<device-id>:cycles`; stable event IDs prevent duplicate completed counts. [Cycle guide](APPLIANCE-CYCLES.md).
+
+Charts have `id`, `name`, `sort_order` and 1–8 `series`. A series contains `kind` (`measurement`, `power`, `soc`, `charge`, `discharge`, `status`, `cycles`), `reference_id`, optional `label`, `color`, `unit`. Units are resolved from sources on the server. [Chart API and aggregation](CHARTS.md).
+
+Forecast API: `GET /api/forecast/config`, `PUT/DELETE /api/forecast/sites/<id>`, `PUT/DELETE /api/forecast/providers/<id>`, `GET /api/forecast/report`, `POST /api/forecast/refresh` with `{}`, `PUT /api/forecast/days/<id>/exclusion` with `excluded` and `reason`. Sites contain location/timezone, `arrays` (kWp/tilt/azimuth), `actual_flow_ids`, measurement side, performance ratio, optional AC limit, cutoff time and training window. Providers link `site_id` to `kind=vrm|forecast_solar|solcast|open_meteo`. Blank tokens retain stored secrets; `clear_token=true` explicitly removes them. Revisions and modification times are server-managed. [Forecast configuration and algorithms](PV-FORECASTS.md).
+
+Full backups include new configuration and runtime collections. CSV includes configuration without tokens; schema 7 remains additive and CSV format stays 1. The free `extra` object stores metadata only and does not activate calculation features.

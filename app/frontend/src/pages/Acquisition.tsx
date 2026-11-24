@@ -95,7 +95,7 @@ export default function Acquisition() {
       {preview.data?.errors.map(e=><p role="alert" key={e} className="text-red-300">{e}</p>)}
       {points.data?.filter(p=>(p.name+p.id).toLowerCase().includes(search.toLowerCase())).map(p=>{const s=preview.data?.states[p.id];return <div key={p.id} className="space-y-2"><div data-testid={`measurement-row-${p.id}`} className="grid gap-2 rounded-lg border border-border bg-card p-3 sm:grid-cols-[1fr_auto]">
         <div className="min-w-0"><b className="break-all">{p.name}</b><p>{s?.available?`${s.value} ${p.unit}`:t("Nicht verfügbar / veraltet")} {t(" · Rohwert ")}{s?.raw??"–"}{s?.retained?t(" · gespeicherte MQTT-Nachricht"):""}</p><p className="break-all text-xs text-muted-foreground">point:{p.id}</p><p className="text-xs text-muted-foreground">{t("Letzter Empfang: ")}{s?.received_at?new Date(s.received_at*1000).toLocaleString():"–"}</p></div>
-        <div className="flex gap-2"><Button variant="outline" onClick={()=>editPoint(p)}>{t("Bearbeiten")}</Button><Button variant="ghost" onClick={()=>{if(window.confirm(t("Messpunkt „{0}“ löschen?", p.name)))void perform(()=>apiDelete(`/measurements/${p.id}`));}}>{t("Löschen")}</Button></div>
+        <div className="flex gap-2"><Button variant="outline" onClick={()=>editPoint(p)}>{t("Bearbeiten")}</Button><Button variant="outline" data-testid={`measurement-copy-${p.id}`} onClick={()=>editPoint({...p,id:newId(),name:p.name.slice(0,88)+t(" (Kopie)"),history_key:""})}>{t("Kopieren")}</Button><Button variant="ghost" onClick={()=>{if(window.confirm(t("Messpunkt „{0}“ löschen?", p.name)))void perform(()=>apiDelete(`/measurements/${p.id}`));}}>{t("Löschen")}</Button></div>
       </div>{point?.id===p.id&&pointForm}</div>;})}
     </section>
   </>;
