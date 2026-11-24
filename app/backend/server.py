@@ -44,7 +44,28 @@ async def lifespan(app: FastAPI):
         await client.close()
 
 
-app = FastAPI(lifespan=lifespan, title="Energieboard", version="2.5.0")
+app = FastAPI(lifespan=lifespan, title="Energieboard", version="2.6.0")
+
+@app.middleware("http")
+async def response_language(request, call_next):
+    from lib.i18n import english_requested, localise_payload
+    from starlette.responses import Response
+    import json
+    response = await call_next(request)
+    if not request.url.path.startswith("/api/") or "application/json" not in response.headers.get("content-type", ""):
+        return response
+    response.headers["Vary"] = ", ".join(filter(None, [response.headers.get("Vary", ""), "Accept-Language"]))
+    english = english_requested(request.headers.get("Accept-Language", ""))
+    response.headers["Content-Language"] = "en" if english else "de"
+    if not english:
+        return response
+    body = b"".join([chunk async for chunk in response.body_iterator])
+    value = localise_payload(json.loads(body), route=request.url.path)
+    content = json.dumps(value, ensure_ascii=False, allow_nan=False).encode("utf-8")
+    headers = dict(response.headers)
+    headers.pop("content-length", None)
+    return Response(content, status_code=response.status_code, headers=headers, background=response.background)
+
 
 api_router = APIRouter(prefix="/api")
 
@@ -55,7 +76,7 @@ async def root():
         await db.command("ping")
     except PyMongoError as exc:
         raise HTTPException(status_code=503, detail="MongoDB ist derzeit nicht erreichbar.") from exc
-    return {"message": "Energieboard API", "status": "ok", "version": "2.5.0", "schema_version": 6}
+    return {"message": "Energieboard API", "status": "ok", "version": "2.6.0", "schema_version": 6}
 
 
 api_router.include_router(flows.router)

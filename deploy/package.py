@@ -6,7 +6,7 @@ root = Path(__file__).resolve().parent.parent
 output = root / "outputs" / "Energieboard-LXC.tar.gz"
 output.parent.mkdir(exist_ok=True)
 excluded = {"node_modules", "__pycache__", ".venv", ".env"}
-files = [root / name for name in ("README.md", "INSTALLATION.md", "PRUEFBERICHT.md", "DATENMODELL.md", "CHANGELOG.md", "CSV-IMPORT.md", "DOCKER.md", "Dockerfile", ".dockerignore", "compose.yaml", "compose.external.yaml", "docker.env.example", ".github/workflows/docker.yml", "VERSION")]
+files = [root / name for name in ("README.md", "README.en.md", "INSTALLATION.md", "PRUEFBERICHT.md", "DATENMODELL.md", "CHANGELOG.md", "CSV-IMPORT.md", "DOCKER.md", "Dockerfile", ".dockerignore", "compose.yaml", "compose.external.yaml", "docker.env.example", ".github/workflows/docker.yml", "VERSION")]
 for folder in ("app", "deploy", "docs"):
     files.extend(path for path in (root / folder).rglob("*")
                  if path.is_file() and not path.name.startswith(".env") and not excluded.intersection(path.relative_to(root).parts))

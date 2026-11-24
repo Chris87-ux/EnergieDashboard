@@ -1,6 +1,7 @@
+import { t, language } from "@/lib/i18n";
 import { useState } from "react";
 import { format, parse } from "date-fns";
-import { de } from "date-fns/locale";
+import { de, enGB } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
 import { CalendarRange } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,8 +50,8 @@ export default function RangePicker({ value, presets, onChange, activePreset }: 
   };
 
   const label = value
-    ? `${format(toDate(value.start), "dd.MM.yyyy HH:mm")} – ${format(toDate(value.end), "dd.MM.yyyy HH:mm")}`
-    : "Zeitraum wählen";
+    ? `${format(toDate(value.start), language === "en" ? "dd/MM/yyyy HH:mm" : "dd.MM.yyyy HH:mm")} – ${format(toDate(value.end), language === "en" ? "dd/MM/yyyy HH:mm" : "dd.MM.yyyy HH:mm")}`
+    : t("Zeitraum wählen");
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center" data-testid="energy-range-picker">
@@ -85,24 +86,23 @@ export default function RangePicker({ value, presets, onChange, activePreset }: 
             selected={draft}
             onSelect={setDraft}
             numberOfMonths={1}
-            locale={de}
+            locale={language === "en" ? enGB : de}
             weekStartsOn={1}
             defaultMonth={draft?.from}
             data-testid="energy-picker-calendar"
           />
           <div className="mt-3 grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label htmlFor="from-time" className="text-xs text-[#8EA8C3]">Von (Uhrzeit)</Label>
+              <Label htmlFor="from-time" className="text-xs text-[#8EA8C3]">{t("Von (Uhrzeit)")}</Label>
               <Input id="from-time" type="time" value={fromTime} onChange={(e) => setFromTime(e.target.value)} data-testid="energy-picker-from-time" />
             </div>
             <div className="space-y-1">
-              <Label htmlFor="to-time" className="text-xs text-[#8EA8C3]">Bis (Uhrzeit)</Label>
+              <Label htmlFor="to-time" className="text-xs text-[#8EA8C3]">{t("Bis (Uhrzeit)")}</Label>
               <Input id="to-time" type="time" value={toTime} onChange={(e) => setToTime(e.target.value)} data-testid="energy-picker-to-time" />
             </div>
           </div>
           <Button className="mt-3 w-full" onClick={apply} disabled={!draft?.from} data-testid="energy-picker-apply-button">
-            Zeitraum übernehmen
-          </Button>
+            {t("Zeitraum übernehmen")}</Button>
         </PopoverContent>
       </Popover>
     </div>

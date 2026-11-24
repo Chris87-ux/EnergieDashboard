@@ -1,6 +1,16 @@
-# Prüfbericht · Energieboard 2.5.0
+# Prüfbericht · Energieboard 2.6.0
 
-Stand: 23. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokolladapter, Konfigurationsübernahme, Sicherung und Updateablauf. Das ausgelieferte Programm enthält keinen Demo-Modus; Messwerte der Tests stammen ausschließlich aus isolierten Testprozessen.
+[English](docs/en/TEST-REPORT.md)
+
+Stand: 24. November 2026. Geprüft wurden Backend, gebaute Oberfläche, Protokolladapter, Konfigurationsübernahme, Sicherung und Updateablauf. Das ausgelieferte Programm enthält keinen Demo-Modus; Messwerte der Tests stammen ausschließlich aus isolierten Testprozessen.
+
+## Prüfungen für 2.6
+
+103 Backendtests erfolgreich: alle 97 bisherigen Regressionen sowie sechs neue Tests für Sprachverhandlung, Platzhalter, übersetzte API-Fehler, geschützte Namen/Metadaten und abgeleitete Beschriftungen. TypeScript/Vite-Produktionsbuild erfolgreich.
+
+Vollständige Integration mit echter isolierter MongoDB, HTTP/MQTT/Modbus-Testquellen, 50 Geräten, Historie, CSV, Migration und Backup/Restore erfolgreich. Chromium prüft Deutsch und Englisch über den tatsächlichen Sprachschalter: Speicherung pro Browser, URL-Override, Zahlen/Kalender, Formulare, API-Zeiträume, unveränderte Gerätekonfiguration, Abbruch bei ungespeicherten Eingaben, Einbettung und alle Seiten im Mobilformat ohne JavaScript-Fehler. Die bisherigen Konfigurations-/Bilanzprüfungen bleiben aktiv.
+
+Die englischen Anleitungen liegen unter docs/en und sind im Archiv enthalten. Dokumentationslinks, lokale Sprungmarken, JSON-Beispiele, Bash-Syntax, Archivinhalt und SHA-256 werden vor Veröffentlichung geprüft. Linux-Docker-CI wird vor der Release-Markierung bestätigt. Prüfgrenzen: lokale Protokollfixtures, keine echten Produktionsgeräte und kein tatsächlicher Proxmox-LXC-Boot; Namen und eigene Metadaten bleiben absichtlich in ihrer eingegebenen Sprache.
 
 ## Prüfungen für 2.5
 

@@ -1,5 +1,7 @@
 # Verbrauchergruppen
 
+[English](en/CONSUMER-GROUPS.md)
+
 [Dokumentationsübersicht](README.md) · [Geräte und Knoten](GERAETE-UND-KNOTEN.md) · [CSV](../CSV-IMPORT.md)
 
 ## Zweck und Abgrenzung

@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { X } from "lucide-react";
 import { Dialog as Primitive } from "radix-ui";
 import type { ComponentProps } from "react";
@@ -12,7 +13,7 @@ export function DialogContent({ className, children, ...props }: ComponentProps<
       <Primitive.Overlay className="fixed inset-0 z-40 bg-black/65" />
       <Primitive.Content className={cn("fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl border bg-card p-6 shadow-xl", className)} {...props}>
         {children}
-        <Primitive.Close aria-label="Schließen" className={buttonVariants({ variant: "ghost", size: "icon-sm", className: "absolute right-3 top-3" })}>
+        <Primitive.Close aria-label={t("Schließen")} className={buttonVariants({ variant: "ghost", size: "icon-sm", className: "absolute right-3 top-3" })}>
           <X className="size-4" />
         </Primitive.Close>
       </Primitive.Content>

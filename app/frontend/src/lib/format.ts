@@ -1,12 +1,13 @@
+import { t, locale, language } from "@/lib/i18n";
 import type { Category, Method } from "@/lib/types";
 
-const nf0 = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 });
-const nf2 = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const nf1 = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const smallPower = new Intl.NumberFormat("de-DE", { maximumSignificantDigits: 3 });
-const nf3 = new Intl.NumberFormat("de-DE", { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+const nf0 = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 });
+const nf2 = new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const nf1 = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const smallPower = new Intl.NumberFormat(locale, { maximumSignificantDigits: 3 });
+const nf3 = new Intl.NumberFormat(locale, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
-export const NA = "n. v.";
+export const NA = t("n. v.");
 
 export function fmtW(w: number | null | undefined): string {
   if (w === null || w === undefined) return NA;
@@ -35,14 +36,14 @@ export function fmtNum1(n: number): string {
   return nf1.format(n);
 }
 
-const dtf = new Intl.DateTimeFormat("de-DE", {
+const dtf = new Intl.DateTimeFormat(locale, {
   day: "2-digit",
   month: "2-digit",
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
 });
-const tf = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+const tf = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
 export function fmtDateTime(iso: string): string {
   return dtf.format(new Date(iso));
@@ -56,33 +57,33 @@ export function fmtTime(iso: string): string {
 export function fmtLocal(local: string): string {
   const [d, t] = local.split("T");
   const [y, m, day] = d.split("-");
-  return `${day}.${m}.${y} ${t ?? ""}`.trim();
+  return (language === "en" ? `${day}/${m}/${y} ${t ?? ""}` : `${day}.${m}.${y} ${t ?? ""}`).trim();
 }
 
 export function fmtDuration(seconds: number): string {
   if (seconds < 3600) return `${Math.round(seconds / 60)} min`;
   if (seconds < 86400) return `${fmtNum1(seconds / 3600)} h`;
-  return `${fmtNum1(seconds / 86400)} Tage`;
+  return t("{0} Tage", fmtNum1(seconds / 86400));
 }
 
 export const CATEGORY_LABELS: Record<Category, string> = {
-  pv: "Photovoltaik",
-  generator: "Generator / BHKW",
-  grid: "Netz",
-  battery: "Speicher",
-  heatpump: "Wärmepumpe",
-  ev: "E-Mobilität",
-  consumer: "Verbraucher",
-  custom: "Benutzerdefiniert",
+  pv: t("Photovoltaik"),
+  generator: t("Generator / BHKW"),
+  grid: t("Netz"),
+  battery: t("Speicher"),
+  heatpump: t("Wärmepumpe"),
+  ev: t("E-Mobilität"),
+  consumer: t("Verbraucher"),
+  custom: t("Benutzerdefiniert"),
 };
 
 export const METHOD_LABELS: Record<Method, string> = {
-  counter_delta: "Zählerdelta",
-  phase_sum: "Phasensumme",
-  power_integral: "Leistungsintegration",
-  run_estimate: "RUN-Schätzung",
-  unavailable: "Nicht verfügbar",
-  not_applicable: "Nicht belegt",
+  counter_delta: t("Zählerdelta"),
+  phase_sum: t("Phasensumme"),
+  power_integral: t("Leistungsintegration"),
+  run_estimate: t("RUN-Schätzung"),
+  unavailable: t("Nicht verfügbar"),
+  not_applicable: t("Nicht belegt"),
 };
 
-export const DIRECTION_LABELS = { in: "Produktion", out: "Verbrauch" } as const;
+export const DIRECTION_LABELS = { in: t("Produktion"), out: t("Verbrauch") } as const;

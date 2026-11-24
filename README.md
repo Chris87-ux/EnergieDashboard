@@ -1,4 +1,6 @@
-# Energieboard 2.5.0
+# Energieboard 2.6.0
+
+[English](README.en.md)
 
 Energieboard stellt Stromerzeugung, Verbrauch, Netzanschluss und Speicher im eigenen Netzwerk dar. Es läuft direkt in einem Proxmox-LXC oder mit Docker Compose. Messwerte kommen über konfigurierbare HTTP-APIs (Vorlagen für ioBroker, Home Assistant und evcc), MQTT oder Modbus TCP. Konfiguration und Aufzeichnung liegen in MongoDB. Die Anwendung enthält keine Demodaten und steuert keine Geräte.
 
@@ -28,6 +30,7 @@ Energieboard stellt Stromerzeugung, Verbrauch, Netzanschluss und Speicher im eig
 - Hybrid-WR mit AC-Netto oder AC-Out minus AC-In; Wirkungsgrad aus direkter DC-Messung oder bestätigter DC-Bilanz.
 - Separate Speicher mit kapazitätsgewichtetem Gesamt-SOC, Leistungsbalken, Restenergie und geglätteter Restlaufzeit.
 - Optionale Verbrauchergruppen mit gemeinsamer Liveleistung und Zeitraumenergie, unabhängig von der Knotenhierarchie.
+- Deutsch/Englisch im Kopfbereich, persönliche Sprachwahl und englische Zahlen-/Datumsformate.
 - CSV-Import/-Export mit Vorschau, stabilen IDs und Sicherung vor der Übernahme.
 - Drei Darstellungen, globale Farben, suchbare Symbole und Einbettung über `/flow`.
 - Nullleistungsfilter: standardmäßig erst nach 60 Sekunden strikt zwischen −1 W und +1 W ausblenden; Netz bleibt sichtbar.
@@ -57,6 +60,6 @@ Energieboard besitzt keine eigene Anmeldung. Im vertrauenswürdigen LAN betreibe
 
 ## Version und Verlässlichkeit
 
-Aktueller Anwendungsstand: **2.5.0**, Datenbankschema **6**, CSV-Format **1**. Dokumentation: **23. November 2026**. Für Installationen feste Tags wie `v2.5.0` verwenden; `main` kann bereits neuere Änderungen enthalten.
+Aktueller Anwendungsstand: **2.6.0**, Datenbankschema **6**, CSV-Format **1**. Dokumentation: **24. November 2026**. Für Installationen feste Tags wie `v2.6.0` verwenden; `main` kann bereits neuere Änderungen enthalten.
 
-[Prüfbericht und bekannte Grenzen](PRUEFBERICHT.md): 97 Backendtests sowie Integrations-, Browser- und Linux-Dockerprüfungen. Physische Victron-Geräte und ein produktiver Proxmox-LXC wurden hier nicht angeschlossen. Energieboard ist eine Anzeige und Auswertung; Schätzwerte ersetzen keinen geeichten Zähler.
+[Prüfbericht und bekannte Grenzen](PRUEFBERICHT.md): 103 Backendtests sowie Integrations-, Browser- und Linux-Dockerprüfungen. Physische Victron-Geräte und ein produktiver Proxmox-LXC wurden hier nicht angeschlossen. Energieboard ist eine Anzeige und Auswertung; Schätzwerte ersetzen keinen geeichten Zähler.

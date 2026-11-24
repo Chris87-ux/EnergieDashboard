@@ -1,5 +1,7 @@
 # Erstinstallation auf Proxmox als LXC
 
+[English](../docs/en/INSTALLATION.md)
+
 [Dokumentationsübersicht](../docs/README.md) · [Alternative: Docker](../DOCKER.md) · [Nach der Installation](../docs/ERSTE-SCHRITTE.md)
 
 Diese Anleitung installiert Energieboard **direkt als systemd-Dienst** in einem neuen Debian-LXC. Befehle zur Anwendungsinstallation laufen **im LXC**, nicht auf dem Proxmox-Host. Bestehende Installationen über [Betrieb und Updates](../docs/BETRIEB-UND-UPDATES.md) aktualisieren; kein neues Archiv über die laufende Installation entpacken.
@@ -76,7 +78,7 @@ Eingehend braucht die Anwendung TCP **8000** aus dem erlaubten LAN. Ausgehend br
 
 ## 4. Archiv laden und prüfen
 
-Für eine **neue** Installation als root im LXC. Verwendet wird der feste Release-Tag `v2.5.0`; Archiv und Prüfsumme stammen so aus demselben Stand.
+Für eine **neue** Installation als root im LXC. Verwendet wird der feste Release-Tag `v2.6.0`; Archiv und Prüfsumme stammen so aus demselben Stand.
 
 ```bash
 (
@@ -86,7 +88,7 @@ Für eine **neue** Installation als root im LXC. Verwendet wird der feste Releas
   apt-get install -y ca-certificates curl
   download_dir="$(mktemp -d /tmp/energieboard-install.XXXXXXXX)"
   cd "$download_dir"
-  release=v2.5.0
+  release=v2.6.0
   basis="https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/$release/outputs"
   curl -fL --retry 3 "$basis/Energieboard-LXC.tar.gz" -o Energieboard-LXC.tar.gz
   curl -fL --retry 3 "$basis/SHA256SUMS" -o SHA256SUMS
@@ -157,7 +159,7 @@ curl -fsS http://127.0.0.1:8000/api/
 hostname -I
 ```
 
-Erwartet: Dienst `active (running)`, API mit `status: ok` und Version `2.5.0`. Dann im Browser:
+Erwartet: Dienst `active (running)`, API mit `status: ok` und Version `2.6.0`. Dann im Browser:
 
 ```text
 http://<LXC-IP>:8000/datenerfassung

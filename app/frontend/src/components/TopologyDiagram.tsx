@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import {useState} from "react";
 import FlowDiagram from "@/components/FlowDiagram";
 import {Button} from "@/components/ui/button";
@@ -19,9 +20,9 @@ export default function TopologyDiagram({data,showInactive}:{data:LiveReport;sho
  const pages=batches.length;const activePage=Math.min(page,pages-1);
  const offset=batches.slice(0,activePage).reduce((sum,batch)=>sum+batch.length,0);
  return <div className="space-y-3" data-testid="topology-diagram">
-  <nav aria-label="Knotenpfad" className="flex flex-wrap items-center gap-1"><Button variant="outline" size="sm" onClick={()=>select(null)}>Haus</Button>{parents.map(n=><span key={n.id}> → <Button size="sm" variant={n.id===id?"default":"outline"} onClick={()=>select(n.id)}>{n.name}</Button></span>)}</nav>
-  <p className="text-xs text-muted-foreground">Rechteckige Knoten öffnen ihre Kinder. Zählerleistung ist netto; die Bilanz zählt jeden Abschnitt einmal.</p>
-  <FlowDiagram flows={batches[activePage]} summary={data.ok?data.summary:null} onSelectNode={select} hubName={current?.name} hubLabel={current?"Zähler / Abschnitt netto":undefined} hubPower={current?(current.meter_w??current.children_w):undefined}/>
-  {pages>1&&<div className="flex items-center justify-between gap-2 text-xs"><Button variant="outline" disabled={activePage===0} onClick={()=>setPage(activePage-1)}>Zurück</Button><span>Elemente {offset+1}–{offset+batches[activePage].length} von {flows.length}</span><Button variant="outline" disabled={activePage+1===pages} onClick={()=>setPage(activePage+1)}>Weiter</Button></div>}
+  <nav aria-label={t("Knotenpfad")} className="flex flex-wrap items-center gap-1"><Button variant="outline" size="sm" onClick={()=>select(null)}>{t("Haus")}</Button>{parents.map(n=><span key={n.id}> → <Button size="sm" variant={n.id===id?"default":"outline"} onClick={()=>select(n.id)}>{n.name}</Button></span>)}</nav>
+  <p className="text-xs text-muted-foreground">{t("Rechteckige Knoten öffnen ihre Kinder. Zählerleistung ist netto; die Bilanz zählt jeden Abschnitt einmal.")}</p>
+  <FlowDiagram flows={batches[activePage]} summary={data.ok?data.summary:null} onSelectNode={select} hubName={current?.name} hubLabel={current?t("Zähler / Abschnitt netto"):undefined} hubPower={current?(current.meter_w??current.children_w):undefined}/>
+  {pages>1&&<div className="flex items-center justify-between gap-2 text-xs"><Button variant="outline" disabled={activePage===0} onClick={()=>setPage(activePage-1)}>{t("Zurück")}</Button><span>{t("Elemente ")}{offset+1}–{offset+batches[activePage].length} {t(" von ")}{flows.length}</span><Button variant="outline" disabled={activePage+1===pages} onClick={()=>setPage(activePage+1)}>{t("Weiter")}</Button></div>}
  </div>;
 }

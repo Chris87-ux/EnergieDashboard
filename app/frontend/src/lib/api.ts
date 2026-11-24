@@ -1,3 +1,4 @@
+import { language } from "./i18n";
 export class ApiError extends Error {
   constructor(public status: number, public body: unknown) {
     super(`HTTP ${status}`);
@@ -8,7 +9,7 @@ export class ApiError extends Error {
 async function request<T>(method: string, path: string, data?: unknown): Promise<T> {
   const response = await fetch(`/api${path}`, {
     method,
-    headers: data === undefined ? undefined : { "Content-Type": "application/json" },
+    headers: { "Accept-Language": language, ...(data === undefined ? {} : { "Content-Type": "application/json" }) },
     body: data === undefined ? undefined : JSON.stringify(data),
   });
   if (response.status === 204) return undefined as T;

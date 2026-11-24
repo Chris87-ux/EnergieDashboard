@@ -1,5 +1,7 @@
 # Begriffe und Einheiten
 
+[English](en/GLOSSARY.md)
+
 [Dokumentationsübersicht](README.md)
 
 | Begriff | Bedeutung in Energieboard |

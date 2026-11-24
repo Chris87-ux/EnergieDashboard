@@ -1,5 +1,7 @@
 # Fehlersuche
 
+[English](en/TROUBLESHOOTING.md)
+
 [Dokumentationsübersicht](README.md) · [Ersteinrichtung](ERSTE-SCHRITTE.md) · [Betrieb und Backups](BETRIEB-UND-UPDATES.md)
 
 ## Zuerst eingrenzen

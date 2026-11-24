@@ -1,3 +1,5 @@
+import LanguageSelector from "@/components/LanguageSelector";
+import { t } from "@/lib/i18n";
 import { NavLink, Outlet } from "react-router-dom";
 import { Database, Palette, Activity, BarChart3, Server, SlidersHorizontal, Zap } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
@@ -5,18 +7,18 @@ import { useLive } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
 const NAV = [
-  { to: "/", label: "Energiefluss", icon: Activity, testid: "nav-dashboard" },
-  { to: "/energie", label: "Energie-Bilanz", icon: BarChart3, testid: "nav-energy" },
-  { to: "/konfiguration", label: "Konfiguration", icon: SlidersHorizontal, testid: "nav-config" },
-  { to: "/datenerfassung", label: "Datenerfassung", icon: Database, testid: "nav-acquisition" },
-  { to: "/darstellung", label: "Darstellung", icon: Palette, testid: "nav-appearance" },
+  { to: "/", label: t("Energiefluss"), icon: Activity, testid: "nav-dashboard" },
+  { to: "/energie", label: t("Energie-Bilanz"), icon: BarChart3, testid: "nav-energy" },
+  { to: "/konfiguration", label: t("Konfiguration"), icon: SlidersHorizontal, testid: "nav-config" },
+  { to: "/datenerfassung", label: t("Datenerfassung"), icon: Database, testid: "nav-acquisition" },
+  { to: "/darstellung", label: t("Darstellung"), icon: Palette, testid: "nav-appearance" },
   { to: "/system", label: "System & LXC", icon: Server, testid: "nav-system" },
 ];
 
 function ModeIndicator() {
   const { data, isError } = useLive();
   const offline = isError || !data;
-  const label = offline ? "Keine Verbindung" : data.ok ? "Live" : "Live – Einrichtung prüfen";
+  const label = offline ? t("Keine Verbindung") : data.ok ? "Live" : t("Live – Einrichtung prüfen");
   const color = offline || !data.ok ? "bg-[#F87171]" : "bg-[#34D399]";
   return (
     <div
@@ -59,7 +61,7 @@ export default function AppShell() {
               </NavLink>
             ))}
           </nav>
-          <ModeIndicator />
+          <div className="flex shrink-0 items-center gap-2"><LanguageSelector /><ModeIndicator /></div>
         </div>
         <nav className="flex gap-1 overflow-x-auto border-t border-[var(--border)] px-2 py-1.5 lg:hidden" data-testid="mobile-nav">
           {NAV.map((n) => (
@@ -85,8 +87,7 @@ export default function AppShell() {
         <Outlet />
       </main>
       <footer className="border-t border-[var(--border)] px-4 py-4 text-center text-xs text-[#8EA8C3] sm:px-8">
-        Energy Flow · selbst gehostet für ioBroker &amp; InfluxDB
-      </footer>
+        {t("Energy Flow · selbst gehostet für ioBroker &amp; InfluxDB")}</footer>
       <Toaster richColors />
     </div>
   );

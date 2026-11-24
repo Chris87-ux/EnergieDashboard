@@ -1,5 +1,15 @@
 # Änderungen
 
+[English](docs/en/CHANGELOG.md)
+
+## 2.6.0 · 24. November 2026
+
+- Deutsch/Englisch für Navigation, Übersichten, Formulare, Hinweise, Dialoge und die eingebaute Installationshilfe.
+- Pro Browser gespeicherte Sprache, explizite URL-Auswahl auch für Einbettungen sowie passende Zahlen-, Datums- und Kalenderformate.
+- Englische eingebaute API-Meldungen und Zeitraumbeschriftungen per Accept-Language, ohne Namen, IDs, Konfiguration oder Historie zu verändern.
+- Vollständige gegliederte englische Installations-, Konfigurations-, Betriebs- und Entwicklerdokumentation neben den deutschen Anleitungen.
+- 103 Backendtests einschließlich sechs Sprachtests, erweiterte Browserprüfung beider Sprachen. Schema bleibt 6, CSV bleibt 1.
+
 ## 2.5.0 · 23. November 2026
 
 - Datenerfassung als allgemeine HTTP-GET-API mit veränderbarer Aufrufvorlage, JSON-/Klartextauswertung und Vorlagen für ioBroker, Home Assistant und evcc.

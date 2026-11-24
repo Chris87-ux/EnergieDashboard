@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { Fragment, useState } from "react";
 import { AlertTriangle, ChevronDown, RotateCcw } from "lucide-react";
 import MethodBadge from "@/components/MethodBadge";
@@ -31,15 +32,15 @@ function GapBar({ start, end, gaps, color, testid }: { start: string; end: strin
 
 function Cell({ v, testid }: { v: EnergyValue; testid: string }) {
   if (v.method === "not_applicable") {
-    return <span className="text-xs text-[#8EA8C3]" data-testid={testid}>— nicht belegt</span>;
+    return <span className="text-xs text-[#8EA8C3]" data-testid={testid}>{t("— nicht belegt")}</span>;
   }
   return (
     <div className="flex flex-col items-start gap-1" data-testid={testid}>
       <span className={cn("font-mono text-sm font-semibold", v.kwh === null && "text-[#F87171]")}>{fmtKwh(v.kwh)}</span>
       <div className="flex items-center gap-1">
         <MethodBadge method={v.method} />
-        {!v.complete && v.method !== "unavailable" && <AlertTriangle className="size-3.5 text-[#FBBF24]" aria-label="Lücken" />}
-        {v.resets > 0 && <RotateCcw className="size-3.5 text-[var(--primary)]" aria-label="Zähler-Reset" />}
+        {!v.complete && v.method !== "unavailable" && <AlertTriangle className="size-3.5 text-[#FBBF24]" aria-label={t("Lücken")} />}
+        {v.resets > 0 && <RotateCcw className="size-3.5 text-[var(--primary)]" aria-label={t("Zähler-Reset")} />}
       </div>
     </div>
   );
@@ -53,12 +54,12 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
       <Table data-testid="energy-table">
         <TableHeader>
           <TableRow className="border-[var(--border)] hover:bg-transparent">
-            <TableHead className="text-[#8EA8C3]">Fluss</TableHead>
-            <TableHead className="text-[#8EA8C3]">Gesamt</TableHead>
+            <TableHead className="text-[#8EA8C3]">{t("Fluss")}</TableHead>
+            <TableHead className="text-[#8EA8C3]">{t("Gesamt")}</TableHead>
             {PHASES.map((p) => (
               <TableHead key={p} className="text-[#8EA8C3]">{p}</TableHead>
             ))}
-            <TableHead className="min-w-40 text-[#8EA8C3]">Abdeckung &amp; Lücken</TableHead>
+            <TableHead className="min-w-40 text-[#8EA8C3]">{t("Abdeckung &amp; Lücken")}</TableHead>
             <TableHead />
           </TableRow>
         </TableHeader>
@@ -78,7 +79,7 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
                       <div>
                         <div className="font-medium">{f.name}</div>
                         <div className="text-[11px] text-[#8EA8C3]">
-                          {f.direction === "in" ? "Produktion" : "Verbrauch"} · {f.electrical_side === "dc" ? "DC · separat" : PHASES.every(p=>f.phases[p].method === "not_applicable") ? "AC · Gesamtwert" : f.energy_phase_mode === "three" ? "3-phasig" : `AC · ${f.energy_phase}`}
+                          {f.direction === "in" ? t("Produktion") : t("Verbrauch")} · {f.electrical_side === "dc" ? t("DC · separat") : PHASES.every(p=>f.phases[p].method === "not_applicable") ? t("AC · Gesamtwert") : f.energy_phase_mode === "three" ? t("3-phasig") : `AC · ${f.energy_phase}`}
                         </div>
                       </div>
                     </div>
@@ -93,15 +94,14 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
                   </TableCell>
                   {PHASES.map((p) => (
                     <TableCell key={p}>
-                      <Cell v={f.phases[p]} testid={`energy-phase-${f.flow_id}-${p}`} />{f.estimated_phases?.includes(p)&&<span className="text-xs text-amber-300">Symmetrisch berechnet</span>}
+                      <Cell v={f.phases[p]} testid={`energy-phase-${f.flow_id}-${p}`} />{f.estimated_phases?.includes(p)&&<span className="text-xs text-amber-300">{t("Symmetrisch berechnet")}</span>}
                     </TableCell>
                   ))}
                   <TableCell>
                     <div className="space-y-1">
                       <GapBar start={report.start} end={report.effective_end} gaps={allGaps} color={f.color} testid={`energy-gapbar-${f.flow_id}`} />
                       <div className="text-[11px] text-[#8EA8C3]" data-testid={`energy-coverage-${f.flow_id}`}>
-                        {fmtPct(f.total.coverage * 100)} abgedeckt
-                        {allGaps.length > 0 && <span className="text-[#FBBF24]"> · {allGaps.length} Lücke(n)</span>}
+                        {fmtPct(f.total.coverage * 100)} {t(" abgedeckt")}{allGaps.length > 0 && <span className="text-[#FBBF24]"> · {allGaps.length} {t(" Lücke(n)")}</span>}
                       </div>
                     </div>
                   </TableCell>
@@ -122,8 +122,8 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
                     <TableCell colSpan={7} className="whitespace-normal">
                       <div className="grid gap-4 py-2 text-xs md:grid-cols-2">
                         <div className="space-y-1">
-                          <div className="font-semibold text-[#F0F4F8]">Berechnung</div>
-                          <div className="text-[#8EA8C3]">Gesamt: {f.total.note || "—"}</div>
+                          <div className="font-semibold text-[#F0F4F8]">{t("Berechnung")}</div>
+                          <div className="text-[#8EA8C3]">{t("Gesamt: ")}{f.total.note || "—"}</div>
                           {PHASES.map((p) => (
                             <div key={p} className="text-[#8EA8C3]">
                               {p}: {f.phases[p].note || "—"}
@@ -131,9 +131,9 @@ export default function EnergyTable({ report }: { report: EnergyReport }) {
                           ))}
                         </div>
                         <div className="space-y-1">
-                          <div className="font-semibold text-[#F0F4F8]">Datenlücken (Gesamt)</div>
+                          <div className="font-semibold text-[#F0F4F8]">{t("Datenlücken (Gesamt)")}</div>
                           {allGaps.length === 0 ? (
-                            <div className="text-[#34D399]">Keine Lücken erkannt</div>
+                            <div className="text-[#34D399]">{t("Keine Lücken erkannt")}</div>
                           ) : (
                             <ul className="max-h-40 space-y-0.5 overflow-auto font-mono text-[#FBBF24]">
                               {allGaps.map((g, i) => (

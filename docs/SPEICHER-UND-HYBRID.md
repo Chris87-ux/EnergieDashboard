@@ -1,5 +1,7 @@
 # Speicher, DC-MPPT und Hybrid-Wechselrichter
 
+[English](en/STORAGE-AND-HYBRID.md)
+
 [Dokumentationsübersicht](README.md) · [Datenquellen](DATENERFASSUNG.md) · [Technische Felder](../DATENMODELL.md)
 
 ## Bilanz und Phasen ab 2.4

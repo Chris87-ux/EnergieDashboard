@@ -1,8 +1,10 @@
-# Datenmodell und Erweiterungen · Version 2.5.0
+# Datenmodell und Erweiterungen · Version 2.6.0
+
+[English](docs/en/DATA-MODEL.md)
 
 [Dokumentationsübersicht](docs/README.md) · [Schritt-für-Schritt-Konfiguration](docs/ERSTE-SCHRITTE.md) · [Hybrid-Anleitung](docs/SPEICHER-UND-HYBRID.md)
 
-Diese Seite ist die technische Referenz. Für die Bedienung zuerst die Benutzeranleitungen lesen. Stand: 23. November 2026, Anwendung 2.5.0, Schema 6, CSV 1.
+Diese Seite ist die technische Referenz. Für die Bedienung zuerst die Benutzeranleitungen lesen. Stand: 24. November 2026, Anwendung 2.6.0, Schema 6, CSV 1.
 
 ## Bilanz und Phasen ab 2.4
 
@@ -334,3 +336,7 @@ Anwendungsversion in `VERSION`; Datenbankschema aktuell Version 6; CSV-Format Ve
 Verwaltung: `GET /api/consumer-groups`, `PUT /api/consumer-groups/<id>`, `DELETE /api/consumer-groups/<id>`. Felder: `id`, `name` (1–80 Zeichen), `color` (#RRGGBB), `sort_order`. Geräte verwenden optional `group_id: "<id>"` bzw. `null`, unabhängig von `parent_id`. Nur normale Verbraucher sind zulässig. Fehlende Gruppenreferenz ergibt 422, Löschen einer noch verwendeten Gruppe 409.
 
 Live- und Energieantworten ergänzen `consumer_groups` mit `id`, `name`, `color`, `member_ids`, `complete` und `power_w` bzw. `energy_kwh`. Diese Auswertungen sind zusätzliche Ansichten und verändern keine Gesamtsumme. Aktive Mitgliedschaft, Vollständigkeit und historische Grenzen siehe [Verbrauchergruppen](docs/VERBRAUCHERGRUPPEN.md). Migration auf Schema 6 normalisiert API-Verbindungen und ergänzt optionale Gruppenzuordnungen, ohne IDs oder Historie zu ersetzen.
+
+## Sprache ab 2.6
+
+`Accept-Language: en` liefert englische eingebaute Meldungen, Hinweise und Zeitraumbeschriftungen; de bzw. kein unterstützter Sprachwunsch bleibt Deutsch. JSON-Antworten kennzeichnen Content-Language und Vary: Accept-Language. Maschinenfelder, IDs, Nutzernamen, extra-Metadaten und Zahlen bleiben unverändert. CSV-Spalten werden nicht übersetzt. Die Oberfläche speichert ihre Sprache pro Browser und erlaubt `?lang=en` oder `?lang=de`, auch für die Einbettung. Datenbankschema bleibt 6, CSV bleibt 1; keine Sprachmigration der Konfiguration/Historie.

@@ -1,5 +1,7 @@
 # Datenerfassung: API, MQTT und Modbus TCP
 
+[English](en/DATA-ACQUISITION.md)
+
 [Dokumentationsübersicht](README.md) · [Erste Schritte](ERSTE-SCHRITTE.md) · [CSV für viele Messpunkte](../CSV-IMPORT.md)
 
 ## Prinzip: Quelle → Messpunkt → Gerät

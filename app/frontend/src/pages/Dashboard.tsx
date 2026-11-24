@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { Link } from "react-router-dom";
 import { ArrowRight, Gauge, Leaf, Sun } from "lucide-react";
 import {useState} from "react";
@@ -41,13 +42,13 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
     <>
       <section className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-[var(--primary)]">Aktuelle Leistung</p>
+          <p className="text-sm font-medium text-[var(--primary)]">{t("Aktuelle Leistung")}</p>
           <h1 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl" data-testid="dashboard-title">
-            Energiefluss{data ? ` · ${data.site_name}` : ""}
+            {t("Energiefluss")}{data ? ` · ${data.site_name}` : ""}
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-xs text-[#8EA8C3]">
-          <span data-testid="dashboard-updated">{data ? `Aktualisiert ${fmtTime(data.ts)}` : live.isError ? "Backend nicht erreichbar" : "Lade Livedaten…"}</span>
+          <span data-testid="dashboard-updated">{data ? t("Aktualisiert {0}", fmtTime(data.ts)) : live.isError ? t("Backend nicht erreichbar") : "Lade Livedaten…"}</span>
         </div>
       </section>
 
@@ -55,20 +56,20 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
         <div className="rounded-xl border border-[#7F1D1D] bg-[#450A0A]/60 p-3 text-sm text-[#FECACA]" data-testid="dashboard-errors">
           {data.errors.join(" · ")}
           {" "}
-          <Link className="underline" to="/system">Verbindung einrichten</Link>
+          <Link className="underline" to="/system">{t("Verbindung einrichten")}</Link>
         </div>
       )}
 
       <GridConnection data={data} period={todayReport?.totals} />
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4" data-testid="kpi-strip">
-        <Kpi label={s?.production_estimated ? "Produktion · geschätzt" : "Produktion"} value={fmtW(s?.production_w)} icon={Sun} color="#EAB308" testid="kpi-production" />
-        <Kpi label="Verbrauch" value={fmtW(s?.consumption_w)} icon={Gauge} color="#38BDF8" testid="kpi-consumption" />
-        <Kpi label="Autarkiegrad · Heute" value={fmtPct(todayReport?.totals.autarky_pct)} icon={Leaf} color="#34D399" testid="kpi-autarky" />
-        <Kpi label="Eigenverbrauch · Heute" value={fmtPct(todayReport?.totals.self_consumption_pct)} icon={Sun} color="#FBBF24" testid="kpi-self-consumption" />
+        <Kpi label={s?.production_estimated ? t("Produktion · geschätzt") : t("Produktion")} value={fmtW(s?.production_w)} icon={Sun} color="#EAB308" testid="kpi-production" />
+        <Kpi label={t("Verbrauch")} value={fmtW(s?.consumption_w)} icon={Gauge} color="#38BDF8" testid="kpi-consumption" />
+        <Kpi label={t("Autarkiegrad · Heute")} value={fmtPct(todayReport?.totals.autarky_pct)} icon={Leaf} color="#34D399" testid="kpi-autarky" />
+        <Kpi label={t("Eigenverbrauch · Heute")} value={fmtPct(todayReport?.totals.self_consumption_pct)} icon={Sun} color="#FBBF24" testid="kpi-self-consumption" />
       </section>
 
-      {s && s.notes.length>0 && <details className="text-xs text-muted-foreground"><summary>Bilanzhinweise</summary>{s.notes.map(n=><p key={n}>{n}</p>)}<p>Produktion kombiniert die jeweils gemessenen AC-/DC-Erzeugungsgrenzen. Autarkie und Eigenverbrauch beziehen sich auf den aufgezeichneten heutigen Zeitraum.</p></details>}
-      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showInactive} onChange={e=>setShowInactive(e.target.checked)}/>Inaktive anzeigen{data ? ` (${data.flows.filter(f=>f.hidden&&f.category!=="grid").length} ausgeblendet)` : ""}</label>
+      {s && s.notes.length>0 && <details className="text-xs text-muted-foreground"><summary>{t("Bilanzhinweise")}</summary>{s.notes.map(n=><p key={n}>{n}</p>)}<p>{t("Produktion kombiniert die jeweils gemessenen AC-/DC-Erzeugungsgrenzen. Autarkie und Eigenverbrauch beziehen sich auf den aufgezeichneten heutigen Zeitraum.")}</p></details>}
+      <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={showInactive} onChange={e=>setShowInactive(e.target.checked)}/>{t("Inaktive anzeigen")}{data ? t(" ({0} ausgeblendet)", data.flows.filter(f=>f.hidden&&f.category!=="grid").length) : ""}</label>
       <section className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         <div className="flow-visual lg:col-span-8">
           {visualData && <TopologyDiagram data={visualData} showInactive={showInactive} />}
@@ -76,23 +77,23 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
         <aside className="today-aside space-y-4 lg:col-span-4">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 panel-shadow" data-testid="today-panel">
             <div className="flex items-center justify-between">
-              <h2 className="font-heading text-lg font-semibold">Heute</h2>
+              <h2 className="font-heading text-lg font-semibold">{t("Heute")}</h2>
               <Link to="/energie" className={buttonVariants({ variant: "ghost", size: "sm" })} data-testid="today-panel-open-energy">
-                Bilanz <ArrowRight className="size-4" />
+                {t("Bilanz ")}<ArrowRight className="size-4" />
               </Link>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div className="rounded-lg bg-muted p-3">
-                <div className="text-xs text-[#8EA8C3]">Produktion</div>
+                <div className="text-xs text-[#8EA8C3]">{t("Produktion")}</div>
                 <div className="font-mono text-lg font-bold" data-testid="today-in-kwh">{fmtKwh(todayReport?.totals.in_kwh)}</div>
               </div>
               <div className="rounded-lg bg-muted p-3">
-                <div className="text-xs text-[#8EA8C3]">Verbrauch</div>
+                <div className="text-xs text-[#8EA8C3]">{t("Verbrauch")}</div>
                 <div className="font-mono text-lg font-bold" data-testid="today-out-kwh">{fmtKwh(todayReport?.totals.out_kwh)}</div>
               </div>
             </div>
             <details className="mt-4" open={(todayReport?.flows.length ?? 0) <= 12}>
-              <summary className="cursor-pointer text-xs text-muted-foreground">Tageswerte der Geräte</summary>
+              <summary className="cursor-pointer text-xs text-muted-foreground">{t("Tageswerte der Geräte")}</summary>
             <ul className="mt-3 space-y-2">
               {(todayReport?.flows.filter(f=>!f.storage_id&&f.electrical_side!=="dc") ?? []).map((f) => (
                 <li key={f.flow_id} className="flex items-center justify-between gap-2 text-sm" data-testid={`today-row-${f.flow_id}`}>
@@ -106,20 +107,20 @@ export default function Dashboard({embedded=false}:{embedded?:boolean}) {
                   </span>
                 </li>
               ))}
-              {today.isLoading && <li className="text-sm text-[#8EA8C3]">Berechne Tageswerte…</li>}
-              {today.isError && <li className="text-sm text-[#8EA8C3]">Tageswerte derzeit nicht verfügbar</li>}
+              {today.isLoading && <li className="text-sm text-[#8EA8C3]">{t("Berechne Tageswerte…")}</li>}
+              {today.isError && <li className="text-sm text-[#8EA8C3]">{t("Tageswerte derzeit nicht verfügbar")}</li>}
             </ul>
             </details>
           </div>
           <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 panel-shadow text-sm">
-            <div className="text-xs text-[#8EA8C3]">Nicht zugeordneter Verbrauch (Netzbilanz − Geräte)</div>
+            <div className="text-xs text-[#8EA8C3]">{t("Nicht zugeordneter Verbrauch (Netzbilanz − Geräte)")}</div>
             <div className="mt-1 font-mono text-xl font-bold" data-testid="house-rest-power">{fmtW(s?.house_rest_w)}</div>
-            <p className="mt-1 text-xs text-[#8EA8C3]">Nicht separat gemessener Restverbrauch bzw. Messabweichung.</p>
+            <p className="mt-1 text-xs text-[#8EA8C3]">{t("Nicht separat gemessener Restverbrauch bzw. Messabweichung.")}</p>
           </div>
         </aside>
       </section>
 
-      {data && !data.grid_configured && <p role="alert" className="rounded-lg border border-amber-500 p-4">Ein Netzanschluss ist erforderlich. Unter Konfiguration einen Netzanschluss anlegen und Messpunkte zuordnen.</p>}
+      {data && !data.grid_configured && <p role="alert" className="rounded-lg border border-amber-500 p-4">{t("Ein Netzanschluss ist erforderlich. Unter Konfiguration einen Netzanschluss anlegen und Messpunkte zuordnen.")}</p>}
 
       {data && <NodeOverview showInactive={showInactive} data={data} energy={todayReport?.flows.filter(f=>!f.storage_id&&f.electrical_side!=="dc") ?? []} />}
       {data && <ConsumerGroupsOverview live={data.consumer_groups} energy={todayReport?.consumer_groups}/> }

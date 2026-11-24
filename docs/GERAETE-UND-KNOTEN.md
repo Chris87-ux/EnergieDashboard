@@ -1,5 +1,7 @@
 # Netz, Geräte und Knoten konfigurieren
 
+[English](en/DEVICES-AND-NODES.md)
+
 [Dokumentationsübersicht](README.md) · [Messpunkte vorbereiten](DATENERFASSUNG.md) · [Speicher und Hybrid](SPEICHER-UND-HYBRID.md)
 
 ## Bilanz und Phasen ab 2.4

@@ -1,5 +1,7 @@
 # Erste Schritte: vom leeren Dashboard zur geprüften Anlage
 
+[English](en/GETTING-STARTED.md)
+
 [Dokumentationsübersicht](README.md) · [Datenerfassung](DATENERFASSUNG.md) · [Geräte und Knoten](GERAETE-UND-KNOTEN.md)
 
 Nach der Installation fehlen zunächst Messquellen und Geräte. Einrichtungshinweise und „Nicht verfügbar“ sind in diesem Zustand normal. Alle folgenden Schritte finden im Browser unter `http://<SERVER-IP>:8000` statt.

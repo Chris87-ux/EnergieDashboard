@@ -1,5 +1,7 @@
 # Entwicklung und Prüfungen
 
+[English](en/DEVELOPMENT.md)
+
 [Dokumentationsübersicht](README.md) · [Datenmodell](../DATENMODELL.md) · [Prüfbericht](../PRUEFBERICHT.md)
 
 ## Aufbau
@@ -35,7 +37,7 @@ Der Build führt TypeScript-Prüfung und Produktionsbuild aus. Die Dockerdatei b
 PYTHONPATH=app/backend .venv/bin/python -m unittest discover -s app/backend/tests -v
 ```
 
-Stand 2.5.0: 97 Tests. Einige Tests öffnen lokale Test-Sockets. Testdaten und Protokollfixtures sind ausschließlich Testcode; die ausgelieferte Anwendung hat keinen Demo-Modus.
+Stand 2.6.0: 103 Tests. Einige Tests öffnen lokale Test-Sockets. Testdaten und Protokollfixtures sind ausschließlich Testcode; die ausgelieferte Anwendung hat keinen Demo-Modus.
 
 ## Integration mit echter MongoDB
 
@@ -85,3 +87,7 @@ Der GitHub-Workflow prüft zusätzlich externe Compose-Konfiguration, Healthchec
 ## Dokumentation pflegen
 
 Benutzeranleitungen im Repository bearbeiten, Links/Beispiele prüfen und entsprechende Wiki-Seiten aus denselben Inhalten aktualisieren. Bei neuen Einstellungen Modell, Editor, CSV, Migration, Tests und Anleitung gemeinsam betrachten. Kennwörter oder echte Konfigurationsbackups nicht öffentlich committen. Historische Release-Tags unverändert lassen; neuere Dokumentation liegt auf `main`.
+
+## Übersetzungen
+
+Der gemeinsame Katalog liegt in `app/frontend/src/lib/en.json`. Oberfläche: explizite `t(Quelle, ...Werte)`-Aufrufe; API: `lib/i18n.py` lokalisiert ausschließlich Ausgabemeldungen anhand von Accept-Language. Docker kopiert denselben Katalog ins Backend-Image, im LXC wird die mitgelieferte Frontend-Quelldatei gelesen. Keine zweite unabhängig gepflegte Übersetzung anlegen. Platzhalter müssen in beiden Sprachen übereinstimmen; Namen, IDs, Konfigurationsschlüssel, extra-Metadaten und Eingabewerte dürfen nicht übersetzt werden. Browserpräferenz und URL-Override verändern weder Datenbank noch Zeitzone. Englische Dokumentation unter docs/en gemeinsam aktualisieren.

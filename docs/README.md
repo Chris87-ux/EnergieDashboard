@@ -1,6 +1,8 @@
 # Dokumentation
 
-Anwendungsstand **2.5.0**, Schema **6**, CSV **1** · Stand **23. November 2026**.
+[English](en/README.md)
+
+Anwendungsstand **2.6.0**, Schema **6**, CSV **1** · Stand **24. November 2026**.
 
 Die Dateien im Repository bilden die vollständige versionierte Dokumentation. Historische Tags behalten ihre damalige Fassung. Die Anleitungen lassen sich zusätzlich ins [GitHub-Wiki](https://github.com/Chris87-ux/EnergieDashboard/wiki) übernehmen; bei dieser Aktualisierung war dessen Git-Endpunkt trotz aktiviertem Wiki noch nicht erreichbar.
 
@@ -63,3 +65,7 @@ Zusätzlich: [Verbrauchergruppen unabhängig von den Knoten](VERBRAUCHERGRUPPEN.
 - „Nicht verfügbar“ bedeutet fehlende oder ungeeignete Daten und darf nicht als 0 interpretiert werden.
 
 [Zur Projektübersicht](../README.md)
+
+## Sprache der Oberfläche
+
+Im Kopfbereich Deutsch oder English wählen. Die Wahl wird pro Browser gespeichert; ein Wechsel lädt nach Bestätigung neu. Vorher Änderungen speichern. Die Standardsprache bleibt Deutsch. `?lang=en` bzw. `?lang=de` überschreibt die Wahl nur für die aktuelle URL, auch bei `/flow?lang=en`. Namen, IDs, CSV-Schlüssel, Anlagenzeitzone und Messhistorie bleiben unverändert. Die [englischen Anleitungen](en/README.md) sind auch im Installationsarchiv enthalten.

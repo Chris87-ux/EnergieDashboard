@@ -1,3 +1,4 @@
+import { t } from "@/lib/i18n";
 import { useEffect, useState } from "react";
 import { House } from "lucide-react";
 import { fmtPct, fmtW } from "@/lib/format";
@@ -76,7 +77,7 @@ function FlowNode({ flow, pos, hub, vertical, r, onSelectNode }: NodeProps) {
             <animateMotion dur={`${dur}s`} repeatCount="indefinite" begin={`${(-i * dur) / 3}s`} path={d} />
           </circle>
         ))}
-      <g role={flow.node_id?"button":undefined} aria-label={flow.node_id?`Knoten ${flow.name} öffnen`:undefined} tabIndex={flow.node_id?0:undefined} style={{cursor:flow.node_id?"pointer":undefined}} onClick={()=>flow.node_id&&onSelectNode?.(flow.node_id)} onKeyDown={e=>{if(flow.node_id&&(e.key==="Enter"||e.key===" ")){e.preventDefault();onSelectNode?.(flow.node_id);}}}>
+      <g role={flow.node_id?"button":undefined} aria-label={flow.node_id?t("Knoten {0} öffnen", flow.name):undefined} tabIndex={flow.node_id?0:undefined} style={{cursor:flow.node_id?"pointer":undefined}} onClick={()=>flow.node_id&&onSelectNode?.(flow.node_id)} onKeyDown={e=>{if(flow.node_id&&(e.key==="Enter"||e.key===" ")){e.preventDefault();onSelectNode?.(flow.node_id);}}}>
       <circle cx={pos.x} cy={pos.y} r={r + 7} fill={flow.color} opacity={active ? 0.14 : 0.05} />
       {flow.node_id?<rect x={pos.x-r*1.2} y={pos.y-r} width={r*2.4} height={r*2} rx={5} fill="var(--card)" stroke={flow.color} strokeWidth={2.5}/>:<circle cx={pos.x} cy={pos.y} r={r} fill="var(--card)" stroke={flow.color} strokeWidth={2.5} strokeOpacity={active ? 1 : 0.45} />}
       <Icon x={pos.x - r * 0.45} y={pos.y - r * 0.45} width={r * 0.9} height={r * 0.9} color={flow.color} strokeWidth={1.8} />
@@ -134,12 +135,12 @@ export default function FlowDiagram({ flows, summary, onSelectNode, hubName, hub
   return (
     <div className="diagram-bg relative overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--card)] panel-shadow" data-testid="flow-diagram">
       <div className="pointer-events-none absolute left-4 top-3 flex gap-4 text-[11px] font-medium uppercase tracking-wider text-[#8EA8C3]">
-        <span>{vertical ? "↓ Produktion" : "← Produktion"}</span>
+        <span>{vertical ? t("↓ Produktion") : t("← Produktion")}</span>
       </div>
       <div className="pointer-events-none absolute right-4 top-3 text-[11px] font-medium uppercase tracking-wider text-[#8EA8C3]">
-        {vertical ? "" : "Verbrauch →"}
+        {vertical ? "" : t("Verbrauch →")}
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label="Energieflussdiagramm">
+      <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label={t("Energieflussdiagramm")}>
         <defs>
           <filter id="dot-glow" x="-100%" y="-100%" width="300%" height="300%">
             <feGaussianBlur stdDeviation="3" result="b" />
@@ -164,7 +165,7 @@ export default function FlowDiagram({ flows, summary, onSelectNode, hubName, hub
           <circle cx={hub.x} cy={hub.y} r={82} fill="url(#hub-grad)" stroke="var(--primary)" strokeWidth={3} />
           <House x={hub.x - 15} y={hub.y - 58} width={30} height={30} color="#93C5FD" strokeWidth={1.8} />
           <text x={hub.x} y={hub.y - 6} textAnchor="middle" fill="#93C5FD" fontSize={14} fontWeight={600} fontFamily="DM Sans Variable">
-            {hubLabel??"Verbrauch"}
+            {hubLabel??t("Verbrauch")}
           </text>
           <text
             x={hub.x}
@@ -179,13 +180,12 @@ export default function FlowDiagram({ flows, summary, onSelectNode, hubName, hub
             {fmtW(hubPower === undefined ? summary?.consumption_w : hubPower)}
           </text>
           <text x={hub.x} y={hub.y + 46} textAnchor="middle" fill="#93C5FD" fontSize={13} fontFamily="DM Sans Variable">
-            {hubName??`Autarkie ${fmtPct(summary?.autarky_pct ?? null)}`}
+            {hubName??t("Autarkie {0}", fmtPct(summary?.autarky_pct ?? null))}
           </text>
         </g>
         {flows.length === 0 && (
           <text x={hub.x} y={hub.y + 140} textAnchor="middle" fill="#8EA8C3" fontSize={16}>
-            Keine Flüsse konfiguriert
-          </text>
+            {t("Keine Flüsse konfiguriert")}</text>
         )}
       </svg>
     </div>

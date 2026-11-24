@@ -21,6 +21,7 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt \
     && pip check
 WORKDIR /opt/energieboard/app/backend
 COPY --chown=10001:10001 app/backend/ ./
+COPY --chown=10001:10001 app/frontend/src/lib/en.json ./lib/en.json
 COPY --from=frontend --chown=10001:10001 /build/dist /opt/energieboard/app/frontend/dist
 COPY --chown=10001:10001 deploy/backup.py /opt/energieboard/deploy/backup.py
 COPY VERSION /opt/energieboard/VERSION
