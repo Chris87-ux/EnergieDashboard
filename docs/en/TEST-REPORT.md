@@ -18,7 +18,7 @@ Chromium checks German and English navigation, the actual language selector, per
 
 ## Deployment and publication
 
-Readiness and updater harnesses cover eventual startup success without transient curl noise, visible final timeout, successful replacement, rollback and checksum rejection. Shell syntax/ShellCheck, Markdown links/anchors, JSON examples, package content and SHA-256 are checked before publication. The Linux Docker workflow is verified before tagging the release; its final run is recorded in the published report.
+Readiness and updater harnesses cover eventual startup success without transient curl noise, visible final timeout, successful replacement, rollback and checksum rejection. Shell syntax/ShellCheck, Markdown links/anchors, JSON examples, package content and SHA-256 are checked before publication. The final [Linux Docker workflow](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/45355535075) passed: image build, all 103 tests in the runtime container, non-root/health checks, persistence after app recreation and both Linux deployment harnesses. Documentation validation passed for 38 Markdown files, 298 local links/anchors, 14 JSON examples and 70 Bash blocks.
 
 ## Limits
 

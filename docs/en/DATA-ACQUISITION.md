@@ -99,6 +99,12 @@ Only network TCP reads are supported, not serial RTU or writes. Enable Modbus TC
 
 Use signed types for bidirectional grid or battery power. Huge/unreasonable readings usually indicate address, type, factor or byte/word order errors. Victron addresses depend on device and Unit ID; examples are not universal mappings. Registers are read sequentially per connection, so slow or unresponsive registers can extend a whole acquisition cycle.
 
+## Existing InfluxDB history
+
+Under System, enable reading existing InfluxDB history only when needed. Choose v1 (InfluxQL) or v2 (Flux) and enter the actual URL, commonly port 8086. For v1 set database and any required username/password; for v2 set organisation, bucket and token. The default numeric field is `value`, as commonly used by the ioBroker influxdb adapter, with a measurement name matching the state ID. Use Test connection to check reachability and matching recent history.
+
+The source history must match the configured measurement/history keys. Newly created IDs do not automatically identify arbitrary old Influx measurements. Migrated ioBroker keys are preserved. Suitable Influx history is read first and local MongoDB samples fill available missing intervals; missing data is still marked. Energieboard does not write samples to InfluxDB. Keep the local recorder active for new API/MQTT/Modbus measurements and derived RUN, node and battery channels.
+
 ## Recording and scale
 
 Record raw value stores the **normalised** measurement value when the local recorder is enabled. Derived RUN, node residual, grid, hybrid and storage channels are also recorded for energy evaluation. For 30–50 devices, validate one measurement per protocol, plan stable names/IDs, then use [CSV](CSV.md). Changing scale/source affects future samples; existing history is not recalculated.
