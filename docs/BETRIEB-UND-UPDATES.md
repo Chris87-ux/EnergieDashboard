@@ -57,7 +57,7 @@ Als root **im LXC**. Nicht parallel ausführen. Ausreichend freien Platz für al
 Auf den dokumentierten Release-Stand aktualisieren:
 
 ```bash
-bash /opt/energieboard/deploy/update.sh v2.7.0
+bash /opt/energieboard/deploy/update.sh v2.7.1
 ```
 
 Für ein späteres Release den passenden bestehenden Tag einsetzen. Ohne Argument verwendet der Updater `main`; für einen bewusst reproduzierbaren Stand ist ein fester Tag vorzuziehen.
@@ -65,8 +65,8 @@ Für ein späteres Release den passenden bestehenden Tag einsetzen. Ohne Argumen
 Wenn eine sehr alte Installation noch keinen Updater besitzt, diesen einmalig laden:
 
 ```bash
-curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/v2.7.0/deploy/update.sh -o /tmp/energieboard-update.sh
-bash /tmp/energieboard-update.sh v2.7.0
+curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/v2.7.1/deploy/update.sh -o /tmp/energieboard-update.sh
+bash /tmp/energieboard-update.sh v2.7.1
 ```
 
 ### Ablauf
@@ -130,12 +130,12 @@ Die Datenbank selbst braucht dafür keinen veröffentlichten Hostport. Nicht das
 git status --short
 git describe --tags --always
 git fetch --tags
-git checkout v2.7.0
+git checkout v2.7.1
 ```
 
-`v2.7.0` ist der aktuelle dokumentierte Stand; bei späterem Update dessen neuen Tag verwenden. Eigene Änderungen vor dem Checkout prüfen und sichern, nicht mit `reset --hard` verwerfen. Detached HEAD nach Tag-Checkout ist für diesen Betrieb normal.
+`v2.7.1` ist der aktuelle dokumentierte Stand; bei späterem Update dessen neuen Tag verwenden. Eigene Änderungen vor dem Checkout prüfen und sichern, nicht mit `reset --hard` verwerfen. Detached HEAD nach Tag-Checkout ist für diesen Betrieb normal.
 
-4. In `.env` `ENERGIEBOARD_VERSION=2.7.0` passend zum gewählten Tag setzen. Die Variable benennt nur das lokale Image; der Git-Stand bestimmt den Inhalt.
+4. In `.env` `ENERGIEBOARD_VERSION=2.7.1` passend zum gewählten Tag setzen. Die Variable benennt nur das lokale Image; der Git-Stand bestimmt den Inhalt.
 5. **Denselben Projektnamen und dieselbe Datenbank/Volume-Zuordnung beibehalten.**
 6. Neubau und Prüfung:
 
@@ -234,3 +234,7 @@ Vollständiges Backup vor dem Update erstellen. Schema 7 ergänzt optionale Ger�
 MongoDB speichert zusätzlich Charts, Zykluszustände und -ereignisse, Prognoseanlagen/-quellen, Snapshots, Tagesmodelle, Ausschlussprotokolle und Anfragebudgets. Ein vollständiges Backup erfasst alle Sammlungen. CSV sichert deren Konfiguration, nicht Tagesprotokolle, Messhistorie oder Zählerzustände. Für Downgrades die zum alten Stand passende Datenbanksicherung verwenden.
 
 Die bereits eingeführte Startbereitschaftsprüfung wartet auf API und aktiven Dienst. Vorübergehende `curl: (7)`-Meldungen beim normalen Start bleiben verborgen; echte Startfehler führen weiterhin zu Diagnose und Rollback. LXC-Update: bestehendes Update-Skript verwenden. Docker: Compose-Image aktualisieren und neu erstellen, vorhandenes Datenvolume behalten; kein `down --volumes`.
+
+## Update auf 2.7.1 / Schema 8
+
+Vor dem Update vollständig sichern. Schema 8 schützt vor einem Rückstart mit der fehlerhaften VRM-Umrechnung aus 2.7.0. Die Korrektur betrifft eindeutig identifizierte VRM-Prognosen, nicht reale Energiezähler. Ursprüngliche Berechnungen bleiben als Auditdaten erhalten; Wiederholung teilt Werte nicht erneut durch 1.000. Die neue VRM-Parserrevision startet dessen Lernen neu. Gewichtungseinstellungen sind optional mit bisherigen Standardwerten; CSV bleibt Format 1. Ein Downgrade benötigt die dazugehörige Sicherung.

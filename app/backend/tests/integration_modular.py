@@ -324,7 +324,7 @@ def main():
                 assert migrated["electrical_side"]=="dc" and migrated["power_phase_mode"]==migrated["energy_phase_mode"]=="single"
                 assert db.consumer_groups.find_one({"id":"pumps"})
                 assert db.connections.find_one({"id":"ha"})["token"]=="fixture-ha-token"
-                assert migrated["datapoints"]==mppt["datapoints"] and db.metadata.find_one({"id":"schema"})["version"]==7
+                assert migrated["datapoints"]==mppt["datapoints"] and db.metadata.find_one({"id":"schema"})["version"]==8
                 print("Backup/restore including history and repeated configuration migration OK",flush=True)
         finally:
             if api is not None:

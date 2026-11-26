@@ -2,7 +2,7 @@
 
 [Project overview](../../README.en.md) · [Deutsch](../README.md)
 
-Application **2.7.0** · database schema **7** · CSV format **1** · 24 November 2026.
+Application **2.7.1** · database schema **8** · CSV format **1** · 26 November 2026.
 
 ## Install
 

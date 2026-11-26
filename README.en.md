@@ -1,4 +1,4 @@
-# Energieboard 2.7.0
+# Energieboard 2.7.1
 
 **English** · [Deutsch](README.md) · [Full English documentation](docs/en/README.md)
 
@@ -39,7 +39,7 @@ Open `http://<SERVER-IP>:8000/?lang=en` or choose English in the header. Languag
 
 The app has no built-in login. Use a trusted LAN or an authenticated HTTPS reverse proxy. A suggested starting allocation for 30–50 devices is 2 vCPU, 4 GB RAM and 32 GB SSD plus history/backups. Direct LXC targets Debian 12 amd64; Docker targets Linux amd64. Local MongoDB requires AVX and a compatible kernel. See the installation guides for checks and external-database options.
 
-Application **2.7.0**, database schema **7**, CSV **1**. Use fixed release tags such as v2.7.0. See the [test report](docs/en/TEST-REPORT.md) for validation and limits and [release changes](docs/en/CHANGELOG.md) for history.
+Application **2.7.1**, database schema **8**, CSV **1**. Use fixed release tags such as v2.7.1. See the [test report](docs/en/TEST-REPORT.md) for validation and limits and [release changes](docs/en/CHANGELOG.md) for history.
 
 ## New analysis features in 2.7
 

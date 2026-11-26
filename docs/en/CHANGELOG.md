@@ -2,6 +2,14 @@
 
 [Documentation](README.md) · [Full historical German changelog](../../CHANGELOG.md)
 
+## 2.7.1 · 26 November 2026
+
+- Convert hourly VRM Wh correctly to kWh. Repair identifiable 2.7.0 forecasts/blends/errors once with original-value audit, preserving real measurements.
+- Select automatic, equal or manual relative source weights, including zero. Configure dependency groups and the automatic cap.
+- Latest previews apply settings immediately; daily logs retain frozen weights. A new VRM parser revision excludes bad-unit training statistics.
+- Explicit support for battery-free AC PV with automatic measurement-side selection; DC and mixed installations remain supported.
+- German/English UI/docs, CSV, regression coverage and repeatable schema-8 migration preventing older unit logic from restarting.
+
 ## 2.7.0 · 24 November 2026
 
 - Inline measurement copying with fresh IDs and independent history.

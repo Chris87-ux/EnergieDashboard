@@ -37,14 +37,38 @@ Regelmäßiger Abruf ungefähr alle sechs Stunden, Prüfung des Zeitplans jede M
 
 Tokens werden nur serverseitig verwendet und in normalen API-Antworten und CSV nicht ausgegeben. Ein leeres Tokenfeld behält den gespeicherten Wert; zum Löschen die ausdrückliche Option verwenden. Vollständige Datenbanksicherungen enthalten Zugangsdaten und gehören an einen geschützten Ort. Das Dashboard selbst nur im vertrauenswürdigen Netz oder hinter einem geschützten Reverse Proxy betreiben.
 
-## 4. Was genau wird gelernt?
+## 4. Gewichtung und Abhängigkeiten selbst bestimmen
+
+Unter **PV-Anlage bearbeiten → Gewichtung und Abhängigkeiten** gibt es drei Modi:
+
+| Modus | Verhalten |
+|---|---|
+| Automatisch nach Prognosefehler | Gewicht aus dem Fehler früherer gültiger Tage. Ohne Lerndaten sind Stimmen gleich. Optional abhängige Quellen gruppieren. |
+| Gleich pro Quelle | Jede verfügbare Quelle erhält `1 / Anzahl` der Mischung, unabhängig von Gruppen und automatischer Obergrenze. Bei drei Quellen je 33,33 %. |
+| Manuell nach Quellengewichten | Im Editor jeder Quelle das relative Gewicht einstellen. `1:1:2` ergibt 25/25/50 %, `0:1:3` ergibt 0/25/75 %. Keine automatische Begrenzung. |
+
+**Warum vorher 25/25/50 %?** VRM und Solcast teilen standardmäßig die Gruppe `solcast`, weil VRM Solcast-Strahlungsdaten nutzt. Open-Meteo bildet eine zweite Gruppe. Ohne Lerndaten bekommt jede Gruppe 50 %, innerhalb der gemeinsamen Gruppe erhalten VRM und Solcast jeweils die Hälfte. Das war eine Voreinstellung für Abhängigkeiten, keine bereits nachgewiesene Genauigkeit.
+
+Im automatischen Modus kannst du **Abhängige Quellen gemeinsam gewichten** ausschalten. Dann zählt jede Quelle einzeln. Mit aktivierter Gruppierung steht im Quelleneditor **Abhängigkeitsgruppe** zur Verfügung:
+
+- `auto`: Standardgruppe verwenden, also VRM/Solcast gemeinsam, andere Anbieter getrennt.
+- `independent`: diese Quelle immer einzeln behandeln.
+- Eigener Name: alle Quellen mit demselben Namen gehören zusammen, zum Beispiel `wettermodell-a`. Groß-/Kleinschreibung und äußere Leerzeichen werden vereinheitlicht. Der Name `solcast` verbindet auch mit der Standardgruppe.
+
+Die **automatische Obergrenze pro Stimme** lässt sich von 50 bis 100 % einstellen, Standard 70 %. Eine Stimme ist bei Gruppenbildung eine Gruppe, innerhalb der Gruppe wiederum eine einzelne Quelle. Bei nur einer verfügbaren Stimme gilt 100 %. Gleich- und Manuell-Modus ignorieren die Obergrenze und die Gruppierung.
+
+Fehlende Quellen werden nicht als Nullprognose verwendet; die verbleibenden Gewichte werden auf 100 % normiert. Manuelles Gewicht 0 schließt nur aus der Mischung aus; Abruf und Einzelvergleich laufen weiter, solange die Quelle aktiv ist. Sind alle verfügbaren manuellen Gewichte 0, bleibt die Mischung unbekannt und es erscheint ein Hinweis.
+
+Änderungen gelten sofort in der **aktuellen Vorschau** und beim nächsten Stichtag für neue Tagesanfangsprognosen. Bereits festgehaltene Gewichte werden nicht rückwirkend geändert. Das Tagesprotokoll speichert Modus, Gruppenentscheidung, Obergrenze und die tatsächlich verwendeten Gewichte.
+
+## 5. Was genau wird gelernt?
 
 - Um 00:05 wird pro Quelle die letzte **vollständige** Tagesprognose festgehalten, die bis dahin fertig eingetroffen und höchstens 18 Stunden alt war. Tagessummen werden in der Anlagenzeitzone gebildet; Sommerzeittage haben 23 oder 25 Stunden.
 - Diese Prognose ist unveränderlich. **Aktuelle Vorschau** und **Morgen** dürfen sich durch neue Abrufe ändern. War der Dienst ausgefallen, dürfen nur bereits gespeicherte Daten von vor dem Stichtag verwendet werden. Spätere Abrufe füllen keine angebliche Tagesanfangsprognose auf.
 - Frühestens zehn Minuten nach Tagesende werden Ist-kWh und Fehler berechnet. In der Tagesbewertung gewinnt die Originalquelle mit dem kleinsten absoluten kWh-Fehler. Fehlende Werte sind keine Nullprognosen.
 - Der Kandidatenfaktor entsteht aus dem Median früherer Verhältnisse Ist/Prognose, wird bei wenig Daten Richtung 1 abgeschwächt und auf **0,5 bis 1,5** begrenzt. Kleine Originalprognosen unter 0,1 kWh beeinflussen den Faktor nicht.
 - Nach mindestens sieben geeigneten Tagen kann ein Korrekturkandidat entstehen. Er wird erst eingesetzt, wenn er an mindestens sieben **weiteren** Tagen einen kleineren mittleren absoluten Fehler als die Originalwerte derselben Tage erzielt hat. Bis dahin gilt das Original. Bei schlechterem Ergebnis fällt die Anwendung auf den Faktor 1 zurück. Dadurch kann der Standardfall frühestens nach etwa 14 geeigneten Tagen korrigieren.
-- Quellen mit kleinerem historischem Fehler bekommen mehr Gewicht, einzelne Stimmen höchstens 70 %, sofern mehrere Stimmen vorhanden sind. VRM nutzt Solcast-Einstrahlungsdaten; daher werden VRM und Solcast zuerst in derselben Quellenfamilie gemischt und bekommen zusammen nur eine Familienstimme gegenüber anderen Quellen.
+- Quellen mit kleinerem historischem Fehler bekommen mehr Gewicht, einzelne Stimmen standardmäßig höchstens 70 %, sofern mehrere Stimmen vorhanden sind. VRM nutzt Solcast-Einstrahlungsdaten; daher werden VRM und Solcast zuerst in derselben Quellenfamilie gemischt und bekommen zusammen nur eine Familienstimme gegenüber anderen Quellen.
 - Jeder Tag protokolliert Original, Korrekturkandidat, verwendeten Faktor, kWh-Offset, Gewichte, Lerntage, Ergebnis und Ausschlussgründe. Der Offset ist **Original × (verwendeter Faktor − 1)**; es wird keine konstante nächtliche Energie erfunden. Geometrie-, Messseiten- oder relevante Quellenänderungen starten eine neue Lernbasis. Alte Protokolle bleiben erhalten.
 - Eine angezeigte Fehlerspanne ist das historische 80. Perzentil absoluter Mischungsfehler. Sie ist **keine garantierte 80-%-Konfidenz** und kein Versprechen einer jeden Tag besseren Prognose.
 
@@ -52,7 +76,17 @@ Schnee, Wartung, Ausfälle oder nicht gemessene Abregelung im **Tagesvergleich u
 
 Die Anbieter-Rangliste zeigt MAE in kWh und die Anzahl gültiger Tage. Ranglisten mit unterschiedlichen Tageszahlen sind nur eingeschränkt vergleichbar. Der Gesamtfehler bewertet ausschließlich die eingefrorenen Morgenprognosen, nicht die nachträglich verbesserte Tagesvorschau.
 
-## 5. Fehlersuche
+## 6. VRM-Einheitenkorrektur in 2.7.1
+
+In 2.7.0 wurden stündliche VRM-Werte fälschlich direkt als kWh summiert. Die Stundenwerte entsprechen **Wh pro Stunde** (beziehungsweise der mittleren W-Leistung dieser Stunde); die interne Energie muss durch 1.000 geteilt werden. Ein Tageswert von 38.894,84 Wh entspricht **38,89484 kWh**. Referenz zur stündlichen API-Interpretation: [evcc-VRM-Implementierung](https://github.com/evcc-io/evcc/blob/master/templates/definition/tariff/victron.yaml).
+
+Beim ersten Start von 2.7.1 korrigiert die Migration eindeutig zuordenbare alte VRM-Snapshots, Tageswerte, gewichtete Mischungen und bereits vorhandene Fehlerwerte genau einmal. Originalwerte und Zeitpunkt bleiben im Korrekturprotokoll erhalten. Andere Anbieterwerte, eingefrorene Gewichte, Istmessungen und manuelle Ausschlüsse bleiben bestehen. Im Tagesprotokoll wird die Korrektur angezeigt. Diese technische Einheitenkorrektur ist die ausdrückliche Ausnahme von der Unveränderlichkeit der Morgenprognose; es fließen dabei keine späteren Wetterdaten ein.
+
+VRM erhält eine neue Parserrevision und startet seine Lerngrundlage neu, damit die falschen Einheiten keine Faktoren oder Erfolgszähler weiter beeinflussen. Alte Korrekturstatistiken werden nicht als gültige neue VRM-Statistik verwendet. Andere Quellen behalten ihre Lerndaten. Ohne verbliebene Anbieter-ID oder gespeicherte eindeutige Typinformation werden alte Quellen nicht anhand ihres frei gewählten Namens erraten.
+
+**Reine AC-PV-Anlagen sind ohne Batterie zulässig.** Wähle einen gewöhnlichen PV-Wechselrichter (Typ WR) mit dessen reiner PV-Produktion. Die Auswahl setzt AC automatisch; DC-MPPT setzt DC, eine kombinierte Auswahl setzt bewusst gemischt. Ein Hybrid-Ausgang mit Batterie-/Netzanteilen bleibt als reine PV-Istquelle ungeeignet.
+
+## 7. Fehlersuche
 
 **Keine Tagesanfangsprognose:** Einrichtung nach 00:05, kein vollständiger Abruf davor, Anbieterfehler oder Daten älter als 18 Stunden. Bis zum nächsten korrekt vorbereiteten Tag warten; nichts rückdatieren.
 

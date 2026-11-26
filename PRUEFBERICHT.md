@@ -1,31 +1,31 @@
-# Prüfbericht · Energieboard 2.7.0
+# Prüfbericht · Energieboard 2.7.1
 
-[English](docs/en/TEST-REPORT.md)
+[English](docs/en/TEST-REPORT.md) · Stand: 26. November 2026.
 
-Stand: 24. November 2026. Geprüft wurden Backend, Produktionsoberfläche, Protokolladapter, Konfigurationsübernahme und Sicherung. Testdaten existieren ausschließlich in isolierten Testprozessen; die Anwendung enthält keinen Demo-Modus.
+## Ergebnis
 
-## Backend und neue Funktionen
+**152 Backendtests erfolgreich**, Produktionsbuild erfolgreich. Vollständige Integration mit echter isolierter MongoDB und HTTP-/MQTT-/Modbus-TCP-Testquellen sowie 50 Geräten erfolgreich. Chromium prüft Deutsch/Englisch, Desktop/Mobil, Konfiguration, Diagramme, Charts, Gerätezyklen und Prognosen ohne JavaScript-Fehler. Die Anwendung enthält keinen Demo-Modus; alle Testwerte stammen aus isolierten Testprozessen.
 
-**141 Backendtests erfolgreich**, einschließlich aller bisherigen Regressionen und neuer Prüfungen für virtuelle Restverbraucher, Gruppen ohne Doppelzählung, DC-Verbraucher am Hybrid-WR, CSV, Charts, Gerätezyklen und vier Prognoseadapter.
+## Neue Regressionen für 2.7.1
 
-Charts prüfen negative/kleine Werte, Phasenhochrechnung, verschiedene Einheiten, digitale Letztwerte, fehlende Daten und begrenzte Abfragepunkte. Zyklentests prüfen Waschpausen, Leistungsspitzen, unbeobachtete Starts, Bool-Flanken, Neustarts, Datenlücken und Warnungen. Prognosetests prüfen Sommerzeit mit 23/25 Stunden, native Energie-/Leistungseinheiten, AC-Begrenzung mehrerer Flächen, fehlende Daten, HTTP-Header ohne Tokens in URLs, Quotenfehler und Wartezeiten. Lernprüfungen verhindern Zukunftsdaten in Morgenmodellen, verlangen unabhängige Folgetage für Korrekturen und prüfen Rohwert-Rückfall, Quellenfamilien und zeitlich korrekte Ausschlüsse.
+- VRM-Stundensummen aus Wh nach kWh: das Beispiel 38.894,84 Wh ergibt 38,89484 kWh. Keine Batterie-/Verbrauchsprognose wird dazuaddiert.
+- Startgewichte 25/25/50 durch gemeinsame VRM-/Solcast-Gruppe, gleiche Einzelgewichte, unabhängige Quellen und frei gewählte Gruppen.
+- Manuelle relative Gewichte einschließlich 0, Normierung bei fehlenden Quellen, unbekannte Mischung bei ausschließlich Gewicht 0 und benutzerdefinierte automatische Obergrenze.
+- Änderungen der Gewichtspräferenzen lassen physische Quellenrevisionen bestehen; VRM-Einheitenkorrektur erhält dagegen eine neue Parserrevision mit frischer Lernbasis.
+- Einheitenmigration korrigiert alte Snapshots, Tagesmischungen und Fehlerwerte genau einmal. Ursprüngliche Berechnungen, Istwerte, tatsächlich verwendete Gewichte und manuelle Ausschlüsse bleiben nachvollziehbar erhalten. Nicht eindeutig identifizierte Anbieter werden nicht geraten.
+- Echte MongoDB: zweimalige Migration, neue Parserrevision und Schema 8 geprüft; reale Recorder-Messwerte sind vor und nach der Migration identisch.
+- Browser: alle Gewichtungsmodi, Obergrenze, Gruppenschalter, relative Quellengewichte und benutzerdefinierte Gruppen speichern. Reine AC-PV-Anlage ohne Akku mit automatisch übernommener Messseite anlegen und wieder entfernen. CSV-Vorschau bleibt gültig und Tokens bleiben verborgen.
 
-## Integration mit echter MongoDB und Chromium
+## Bestehende Funktionen
 
-Erfolgreich gegen echte isolierte MongoDB und HTTP-, MQTT- und Modbus-TCP-Testquellen, mit 50 Geräten. Weiterhin geprüft: Energie-/Phasenbilanz, Netzindikatoren, Quellenalterung, verschachtelte Knoten, Speicher/Hybrid, Gruppen, CSV-Vorschau/-Übernahme mit Konkurrenzschutz, Migration und vollständiges Backup/Restore einschließlich BSON-Werten.
+Alle bisherigen Regressionen bleiben aktiv: Vorzeichen und kleine Leistungen, Netzbilanz, symmetrische Phasen, verschachtelte Knoten, Restverbraucher und Gruppen ohne Doppelzählung, Speicher/Hybrid/DC-Lasten, unabhängige Messpunktaufzeichnung, Charts mit Datenlücken/Einheiten, Gerätestatus und dauerhafte Zähler, Prognosequoten, Zeitgrenzen ohne Zukunftsdaten, validierte Korrekturfaktoren und manuelle Ausschlüsse.
 
-Zusätzliche MongoDB-Prüfungen belegen genau einen abgeschlossenen Lauf bei erneut verarbeiteter Fertigmeldung nach simuliertem Schreibabbruch; dauerhafte Anfragebudgets begrenzen zwölf gleichzeitige Reservierungen auf acht pro Token/UTC-Tag und erneuern sich am Folgetag. Die eingefrorene Morgenprognose bleibt nach späterem Abruf unverändert; die Tagesauswertung berechnet den realen Zählerdelta-Ertrag und dessen Prognosefehler. Anbieterfehler behalten vorhandene Prognosen und setzen Wartezeiten.
+Die komplette Integration prüft weiterhin stabile IDs, Quellenalterung, rekursives Abschalten, CSV-Konfliktschutz, Wiederholungsmigration und vollständiges Backup/Restore einschließlich BSON-Werten. Gerätezähler bleiben bei simuliertem Schreibabbruch eindeutig. Morgenprognosen werden nicht durch spätere Wetterabrufe ersetzt; die technische Einheitenkorrektur ist eine protokollierte Ausnahme.
 
-Chromium prüft Kopiereditor und neue IDs, Restgruppen, Geräteprofil, Statusseite, gespeicherte Charts aus Messpunkt und Knotenrest, Prognoseanlage/-quelle, Token-Ausblendung, CSV, Löschschutz und englische Oberflächen. Die bisherigen Prüfungen für Formulare, drei Layouts, Sprache/URL-Override, unveränderte Nutzernamen, Kalender, Einbettung und Desktop/Mobil bleiben aktiv; keine JavaScript-Fehler.
+## Bereitstellung
 
-## Bereitstellung und Dokumentation
-
-TypeScript/Vite-Produktionsbuild erfolgreich. Startbereitschaftstest: erwartete vorübergehende curl-Verbindungsfehler bleiben verborgen; echter Timeout zeigt den letzten Fehler. Updateharness: Austausch, Rollback und Prüfsummenfehler vor Dienststopp erfolgreich. ShellCheck und Bash-Syntax erfolgreich.
-
-Dokumentationsprüfung erfolgreich: 44 Markdown-Dateien, 329 lokale Links/Sprungmarken, 18 JSON-Beispiele und 70 Bash-Blöcke. Paketinhalt, ausführbare Skriptmodi und SHA-256 erfolgreich geprüft. Die [Linux-Dockerprüfung für 2.7.0](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/45396672363) ist vollständig grün: Compose-Build, Start, alle 141 Backendtests im Laufzeitimage, zusätzliche echte MongoDB-Tests, Healthcheck/Non-Root, Persistenz von Konfiguration/Charts/Prognosezugang nach Container-Neuerstellung und beide Linux-Skriptprüfungen.
+Startbereitschaft, Update-Rollback, Prüfsummen, Shell-Syntax, Dokumentationslinks/Beispiele und Installationsarchiv werden geprüft. Die Linux-Dockerprüfung für den neuen Quellstand wird vor dem abschließenden Release abgewartet und hier verlinkt.
 
 ## Prüfgrenzen
 
-Keine realen Victron-/PV-Konten oder physischen Waschmaschinen, Trockner und Geschirrspüler waren verbunden. Cloudadapter sind gegen offizielle Antwortformate und isolierte HTTP-Antworten geprüft; tatsächliche Kontoberechtigungen, aktuelle Freikontolimits und Anbieterverfügbarkeit erfordern die Einrichtung vor Ort. Ein über mehrere Wochen besserer Prognosefehler ist ohne reale historische Daten nicht belegt und wird nicht garantiert.
-
-Kein echter Proxmox-LXC wurde hier gebootet. Netzwerk, TLS/Proxy, Geräteadressen, Modbus-Register, Messgrenzen und Vorzeichen am Zielsystem prüfen. Ein vollständiger Probebetrieb mit passenden Geräteschwellen bleibt nötig. Historische Testdaten prüfen Rechenlogik, keine eichrechtliche Messgenauigkeit. Das Wiki-Git-Repository ist weiterhin nicht erreichbar; alle Anleitungen liegen versioniert im Repository und im Installationsarchiv vor.
+Kein Zugriff auf deine Produktionsdatenbank oder echte VRM-/Solcast-Konten. Die Korrektur wird erst beim Update auf deinem Server angewendet. Cloudadapter sind mit offiziellen Formaten und isolierten HTTP-Antworten geprüft; aktuelle Kontorechte und tatsächliche Anbieterwerte bleiben vor Ort zu prüfen. Es wurde kein echter Proxmox-LXC gebootet und keine physische Anlage vermessen. Messgrenzen und Einheiten der PV-Istquelle müssen zur prognostizierten Anlage passen. Gewichtung ist konfigurierbar und verspricht keine tägliche Verbesserung der Wettervorhersage.

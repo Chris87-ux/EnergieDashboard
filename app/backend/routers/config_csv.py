@@ -134,7 +134,7 @@ def prepare(state, text, mode):
                 data.setdefault("influx",{})
                 for key in ("password","token"):data["influx"][key]=previous.get("influx",{}).get(key,"")
             if kind=="flow":
-                data["schema_version"]=7
+                data["schema_version"]=8
                 if previous:data["created_at"]=previous.get("created_at",datetime.now(timezone.utc))
             try:parsed=model.model_validate(data).model_dump()
             except ValueError as exc:raise ValueError(f"{kind} {id}: {exc}") from exc

@@ -1,10 +1,10 @@
-# CSV-Konfiguration · Energieboard 2.7.0
+# CSV-Konfiguration · Energieboard 2.7.1
 
 [English](docs/en/CSV.md)
 
 [Dokumentationsübersicht](docs/README.md) · [Datenerfassung](docs/DATENERFASSUNG.md) · [Vollständige Sicherung](docs/BETRIEB-UND-UPDATES.md)
 
-Stand: 23. November 2026. CSV-Format **1**, unabhängig von Anwendung 2.7.0 und Datenbankschema 7.
+Stand: 26. November 2026. CSV-Format **1**, unabhängig von Anwendung 2.7.1 und Datenbankschema 8.
 
 ## Inhalt
 
@@ -132,3 +132,7 @@ Gruppen zuerst unter Konfiguration anlegen und einen vollständigen Export bearb
 Die Gesamtkonfiguration enthält zusätzlich `chart`, `forecast_site` und `forecast_provider`. `series` und `arrays` sind JSON-Listen innerhalb einer CSV-Zelle; IDs in `actual_flow_ids`, `solcast_resource_ids` und `dc_load_ids` werden mit `|` getrennt. Immer zuerst exportieren, damit Überschriften und Maskierung stimmen. Keine Zugangstokens in CSV eintragen. Vorhandene Prognosetokens bleiben bei gleicher ID erhalten; neue Quellen mit Tokenbedarf erst deaktiviert importieren und danach im Editor vervollständigen.
 
 Restgeräte werden nicht als eigene `flow`-Zeilen exportiert. Name/Gruppe/Symbol/Farbe/Reihenfolge liegen in `residual.*` der Knoten-Zeile. Zyklusparameter stehen in `cycle_tracking.*`. Charts benötigen vorhandene Messpunkt-/Geräte-IDs. Anlagen benötigen passende PV-Istquellen und Quellen eine vorhandene Anlage. Der komplette Kandidat wird vor Übernahme geprüft. Relevante Prognoseänderungen erhalten eine neue Revision; bestehende Tagesprotokolle bleiben als Historie erhalten.
+
+## Prognosegewichtung ab 2.7.1
+
+`forecast_site` ergänzt `weighting_mode` (`automatic`, `equal`, `manual`), `group_correlated_sources` und `max_auto_weight_pct` (50–100). `forecast_provider` ergänzt `manual_weight` (0–10000) und `dependency_group` (`auto`, `independent` oder eigener Name). Leere nicht vorhandene neue Spalten älterer CSV-Dateien verwenden die bisherigen Standardwerte. Gewichte sind relative Zahlen, keine zu erzwingende Prozentsumme. Parserrevisionen und Einheitenkorrekturen werden vom Server verwaltet; keine Prognosehistorie per CSV zurückschreiben.

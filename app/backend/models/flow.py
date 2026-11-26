@@ -13,7 +13,7 @@ Direction = Literal["in", "out"]
 Category = Literal["pv", "generator", "grid", "battery", "heatpump", "ev", "consumer", "custom"]
 
 PHASES: tuple[Phase, ...] = ("L1", "L2", "L3")
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 
 
 class Datapoints(BaseModel):

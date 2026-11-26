@@ -2,7 +2,7 @@
 
 [Documentation](README.md) · [Data acquisition](DATA-ACQUISITION.md) · [Full backups](OPERATIONS.md)
 
-CSV format is **1**, independently of application 2.7.0 and database schema 7. Column names, record types and IDs are identical in both languages and are never translated.
+CSV format is **1**, independently of application 2.7.1 and database schema 7. Column names, record types and IDs are identical in both languages and are never translated.
 
 ## Export options
 
@@ -98,3 +98,7 @@ Current exports include `hybrid_ac_mode` (net/terminals), `dc_power_unit`, `dc_i
 The full export also includes `chart`, `forecast_site` and `forecast_provider` records. `series` and `arrays` contain JSON lists inside a CSV cell. ID lists in `actual_flow_ids`, `solcast_resource_ids` and `dc_load_ids` use `|`. Export before editing to retain correct headers and escaping. Tokens are excluded: existing forecast tokens survive imports with the same ID; import new account providers disabled, then enter credentials in their editor.
 
 Residual devices are not separate flow rows. Their metadata is stored in the node row as `residual.*`; cycle settings use `cycle_tracking.*`. Charts require existing sources, forecast sites valid PV yield devices, and providers an existing site. The complete candidate is validated before application. Relevant forecast changes establish new revisions without deleting past daily logs.
+
+## Forecast weighting in 2.7.1
+
+`forecast_site` adds `weighting_mode` (`automatic`, `equal`, `manual`), `group_correlated_sources` and `max_auto_weight_pct` (50–100). `forecast_provider` adds `manual_weight` (0–10000) and `dependency_group` (`auto`, `independent` or a custom name). Missing new fields in older CSV files use previous defaults. Weights are relative values, not a required percentage total. The server manages parser revisions and unit corrections; CSV does not rewrite forecast history.

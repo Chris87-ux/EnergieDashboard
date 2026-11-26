@@ -2,7 +2,7 @@
 
 [Documentation](README.md) · [Configuration walkthrough](GETTING-STARTED.md)
 
-Application 2.7.0, schema **7**, CSV **1**. For exact required types/defaults/limits use the live schemas and OpenAPI. This reference complements [device balance](DEVICES-AND-NODES.md), [hybrid boundaries](STORAGE-AND-HYBRID.md) and [data acquisition](DATA-ACQUISITION.md).
+Application 2.7.1, schema **8**, CSV **1**. For exact required types/defaults/limits use the live schemas and OpenAPI. This reference complements [device balance](DEVICES-AND-NODES.md), [hybrid boundaries](STORAGE-AND-HYBRID.md) and [data acquisition](DATA-ACQUISITION.md).
 
 ## API and language
 
@@ -233,3 +233,9 @@ Charts have `id`, `name`, `sort_order` and 1–8 `series`. A series contains `ki
 Forecast API: `GET /api/forecast/config`, `PUT/DELETE /api/forecast/sites/<id>`, `PUT/DELETE /api/forecast/providers/<id>`, `GET /api/forecast/report`, `POST /api/forecast/refresh` with `{}`, `PUT /api/forecast/days/<id>/exclusion` with `excluded` and `reason`. Sites contain location/timezone, `arrays` (kWp/tilt/azimuth), `actual_flow_ids`, measurement side, performance ratio, optional AC limit, cutoff time and training window. Providers link `site_id` to `kind=vrm|forecast_solar|solcast|open_meteo`. Blank tokens retain stored secrets; `clear_token=true` explicitly removes them. Revisions and modification times are server-managed. [Forecast configuration and algorithms](PV-FORECASTS.md).
 
 Full backups include new configuration and runtime collections. CSV includes configuration without tokens; schema 7 remains additive and CSV format stays 1. The free `extra` object stores metadata only and does not activate calculation features.
+
+## Weighting and VRM normalisation in 2.7.1
+
+Sites default to `weighting_mode=automatic`, `group_correlated_sources=true`, `max_auto_weight_pct=70`. Providers default to `manual_weight=1`, `dependency_group=auto`. Modes also support `equal` and `manual`. Weight preferences do not change physical source revisions or reset training. Forecast `weighting` stores the policy; rows store `weight`, `dependency_group`, `effective_group` and `manual_weight`.
+
+VRM parser revision 2 converts Wh to kWh. `normalization_version=2` marks new/repaired data. Repaired daily records store `vrm_unit_correction` (version, factor, timestamp, provider IDs) and `vrm_unit_correction_original` with original calculations. Frozen provider revisions remain historical; current VRM providers move to a fresh parser revision. Schema 8 prevents older bad-unit code from restarting. Measured `samples` remain unchanged.

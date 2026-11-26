@@ -49,7 +49,7 @@ async def lifespan(app: FastAPI):
         await client.close()
 
 
-app = FastAPI(lifespan=lifespan, title="Energieboard", version="2.7.0")
+app = FastAPI(lifespan=lifespan, title="Energieboard", version="2.7.1")
 
 @app.middleware("http")
 async def response_language(request, call_next):
@@ -81,7 +81,7 @@ async def root():
         await db.command("ping")
     except PyMongoError as exc:
         raise HTTPException(status_code=503, detail="MongoDB ist derzeit nicht erreichbar.") from exc
-    return {"message": "Energieboard API", "status": "ok", "version": "2.7.0", "schema_version": 7}
+    return {"message": "Energieboard API", "status": "ok", "version": "2.7.1", "schema_version": 8}
 
 
 api_router.include_router(flows.router)

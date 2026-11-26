@@ -75,6 +75,8 @@ def parse_solcast(payload,tz):
 
 
 def parse_vrm(payload,tz):
+    # VRM hours: Wh for the hour starting at the millisecond timestamp.
+    # Equivalently the hour's average W; our internal daily energy unit is kWh.
     if payload.get('success') is False:raise ValueError("VRM-Prognose nicht verfügbar.")
     values=payload['records']['solar_yield_forecast']
     if not isinstance(values,list):raise ValueError("VRM-Prognose nicht verfügbar.")
@@ -83,7 +85,7 @@ def parse_vrm(payload,tz):
         start=float(point[0])/1000
         if start in seen:continue
         seen.add(start)
-        if point[1] is not None:intervals.append((start,start+3600,nonnegative(point[1])))
+        if point[1] is not None:intervals.append((start,start+3600,nonnegative(point[1])/1000))
     return daily_intervals(intervals,tz)
 
 

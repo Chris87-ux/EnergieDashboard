@@ -7,7 +7,7 @@ _path = Path(__file__).with_name("en.json")
 if not _path.is_file():
     _path = Path(__file__).resolve().parents[2] / "frontend/src/lib/en.json"
 ENGLISH = json.loads(_path.read_text(encoding="utf-8-sig"))
-_FIELDS = {"message", "detail", "details", "msg", "errors", "note", "notes", "warnings", "source_errors", "reason", "hint", "quality_reason", "error"}
+_FIELDS = {"message", "detail", "details", "msg", "errors", "note", "notes", "warnings", "source_errors", "reason", "hint", "quality_reason", "error", "weighting_note"}
 _PATTERNS = []
 for source, translated in ENGLISH.items():
     if re.search(r"\{\d+\}", source):

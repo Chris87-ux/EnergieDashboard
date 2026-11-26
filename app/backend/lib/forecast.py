@@ -62,7 +62,7 @@ async def refresh_provider(provider,site,tz,now):
         for day,value in days.items():
             kwh=value['kwh']
             if not math.isfinite(kwh) or kwh<0:raise ForecastError('Ungültiger Prognosewert.')
-            await db.forecast_snapshots.insert_one({'provider_id':provider.id,'site_id':site.id,'day':day,'revision':provider.revision,'site_revision':site.revision,'fetched_at':fetched,'raw_kwh':kwh,'complete':value['complete'],'coverage':value['coverage'],'family':PROVIDERS[provider.kind]['family'],'name':provider.name})
+            await db.forecast_snapshots.insert_one({'provider_id':provider.id,'site_id':site.id,'day':day,'revision':provider.revision,'site_revision':site.revision,'fetched_at':fetched,'raw_kwh':kwh,'complete':value['complete'],'coverage':value['coverage'],'family':PROVIDERS[provider.kind]['family'],'name':provider.name,'provider_kind':provider.kind,'normalization_version':2})
         await db.forecast_state.replace_one({'id':provider.id},{'id':provider.id,'revision':provider.revision,'site_revision':site.revision,'last_success':fetched,'last_attempt':now,'next_at':fetched+6*3600,'error':''},upsert=True)
     except ForecastError as exc:
         await db.forecast_state.update_one({'id':provider.id},{'$set':{'revision':provider.revision,'site_revision':site.revision,'last_attempt':now,'next_at':now+exc.retry_after,'error':str(exc)}},upsert=True)
@@ -75,7 +75,9 @@ async def estimates_for(site,providers,day,before):
     out=[]
     for p in providers:
         doc=await db.forecast_snapshots.find_one({'site_id':site.id,'provider_id':p.id,'day':day,'revision':p.revision,'site_revision':site.revision,'fetched_at':{'$lte':before,'$gte':before-18*3600},'complete':True},{'_id':0},sort=[('fetched_at',-1)])
-        if doc:out.append(doc)
+        if doc:
+            doc.update(manual_weight=p.manual_weight,dependency_group=p.dependency_group,provider_kind=p.kind)
+            out.append(doc)
     return out
 
 async def freeze_day(site,providers,flows,tz,now):

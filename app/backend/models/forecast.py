@@ -28,6 +28,9 @@ class ForecastSite(BaseModel):
     training_days: int = Field(default=45,ge=7,le=365)
     minimum_training_days: int = Field(default=7,ge=3,le=60)
     curtailment_point: str = Field(default="",max_length=512)
+    weighting_mode: Literal["automatic","equal","manual"] = "automatic"
+    group_correlated_sources: bool = True
+    max_auto_weight_pct: float = Field(default=70,ge=50,le=100,allow_inf_nan=False)
     revision: str = ""
     changed_at: float = 0
 
@@ -61,6 +64,8 @@ class ForecastProvider(BaseModel):
     clear_token: bool = Field(default=False,exclude=True)
     vrm_installation_id: str = Field(default="",pattern=r"^[0-9]*$")
     solcast_resource_ids: list[str] = Field(default_factory=list,max_length=2)
+    manual_weight: float = Field(default=1,ge=0,le=10000,allow_inf_nan=False)
+    dependency_group: str = Field(default="auto",max_length=60)
     revision: str = ""
     changed_at: float = 0
 
@@ -75,3 +80,10 @@ class ForecastProvider(BaseModel):
         import re
         if len(values)!=len(set(values)) or any(not re.fullmatch(r"[A-Za-z0-9_-]{1,100}",v) for v in values):raise ValueError("Ungültige oder doppelte Solcast-Ressourcen-ID.")
         return values
+
+    @field_validator("dependency_group")
+    @classmethod
+    def group_name(cls,value):
+        value=value.strip().casefold()
+        if any(ord(c)<32 for c in value):raise ValueError("Gruppenname darf keine Steuerzeichen enthalten.")
+        return value or "auto"

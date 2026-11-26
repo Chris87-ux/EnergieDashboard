@@ -55,6 +55,29 @@ async def main():
         state=await db.forecast_state.find_one({'id':p.id});assert state['next_at']==b+4300 and state['error']=='Provider unavailable'
         assert (await db.forecast_days.find_one({'id':first['id']}))['ensemble_kwh']==10
         print('MongoDB provider failure: backoff and existing forecasts retained OK',flush=True)
+        # Seed exactly the legacy 2.7.0 unit error; migration must be repeatable.
+        from lib.migrations import migrate
+        from lib.forecast_model import fingerprint
+        legacy=ForecastProvider(id='legacy-vrm',site_id=site.id,name='Renamed provider',kind='vrm',vrm_installation_id='123')
+        legacy.revision=fingerprint({'kind':legacy.kind,'site':legacy.site_id,'vrm':legacy.vrm_installation_id,'solcast':[]})
+        await db.forecast_providers.insert_one(legacy.model_dump())
+        await db.forecast_snapshots.insert_one({'provider_id':legacy.id,'site_id':site.id,'day':day,'revision':legacy.revision,'raw_kwh':38894.84,'family':'solcast','complete':True,'fetched_at':cutoff-100})
+        old={'id':'legacy-unit-day','site_id':site.id,'day':'2026-11-23','revision':site.revision,'cutoff':cutoff-86400,'ensemble_kwh':9734.3975,'raw_ensemble_kwh':9734.3975,'actual_kwh':12,'base_eligible':True,'eligible':True,'errors':[],
+             'forecasts':[{'provider_id':id,'revision':legacy.revision if id==legacy.id else 'p','name':id,'raw_kwh':value,'used_kwh':value,'candidate_kwh':value,'offset_kwh':0,'weight':weight,'candidate_factor':1,'applied_factor':1} for id,value,weight in [(legacy.id,38894.84,.25),('solcast',10.73,.25),('meteo',16.01,.5)]]}
+        await db.forecast_days.insert_one(old)
+        energy_before=await db.samples.find({'dp':'point:e'},{'_id':0}).to_list()
+        await migrate();await migrate()
+        fixed=await db.forecast_days.find_one({'id':old['id']},{'_id':0})
+        assert abs(fixed['ensemble_kwh']-20.41121)<1e-8
+        assert fixed['vrm_unit_correction_original']['ensemble_kwh']==9734.3975
+        assert fixed['actual_kwh']==12 and fixed['eligible']
+        snapshot=await db.forecast_snapshots.find_one({'provider_id':legacy.id})
+        assert abs(snapshot['raw_kwh']-38.89484)<1e-8 and snapshot['normalization_version']==2
+        assert (await db.forecast_providers.find_one({'id':legacy.id}))['revision']==provider_revision(legacy)
+        assert (await db.metadata.find_one({'id':'schema'}))['version']==8
+        assert energy_before==await db.samples.find({'dp':'point:e'},{'_id':0}).to_list()
+        print('MongoDB VRM migration: legacy snapshots/daily blends/errors corrected once, original values audited, physical readings unchanged OK',flush=True)
+
     finally:
         await client.drop_database(db.name)
         await client.close()

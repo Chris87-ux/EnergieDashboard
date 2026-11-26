@@ -15,12 +15,12 @@ from models.forecast import ForecastSite,ForecastProvider
 router=APIRouter(tags=['PV-Prognose'])
 
 def public_provider(doc):
-    out=dict(doc);out.pop('_id',None);out['token_set']=bool(out.get('token'));out['token']='';return out
+    out=ForecastProvider(**doc).model_dump();out['token_set']=bool(out.get('token'));out['token']='';return out
 
 @router.get('/forecast/config')
 @locked
 async def config():
-    return {'sites':await db.forecast_sites.find({},{'_id':0}).to_list(),'providers':[public_provider(p) for p in await db.forecast_providers.find({},{'_id':0}).to_list()],'catalog':PROVIDERS}
+    return {'sites':[ForecastSite(**s).model_dump() for s in await db.forecast_sites.find({},{'_id':0}).to_list()],'providers':[public_provider(p) for p in await db.forecast_providers.find({},{'_id':0}).to_list()],'catalog':PROVIDERS}
 
 @router.put('/forecast/sites/{id}')
 @locked
@@ -104,10 +104,11 @@ async def report():
         scored=[r for r in history if r.get('eligible') and r.get('revision')==site.revision]
         ranking=[]
         for p in providers:
-            errors=[e for r in scored for e in r.get('errors',[]) if e['provider_id']==p.id and any(f['provider_id']==p.id and f.get('revision')==p.revision for f in r.get('forecasts',[]))]
+            matching=[r for r in scored if any(f['provider_id']==p.id and f.get('revision')==p.revision for f in r.get('forecasts',[]))]
+            errors=[e for r in matching for e in r.get('errors',[]) if e['provider_id']==p.id]
             n=len(errors)
             state=await db.forecast_state.find_one({'id':p.id},{'_id':0}) or {}
-            ranking.append({'id':p.id,'name':p.name,'kind':p.kind,'days':n,'raw_mae':sum(e['raw_absolute_error'] for e in errors)/n if n else None,'used_mae':sum(e['used_absolute_error'] for e in errors)/n if n else None,'wins':sum(r.get('winner_provider_id')==p.id for r in scored),'state':state})
+            ranking.append({'id':p.id,'name':p.name,'kind':p.kind,'days':n,'raw_mae':sum(e['raw_absolute_error'] for e in errors)/n if n else None,'used_mae':sum(e['used_absolute_error'] for e in errors)/n if n else None,'wins':sum(r.get('winner_provider_id')==p.id for r in matching),'state':state})
         paired=[r for r in scored if r.get('ensemble_absolute_error') is not None]
         out.append({'site':doc,'today':today.isoformat(),'latest':latest,'days':history,'actual':await db.forecast_actuals.find_one({'id':site.id},{'_id':0}),'ranking':ranking,'ensemble_mae':sum(r['ensemble_absolute_error'] for r in paired)/len(paired) if paired else None,'scored_days':len(paired)})
     return {'sites':out,'updated_at':now}

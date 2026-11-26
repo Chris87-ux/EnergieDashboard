@@ -4,7 +4,7 @@
 
 ## Persistent identity
 
-Configuration and history live in MongoDB. IDs link measurements, devices, groups and recorded channels. Keep the same database URI/name and, in Docker, project/volume identity. Application updates run idempotent additive migrations. Schema 6 is unchanged in 2.7.0; language preferences live in each browser and require no database migration.
+Configuration and history live in MongoDB. IDs link measurements, devices, groups and recorded channels. Keep the same database URI/name and, in Docker, project/volume identity. Application updates run idempotent additive migrations. Schema 6 is unchanged in 2.7.1; language preferences live in each browser and require no database migration.
 
 A CSV export contains configuration without secrets or history. Full backups include credentials and history. Protect them and test restoration on an isolated target. The local recorder has no automatic history retention limit; monitor disk space and backup size.
 
@@ -35,14 +35,14 @@ Store a copy outside the LXC. Proxmox snapshots/backups are useful but an applic
 After backup, run **inside the LXC**:
 
 ```bash
-bash /opt/energieboard/deploy/update.sh v2.7.0
+bash /opt/energieboard/deploy/update.sh v2.7.1
 ```
 
 For an installation whose old updater cannot handle the target release, fetch the target updater first:
 
 ```bash
-curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/v2.7.0/deploy/update.sh -o /tmp/energieboard-update.sh
-bash /tmp/energieboard-update.sh v2.7.0
+curl -fL --retry 3 https://raw.githubusercontent.com/Chris87-ux/EnergieDashboard/v2.7.1/deploy/update.sh -o /tmp/energieboard-update.sh
+bash /tmp/energieboard-update.sh v2.7.1
 ```
 
 The updater resolves the ref, verifies archive/checksum, saves the previous application, database and environment, replaces code and runs installation checks. Configuration, stable IDs, groups and history are preserved. Success names the backup directory. A failure attempts rollback to the previous application/database. Do not run the direct LXC updater for Docker.
@@ -93,10 +93,10 @@ Check and save any local changes before changing tags; do not discard them with 
 git status --short
 git describe --tags --always
 git fetch --tags
-git checkout v2.7.0
+git checkout v2.7.1
 ```
 
-Set `ENERGIEBOARD_VERSION=2.7.0` in `.env` to match the chosen tag. This variable names the local image; Git determines the source. Rebuild/recreate:
+Set `ENERGIEBOARD_VERSION=2.7.1` in `.env` to match the chosen tag. This variable names the local image; Git determines the source. Rebuild/recreate:
 
 ```bash
 docker compose config --quiet
@@ -155,3 +155,7 @@ Make a complete backup first. Schema 7 adds optional cycles, residual metadata, 
 Full backups include charts, cycle states/events, forecast configuration, snapshots, daily models, exclusion logs and request budgets. CSV includes configuration only, not history or runtime states. Downgrades require the matching older database backup.
 
 Startup readiness waits for the API and an active service. Expected transient curl connection refusals stay quiet; genuine startup failures still diagnose and roll back. Use the existing LXC updater or rebuild/recreate Docker Compose services while retaining database volumes. Never use `down --volumes` for an update.
+
+## Upgrade to 2.7.1 / schema 8
+
+Take a full backup first. Schema 8 prevents restarting the bad VRM conversion from 2.7.0. The repair affects identifiable forecasts, not measured energy counters. Original calculations remain audited; repeating migration never divides twice. A new VRM parser revision starts fresh VRM training. Optional weighting settings preserve previous defaults; CSV stays format 1. Downgrades require the matching backup.

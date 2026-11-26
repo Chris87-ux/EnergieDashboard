@@ -1,4 +1,4 @@
-# Energieboard 2.7.0
+# Energieboard 2.7.1
 
 [English](README.en.md)
 
@@ -60,7 +60,7 @@ Energieboard besitzt keine eigene Anmeldung. Im vertrauenswürdigen LAN betreibe
 
 ## Version und Verlässlichkeit
 
-Aktueller Anwendungsstand: **2.7.0**, Datenbankschema **7**, CSV-Format **1**. Dokumentation: **24. November 2026**. Für Installationen feste Tags wie `v2.7.0` verwenden; `main` kann bereits neuere Änderungen enthalten.
+Aktueller Anwendungsstand: **2.7.1**, Datenbankschema **8**, CSV-Format **1**. Dokumentation: **24. November 2026**. Für Installationen feste Tags wie `v2.7.1` verwenden; `main` kann bereits neuere Änderungen enthalten.
 
 [Prüfbericht und bekannte Grenzen](PRUEFBERICHT.md): 103 Backendtests sowie Integrations-, Browser- und Linux-Dockerprüfungen. Physische Victron-Geräte und ein produktiver Proxmox-LXC wurden hier nicht angeschlossen. Energieboard ist eine Anzeige und Auswertung; Schätzwerte ersetzen keinen geeichten Zähler.
 

@@ -2,6 +2,14 @@
 
 [English](docs/en/CHANGELOG.md)
 
+## 2.7.1 · 26.11.2026
+
+- VRM-Stundenwerte korrekt von Wh in kWh umrechnen. Fehlerhafte Werte aus 2.7.0 einmalig und protokolliert reparieren, Mischungen/Fehler neu berechnen, echte Messhistorie erhalten.
+- Gewichtung pro Anlage wählbar: automatisch, gleiche Anteile oder manuelle relative Quellengewichte einschließlich 0. Quellengruppen individuell benennen/auflösen; automatische Obergrenze einstellbar.
+- Aktuelle Vorschau zeigt neue Gewichtung sofort; Tagesprotokolle behalten tatsächlich eingefrorene Gewichte. VRM-Parserrevision setzt fehlerhafte Lernstatistik zurück.
+- Reine AC-PV-Installationen ohne Akku explizit unterstützt und Messseite bei Auswahl automatisch übernehmen. DC und gemischte Anlagen bleiben möglich.
+- Deutsch/Englisch, CSV, zusätzliche Regressionen und wiederholbare Migration. Schema 8 schützt vor Rückstart der alten Einheitenlogik.
+
 ## 2.7.0 · 24.11.2026
 
 - Messpunkte direkt neben dem Eintrag kopieren, mit neuer ID und ohne Übernahme alter Historienkanäle.

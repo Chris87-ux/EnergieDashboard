@@ -73,7 +73,7 @@ Erwartet: Docker-Client und erreichbarer Server sowie eine Compose-Plugin-Versio
 ```bash
 mkdir -p /opt
 cd /opt
-git clone --branch v2.7.0 https://github.com/Chris87-ux/EnergieDashboard.git energieboard-docker
+git clone --branch v2.7.1 https://github.com/Chris87-ux/EnergieDashboard.git energieboard-docker
 cd /opt/energieboard-docker
 cp docker.env.example .env
 ```
@@ -81,7 +81,7 @@ cp docker.env.example .env
 `.env` vor dem Start bei Bedarf bearbeiten:
 
 ```dotenv
-ENERGIEBOARD_VERSION=2.7.0
+ENERGIEBOARD_VERSION=2.7.1
 ENERGIEBOARD_PORT=8000
 ENERGIEBOARD_BIND=0.0.0.0
 ```
@@ -104,7 +104,7 @@ curl -fsS http://127.0.0.1:8000/api/
 
 Bei geändertem Hostport den `curl`-Befehl anpassen. Der erste Build lädt Pakete und baut die Oberfläche; dies kann mehrere Minuten dauern. `--wait-timeout` betrifft die anschließende Start-/Healthphase. Es gibt derzeit kein bereitgestelltes Projektimage in einer Registry; Compose baut es aus dem geklonten Code.
 
-Erwartet: App und MongoDB laufen, Healthchecks sind erfolgreich, die API zeigt Version `2.7.0`. Im Browser:
+Erwartet: App und MongoDB laufen, Healthchecks sind erfolgreich, die API zeigt Version `2.7.1`. Im Browser:
 
 ```text
 http://<DOCKER-HOST-IP>:8000/datenerfassung

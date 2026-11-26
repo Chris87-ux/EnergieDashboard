@@ -2,7 +2,7 @@
 
 [English](en/README.md)
 
-Anwendungsstand **2.7.0**, Schema **7**, CSV **1** · Stand **24. November 2026**.
+Anwendungsstand **2.7.1**, Schema **8**, CSV **1** · Stand **26. November 2026**.
 
 Die Dateien im Repository bilden die vollständige versionierte Dokumentation. Historische Tags behalten ihre damalige Fassung. Die Anleitungen lassen sich zusätzlich ins [GitHub-Wiki](https://github.com/Chris87-ux/EnergieDashboard/wiki) übernehmen; bei dieser Aktualisierung war dessen Git-Endpunkt trotz aktiviertem Wiki noch nicht erreichbar.
 

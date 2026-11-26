@@ -17,9 +17,9 @@ class ForecastNormalisationTests(unittest.TestCase):
         out=parse_solcast(data,'Europe/Berlin')['2026-11-24']
         self.assertEqual(out['kwh'],1);self.assertFalse(out['complete'])
         self.assertEqual(duration_seconds('PT1H'),3600)
-    def test_vrm_ms_hour_kwh_no_battery_or_consumption_added(self):
+    def test_vrm_ms_hour_wh_converted_to_kwh_no_other_series_added(self):
         t=datetime(2026,11,24,12,tzinfo=ZoneInfo('Europe/Berlin')).timestamp()
-        data={'success':True,'records':{'solar_yield_forecast':[[t*1000,3]],'vrm_consumption_fc':[[t*1000,99]]}}
+        data={'success':True,'records':{'solar_yield_forecast':[[t*1000,3000]],'vrm_consumption_fc':[[t*1000,99]]}}
         self.assertEqual(parse_vrm(data,'Europe/Berlin')['2026-11-24']['kwh'],3)
     def test_forecast_solar_wh_to_kwh(self):
         result=parse_forecast_solar({'result':{'watt_hours_day':{'2026-11-24':4200}}},'Europe/Berlin')

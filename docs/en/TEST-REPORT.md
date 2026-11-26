@@ -1,29 +1,28 @@
-# Test report · Energieboard 2.7.0
+# Test report · Energieboard 2.7.1
 
-[Deutsch](../../PRUEFBERICHT.md) · 24 November 2026.
+[Deutsch](../../PRUEFBERICHT.md) · 26 November 2026.
 
-## Backend
+**152 backend tests passed**, production build passed, complete real-MongoDB/API/HTTP/MQTT/Modbus TCP integration passed with 50 devices. Chromium covers German/English, desktop/mobile, configuration, charts, cycles and forecasts without JavaScript errors. Fixtures exist only in test processes; the application has no demo mode.
 
-**141 backend tests passed**, including all previous regressions. Added coverage includes virtual residual configuration/groups without duplicate accounting, hybrid DC loads, CSV, charts, appliance cycles and four forecast adapters.
+## Added regression coverage
 
-Charts cover negative/small values, symmetrical phase estimates, raw units, digital last values, gaps and bounded output. Cycles cover washing pauses, spikes, initially running appliances, boolean edges, restart/gap handling and runtime warnings. Forecast tests cover 23/25-hour DST days, native power/energy units, combined AC clipping, absent data, token headers without secrets in URLs, rate errors and backoff. Learning tests reject future data, require out-of-sample correction evidence, restore raw forecasts when correction loses, and verify correlated-source weighting and cutoff-aware exclusions.
+- Hourly VRM Wh converted to kWh: 38,894.84 Wh becomes 38.89484 kWh, excluding unrelated consumption/battery series.
+- Default 25/25/50 dependency weights, equal sources, independent sources, custom groups, manual relative weights including zero, renormalisation for missing sources and configurable automatic caps.
+- Weight preferences retain physical revisions; the corrected VRM parser starts fresh training.
+- Old snapshots, daily blends and error values repaired exactly once with original calculation audit. Actual measurements, frozen weights and manual exclusions persist. Unknown providers are not guessed.
+- Real MongoDB confirms repeated migration, parser revision/schema 8 and byte-equivalent physical recorder observations before/after repair.
+- Browser forms save all weighting modes, cap, grouping toggle, relative weights and custom groups. A dedicated AC PV system saves without storage or manual side correction. CSV preview, dependency guards and token redaction remain valid.
 
-## Real MongoDB and Chromium integration
+## Existing coverage retained
 
-Passed against an isolated real MongoDB and HTTP/MQTT/Modbus TCP fixtures with 50 devices. Existing energy/phase/grid indicators, nested nodes, storage/hybrids, groups, source staleness, CSV preview/apply/concurrency protection, migration and BSON-compatible full backup/restore remain covered.
+Signed/tiny power, grid and energy balance, symmetrical phases, nested nodes, residual consumers/groups without duplicate accounting, batteries/hybrids/DC loads, independent point recording, bounded charts with units/gaps, durable appliance counts and status, forecast quotas, no-lookahead learning, correction validation and audited exclusions remain covered.
 
-Additional MongoDB tests prove idempotent completed counts when retrying after a simulated event/state write interruption. Twelve concurrent forecast reservations permit only eight per token/UTC day, with next-day reset and no plaintext token in usage records. Frozen morning predictions survive later updates; actual counter deltas produce correct daily forecast errors. Provider failures preserve forecasts and apply backoff.
+The full integration retains stable IDs, source expiry, recursive disable, CSV conflict protection, repeated migration and BSON-compatible full backup/restore. Simulated cycle write interruptions do not double-count. Late weather updates cannot replace morning predictions; the audited technical unit repair is an explicit exception.
 
-Chromium covers copying points with fresh IDs, residual group assignment, appliance profiles/status, saved measurement/computed charts, forecast configuration, token redaction, CSV and dependency guards in German and English. Existing forms, layouts, language persistence/URL override, user-name preservation, calendars, embeds and desktop/mobile checks remain active without JavaScript errors.
+## Deployment
 
-## Deployment and publication
-
-Production TypeScript/Vite build passed. Readiness tests suppress expected connection refusals and reveal genuine final timeouts. Updater tests passed successful replacement, rollback and pre-stop checksum rejection. ShellCheck and Bash syntax passed.
-
-Documentation validation passed: 44 Markdown files, 329 local links/anchors, 18 JSON examples and 70 Bash blocks. Package content, executable modes and SHA-256 passed. The [Linux Docker workflow for 2.7.0](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/45396672363) passed every step: Compose build/start, all 141 tests inside the runtime image, additional real MongoDB tests, health/non-root checks, configuration/chart/forecast-token persistence after container recreation and both Linux deployment harnesses.
+Readiness, updater rollback, checksums, shell syntax, documentation examples/links and package contents are checked. The Linux Docker workflow for this source revision will be awaited and linked here before the final release.
 
 ## Limits
 
-No live Victron/PV accounts or physical appliances were connected. Adapters are tested against official formats and isolated HTTP responses; account permissions, free-plan limits and service availability require actual commissioning. Improved forecast accuracy over multiple weeks has not been demonstrated with real history and is not guaranteed.
-
-No actual Proxmox LXC boot was performed here. Verify networking, TLS/proxy access, source addresses, register maps, measurement boundaries and signs on your system. Tune appliance thresholds through complete real cycles. Test history checks arithmetic, not meter certification. The wiki Git endpoint remains unavailable; all guides are versioned in the repository and installation archive.
+No access to your production database or live VRM/Solcast accounts. Repair runs on your server after upgrading. Cloud adapters use official formats and isolated HTTP responses; validate account rights and real source values during commissioning. No actual Proxmox LXC boot or physical metering was performed here. Actual PV measurement boundaries and units must match the forecast installation. Configurable weighting does not guarantee better weather predictions every day.

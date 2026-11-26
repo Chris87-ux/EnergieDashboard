@@ -1,10 +1,10 @@
-# Datenmodell und Erweiterungen · Version 2.7.0
+# Datenmodell und Erweiterungen · Version 2.7.1
 
 [English](docs/en/DATA-MODEL.md)
 
 [Dokumentationsübersicht](docs/README.md) · [Schritt-für-Schritt-Konfiguration](docs/ERSTE-SCHRITTE.md) · [Hybrid-Anleitung](docs/SPEICHER-UND-HYBRID.md)
 
-Diese Seite ist die technische Referenz. Für die Bedienung zuerst die Benutzeranleitungen lesen. Stand: 24. November 2026, Anwendung 2.7.0, Schema 7, CSV 1.
+Diese Seite ist die technische Referenz. Für die Bedienung zuerst die Benutzeranleitungen lesen. Stand: 26. November 2026, Anwendung 2.7.1, Schema 8, CSV 1.
 
 ## Bilanz und Phasen ab 2.4
 
@@ -329,7 +329,7 @@ Die Lückenschwelle gibt keine unbegrenzte Gültigkeit für RUN-/Rest-/Speicherk
 
 ## Versionierung
 
-Anwendungsversion in `VERSION`; Datenbankschema aktuell Version 7; CSV-Format Version 1. Additive Migrationen laufen beim Start und dürfen mehrfach ausgeführt werden. Ein neueres Datenbankschema wird von dieser Version abgewiesen. Ein Downgrade erfolgt zusammen mit der dazugehörigen Datenbanksicherung. Messpunkt- und Geräte-IDs bleiben bei Updates erhalten.
+Anwendungsversion in `VERSION`; Datenbankschema aktuell Version 8; CSV-Format Version 1. Additive Migrationen laufen beim Start und dürfen mehrfach ausgeführt werden. Ein neueres Datenbankschema wird von dieser Version abgewiesen. Ein Downgrade erfolgt zusammen mit der dazugehörigen Datenbanksicherung. Messpunkt- und Geräte-IDs bleiben bei Updates erhalten.
 
 ## Verbrauchergruppen ab 2.5 (Schema 6)
 
@@ -368,3 +368,9 @@ Charts: `ChartConfig` enthält `id`, `name`, `sort_order`, `series` (1–8). Jed
 PV-Prognosekonfiguration: `GET /api/forecast/config`, `PUT/DELETE /api/forecast/sites/<id>`, `PUT/DELETE /api/forecast/providers/<id>`. `ForecastSite` enthält Standort, Zeitzone, `arrays` aus kWp/Neigung/Azimut, `actual_flow_ids`, Messseite, Ertragsfaktor, optionale AC-Grenze, Stichtagszeit und Lernfenster. `ForecastProvider` verbindet `site_id` mit `kind=vrm|forecast_solar|solcast|open_meteo`. Token bleibt bei leerem Wert erhalten; `clear_token=true` löscht ihn. Revisionen und Änderungszeitpunkte setzt der Server. Bericht: `GET /api/forecast/report`, Aktualisierung vormerken: `POST /api/forecast/refresh` mit `{}`, manuell ausschließen: `PUT /api/forecast/days/<id>/exclusion` mit `excluded` und `reason`. [Anleitung, Grenzen und Formeln](docs/PV-PROGNOSEN.md).
 
 Die normalen Datenbankbackups erfassen alle neuen Konfigurations- und Laufzeitsammlungen. CSV erfasst nur Konfiguration und keine Tokens. Schema 7 ist additiv; CSV-Version bleibt 1. Das freie `extra`-Objekt bleibt reine Zusatzmetadaten und schaltet keine dieser Funktionen ein.
+
+## Prognosegewichtung und VRM-Normalisierung ab 2.7.1
+
+Anlagen verwenden `weighting_mode=automatic|equal|manual`, `group_correlated_sources=true` und `max_auto_weight_pct=70` als Standard. Quellen verwenden `manual_weight=1` und `dependency_group=auto`. Gewichtsänderungen sind keine Änderung der physischen Quellenrevision und setzen das Lernen nicht zurück. `weighting` in der Prognoseantwort protokolliert die Auswahl; jede Prognosereihe trägt `weight`, `dependency_group`, `effective_group` und `manual_weight`.
+
+VRM-Parserrevision 2 normalisiert Wh nach kWh. `normalization_version=2` kennzeichnet neue und reparierte Werte. Reparierte Tagesdatensätze enthalten `vrm_unit_correction` (Version, Faktor, Zeitpunkt, Anbieter-IDs) und `vrm_unit_correction_original` mit den vorherigen Berechnungen. Ursprüngliche Anbieterrevisionen in den Tagesprotokollen bleiben erhalten; aktuelle VRM-Quellen wechseln auf eine neue Parserrevision. Schema 8 verhindert einen Rückstart der fehlerhaften 2.7.0-Logik. Messwerte in `samples` werden nicht verändert.

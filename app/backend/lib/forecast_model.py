@@ -12,7 +12,9 @@ def site_revision(site,tz):
 
 
 def provider_revision(provider):
-    return fingerprint({"kind":provider.kind,"site":provider.site_id,"vrm":provider.vrm_installation_id,"solcast":sorted(provider.solcast_resource_ids)})
+    data={"kind":provider.kind,"site":provider.site_id,"vrm":provider.vrm_installation_id,"solcast":sorted(provider.solcast_resource_ids)}
+    if provider.kind=="vrm":data["normalization_version"]=2
+    return fingerprint(data)
 
 
 def actual_signature(flows,points=None,extra_refs=()):
@@ -50,7 +52,7 @@ def calibration(provider_id,revision,history,minimum):
     return {"candidate_factor":round(factor,6),"applied_factor":round(factor if use_corrected else 1.,6),"use_corrected":use_corrected,"training_days":len(rows),"ratio_days":len(ratios),"candidate_days":len(candidates),"raw_mae":statistics.mean(abs(a-p['raw_kwh']) for a,p in rows) if rows else None,"candidate_mae":candidate_mae,"raw_candidate_mae":raw_candidate_mae,"score":score}
 
 
-def normalise_weights(scores,epsilon=.1):
+def normalise_weights(scores,epsilon=.1,cap=.7):
     if not scores:return {}
     known=[s for s in scores.values() if s is not None]
     neutral=statistics.median(known) if known else 1.
@@ -58,9 +60,9 @@ def normalise_weights(scores,epsilon=.1):
     total=sum(raw.values());weights={key:value/total for key,value in raw.items()}
     if len(weights)>1:
         dominant=max(weights,key=weights.get)
-        if weights[dominant]>.7:
+        if weights[dominant]>cap:
             remaining=sum(value for key,value in weights.items() if key!=dominant)
-            weights={key:(.7 if key==dominant else value*.3/remaining) for key,value in weights.items()}
+            weights={key:(cap if key==dominant else value*(1-cap)/remaining) for key,value in weights.items()}
     return weights
 
 
@@ -70,19 +72,30 @@ def build_prediction(site,day,as_of,estimates,records):
         if not estimate.get('complete') or estimate.get('raw_kwh') is None:continue
         raw=estimate['raw_kwh'];model=calibration(estimate['provider_id'],estimate['revision'],history,site.minimum_training_days)
         forecasts.append({**estimate,**model,"candidate_kwh":round(raw*model['candidate_factor'],6),"used_kwh":round(raw*model['applied_factor'],6),"offset_kwh":round(raw*(model['applied_factor']-1),6)})
-    families={f['family'] for f in forecasts};within={};family_scores={}
-    for family in families:
-        members=[f for f in forecasts if f['family']==family]
-        within[family]=normalise_weights({f['provider_id']:f['score'] for f in members})
-        known=[f['score'] for f in members if f['score'] is not None]
-        family_scores[family]=statistics.mean(known) if known else None
-    family_weights=normalise_weights(family_scores)
-    for f in forecasts:f['weight']=family_weights[f['family']]*within[f['family']][f['provider_id']]
-    raw=sum(f['raw_kwh']*f['weight'] for f in forecasts) if forecasts else None
-    used=sum(f['used_kwh']*f['weight'] for f in forecasts) if forecasts else None
+    mode=site.weighting_mode
+    cap=site.max_auto_weight_pct/100
+    for f in forecasts:
+        group=f.get('dependency_group','auto')
+        f['effective_group']=(f['family'] if group=='auto' else group) if site.group_correlated_sources and group!='independent' else '__provider__:'+f['provider_id']
+    if mode in ('equal','manual'):
+        weights={f['provider_id']:(f.get('manual_weight',1.) if mode=='manual' else 1.) for f in forecasts}
+        total=sum(weights.values())
+        for f in forecasts:f['weight']=weights[f['provider_id']]/total if total else 0.
+    else:
+        families={f['effective_group'] for f in forecasts};within={};family_scores={}
+        for family in sorted(families):
+            members=[f for f in forecasts if f['effective_group']==family]
+            within[family]=normalise_weights({f['provider_id']:f['score'] for f in members},cap=cap)
+            known=[f['score'] for f in members if f['score'] is not None]
+            family_scores[family]=statistics.mean(known) if known else None
+        family_weights=normalise_weights(family_scores,cap=cap)
+        for f in forecasts:f['weight']=family_weights[f['effective_group']]*within[f['effective_group']][f['provider_id']]
+    available=any(f['weight']>0 for f in forecasts)
+    raw=sum(f['raw_kwh']*f['weight'] for f in forecasts) if available else None
+    used=sum(f['used_kwh']*f['weight'] for f in forecasts) if available else None
     past_errors=sorted(abs(r['actual_kwh']-r['ensemble_kwh']) for r in history if r.get('ensemble_kwh') is not None)
     spread=past_errors[min(len(past_errors)-1,math.ceil(.8*len(past_errors))-1)] if len(past_errors)>=site.minimum_training_days else None
-    return {"forecasts":forecasts,"raw_ensemble_kwh":raw,"ensemble_kwh":used,"error_spread_kwh":spread,"training_days":len(history),"algorithm":"day-ahead-v1"}
+    return {"forecasts":forecasts,"raw_ensemble_kwh":raw,"ensemble_kwh":used,"error_spread_kwh":spread,"training_days":len(history),"algorithm":"day-ahead-v2","weighting":{"mode":mode,"group_correlated_sources":site.group_correlated_sources,"max_auto_weight_pct":site.max_auto_weight_pct},"weighting_note":"Alle verfügbaren Quellen haben Gewicht 0." if forecasts and not available else ""}
 
 
 def evaluate_prediction(record,actual,complete,reason=None):
