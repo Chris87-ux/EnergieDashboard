@@ -24,7 +24,7 @@ Die komplette Integration prüft weiterhin stabile IDs, Quellenalterung, rekursi
 
 ## Bereitstellung
 
-Startbereitschaft, Update-Rollback, Prüfsummen, Shell-Syntax, Dokumentationslinks/Beispiele und Installationsarchiv werden geprüft. Die Linux-Dockerprüfung für den neuen Quellstand wird vor dem abschließenden Release abgewartet und hier verlinkt.
+Startbereitschaft und Update-Rollback erfolgreich. Dokumentationsprüfung erfolgreich: 44 Markdown-Dateien, 329 lokale Links/Sprungmarken, 18 JSON-Beispiele und 70 Bash-Blöcke. Installationsarchiv, ausführbare Skriptmodi und SHA-256 erfolgreich geprüft. Die [Linux-Dockerprüfung für 2.7.1](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/45820902586) ist vollständig grün: Compose-Build/Start, alle 152 Backendtests im Laufzeitimage, echte MongoDB-Regressionsprüfungen einschließlich VRM-Migration, Healthcheck/Non-Root, Persistenz nach Container-Neuerstellung und beide Linux-Skriptprüfungen.
 
 ## Prüfgrenzen
 

@@ -21,7 +21,7 @@ The full integration retains stable IDs, source expiry, recursive disable, CSV c
 
 ## Deployment
 
-Readiness, updater rollback, checksums, shell syntax, documentation examples/links and package contents are checked. The Linux Docker workflow for this source revision will be awaited and linked here before the final release.
+Readiness and updater rollback passed. Documentation validation passed for 44 Markdown files, 329 local links/anchors, 18 JSON examples and 70 Bash blocks. Package contents, executable modes and SHA-256 passed. The [Linux Docker workflow for 2.7.1](https://github.com/Chris87-ux/EnergieDashboard/actions/runs/45820902586) passed completely: Compose build/start, all 152 tests inside the runtime image, real MongoDB regression tests including VRM repair, health/non-root checks, persistence after container recreation and both Linux deployment harnesses.
 
 ## Limits
 
